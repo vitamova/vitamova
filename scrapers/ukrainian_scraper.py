@@ -22,12 +22,12 @@ def source_profile(file_path):
 source_profile(os.path.expanduser("~/.profile"))
 
 #Get the website https://ua.korrespondent.net/
-main_page = requests.get("https://ua.korrespondent.net/").text
+main_page = requests.get("https://tcn.ua/").text
 
-#Start by finding the top news article which is under tag <div class="article article_top">
-start = main_page.find("<div class=\"article article_top\">")
-#Now find the link which follows <div class="article__title"><a href="
-link_start = main_page.find("<div class=\"article__title\"><a href=\"",start) + 37
+#Start by finding Тільки в ТСН
+start = main_page.find("Тільки в ТСН")
+#Now find the link which follows href="
+link_start = main_page.find("href=\"",start) + 6
 #The link ends with the next "
 link_end = main_page.find("\"",link_start)
 
@@ -36,17 +36,17 @@ link = main_page[link_start:link_end]
 print(link)
 #Get the article page
 article_page = requests.get(link).text
-#The article title starts with the tag <h1 class="post-item__title">
-title_start = article_page.find("<h1 class=\"post-item__title\">") + 29
-title_end = article_page.find("</h1>",title_start)
+#The article title starts with <h1*<span> where * is any characters
+tag_start = article_page.find("<h1")
+title_start = article_page.find("<span>",tag_start) + 6
+title_end = article_page.find("</span>",title_start)
 title = article_page[title_start:title_end]
 
-#The article text starts with the tag <div class="post-item__text">
-text_start = article_page.find("<div class=\"post-item__text\">") + 28
-#The article text ends with <em>
-text_end = article_page.find("<em>",text_start)
-text_raw = article_page[text_start:text_end]
-
+#The article text starts with the tag <p><strong>
+text_start = article_page.find("<p><strong>",title_end) + 11
+#The article text ends when there are no more <p> tags
+text_raw = article_page[text_start:]
+#We will extract the text from the article
 text = []
 start = 0
 while start != -1:
