@@ -75,17 +75,22 @@
 
   <script>
 
-    //I want a listener that will check if the password is at least 10 characters and the two passwords match
-    //If they do, the "Change Password" button will appear
-    document.getElementById("InputPassword").addEventListener("input", function() {
-      var password = document.getElementById("InputPassword").value;
-      var password2 = document.getElementById("InputPassword2").value;
-      if (password.length >= 10 && password == password2) {
-        document.getElementById("change_password").hidden = false;
-      } else {
-        document.getElementById("change_password").hidden = true;
-      }
-    });
+  // Function to check if the password meets criteria and the passwords match
+  function checkPasswords() {
+    var password = document.getElementById("InputPassword").value;
+    var password2 = document.getElementById("InputPassword2").value;
+    
+    // Check if password is at least 10 characters long and both passwords match
+    if (password.length >= 10 && password === password2) {
+      document.getElementById("change_password").hidden = false;
+    } else {
+      document.getElementById("change_password").hidden = true;
+    }
+  }
+
+  // Attach the event listeners
+  document.getElementById("InputPassword").addEventListener("input", checkPasswords);
+  document.getElementById("InputPassword2").addEventListener("input", checkPasswords);
 
     function info() {
       document.getElementById("account_info").hidden = false;
