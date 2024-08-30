@@ -62,7 +62,7 @@ while start != -1:
         #Replace &#8220; with "
         sub_text = sub_text.replace("&#8220;","\"")
         #If the sub_text starts with Sigue leyendo:, set start to -1 to break the loop
-        if sub_text.startswith("Sigue leyendo:"):
+        if sub_text.startswith("Читайте також:"):
             start = -1
         else:
             text.append(sub_text)
