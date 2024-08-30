@@ -135,6 +135,8 @@ def update_account(request):
             u.first_name = data["first_name"]
         if "last_name" in data:
             u.last_name = data["last_name"]
+        if "password" in data:
+            u.set_password(data["password"])
         #if "language" in data:
             #db_connection = vitalib.db.connection.open()
             #vitalib.db.user_info.update(db_connection, u.username).language(data["language"])

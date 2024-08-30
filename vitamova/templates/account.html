@@ -61,6 +61,8 @@
           <label for="InputPassword2">Confirm New Password</label>
           <input type="password" class="form-control" id="InputPassword2" required>
         </div>
+        <br>
+        <button id="change_password" class="btn btn-primary" onclick="update_account()" hidden>Change Password</button>
       </div>
       <div id="points_info" hidden>
         <h1> Total Points {{points}} </h1>
@@ -72,6 +74,19 @@
 </div>
 
   <script>
+
+    //I want a listener that will check if the password is at least 10 characters and the two passwords match
+    //If they do, the "Change Password" button will appear
+    document.getElementById("InputPassword").addEventListener("input", function() {
+      var password = document.getElementById("InputPassword").value;
+      var password2 = document.getElementById("InputPassword2").value;
+      if (password.length >= 10 && password == password2) {
+        document.getElementById("change_password").hidden = false;
+      } else {
+        document.getElementById("change_password").hidden = true;
+      }
+    });
+
     function info() {
       document.getElementById("account_info").hidden = false;
       document.getElementById("security_info").hidden = true;
@@ -107,6 +122,7 @@
       var first_name = document.getElementById("InputFirst").value;
       var last_name = document.getElementById("InputLast").value;
       var language = document.getElementById("InputLanguage").value;
+      var password = document.getElementById("InputPassword").value;
       //Perform an AJAX request to update the account
       $.ajax ({
         type: "POST",
