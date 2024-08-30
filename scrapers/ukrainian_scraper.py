@@ -22,7 +22,7 @@ def source_profile(file_path):
 source_profile(os.path.expanduser("~/.profile"))
 
 #Get the website https://ua.korrespondent.net/
-main_page = requests.get("https://tcn.ua/").text
+main_page = requests.get("https://tsn.ua/").text
 
 #Start by finding Тільки в ТСН
 start = main_page.find("Тільки в ТСН")
