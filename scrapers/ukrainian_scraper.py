@@ -5,6 +5,8 @@ import os
 import re
 from openai import OpenAI
 
+#This scraper still isn't working, need to fix it
+
 def source_profile(file_path):
     with open(file_path) as f:
         for line in f:
