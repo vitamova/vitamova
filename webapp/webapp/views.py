@@ -1,6 +1,6 @@
 from django.shortcuts import render, redirect
 
-#editing
+#Need this to be UTF-8
 
 def home(request):
     if not request.user.is_authenticated:
