@@ -56,7 +56,7 @@ echo "✅ Migrations applied successfully."
 
 # Step 7: Start services
 echo "🚀 Starting Vitamova services..."
-if bash vitamova/deploy/start-services.sh; then
+if bash ~/vitamova/deploy/start-services.sh; then
   echo "✅ Vitamova services started successfully."
 else
   echo "❌ ERROR: Failed to start Vitamova services."
