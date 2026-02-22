@@ -25,7 +25,7 @@ SECRET_KEY = 'django-insecure-3&_q++$yv5n4#lsxbeygej^tlb^9n7)cabw8*_jc3^6cb(o1ag
 # SECURITY WARNING: don't run with debug turned on in production!
 DEBUG = True
 
-ALLOWED_HOSTS = []
+ALLOWED_HOSTS = ['app.vitamova.com']
 
 
 # Application definition
