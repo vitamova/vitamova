@@ -26,8 +26,8 @@ python manage.py migrate
 cd ~/vitamova
 
 echo "=== Copying Nginx configuration ==="
-if [ ! -f /home/ubuntu/vitamova/webapp/nginx/sites-available.conf ]; then
-    echo "❌ ERROR: /home/ubuntu/vitamova/webapp/nginx/sites-available.conf not found!"
+if [ ! -f /home/ubuntu/vitamova/deploy/nginx.conf ]; then
+    echo "❌ ERROR: /home/ubuntu/vitamova/deploy/nginx.conf not found!"
     exit 1
 fi
 
