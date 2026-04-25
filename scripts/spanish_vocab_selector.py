@@ -40,6 +40,7 @@ def main():
         database="vitamova",
         user="webapp",
         password=db_password
+    )
 
     cursor = conn.cursor()
 
