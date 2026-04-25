@@ -2,8 +2,8 @@ import psycopg2
 
 filename = "lemmas_1096.txt"
 
-#the password is in ~/data/db_pw.txt
-db_password_path = "~/data/db_pw.txt"
+#the password is in data/db_pw.txt
+db_password_path = "data/db_pw.txt"
 with open(db_password_path, 'r') as f:
     db_password = f.read().strip()
 
