@@ -10,6 +10,7 @@ For the full list of settings and their values, see
 https://docs.djangoproject.com/en/5.0/ref/settings/
 """
 
+import os
 from pathlib import Path
 
 # Build paths inside the project like this: BASE_DIR / 'subdir'.
@@ -88,10 +89,19 @@ WSGI_APPLICATION = 'webapp.wsgi.application'
 # Database
 # https://docs.djangoproject.com/en/5.0/ref/settings/#databases
 
+# The database password is in ~/data/db_pw.txt
+db_password_path = Path.home() / 'data' / 'db_pw.txt'
+with open(db_password_path, 'r') as f:
+    db_password = f.read().strip()
+
 DATABASES = {
-    'default': {
-        'ENGINE': 'django.db.backends.sqlite3',
-        'NAME': BASE_DIR / 'db.sqlite3',
+    "default": {
+        "ENGINE": "django.db.backends.postgresql",
+        "NAME": "vitamova",
+        "USER": "webapp",
+        "PASSWORD": db_password,
+        "HOST": "vitamova-db.cluster-cartvcorpihi.us-east-1.rds.amazonaws.com",
+        "PORT": "5432",
     }
 }
 
