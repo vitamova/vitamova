@@ -8,7 +8,7 @@ with open(db_password_path, 'r') as f:
     db_password = f.read().strip()
 
 conn = psycopg2.connect(
-    host="localhost",
+    host="vitamova-db.cluster-cartvcorpihi.us-east-1.rds.amazonaws.com",
     database="vitamova",
     user="webapp",
     password=db_password
