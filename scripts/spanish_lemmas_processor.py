@@ -5,6 +5,6 @@ with open(filename, "r", encoding="utf-8") as file:
     lines = file.readlines()
 
 # Lines 7-16 are indexes 6-15 in Python
-for line in lines[6:16]:
+for line in lines[6:17]:
     values = line.rstrip("\n").split("\t")
     print(values)
