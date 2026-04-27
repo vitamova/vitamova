@@ -1,0 +1,660 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <link rel="icon" href="/static/icon.png">
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+
+  <title>Vitamova | Home</title>
+
+  <style>
+    :root {
+      --vita-yellow: #ffd54a;
+      --vita-yellow-dark: #f4bf20;
+      --vita-blue: #1f5eff;
+      --vita-blue-dark: #1748c6;
+      --bg-soft: #f7f9ff;
+      --text-dark: #1a1f36;
+      --text-muted: #667085;
+      --card: #ffffff;
+      --border: #e6eaf2;
+      --shadow: 0 18px 45px rgba(24, 42, 100, 0.12);
+      --success: #12b76a;
+      --warning: #f79009;
+    }
+
+    * {
+      box-sizing: border-box;
+    }
+
+    body {
+      margin: 0;
+      font-family: Inter, ui-sans-serif, system-ui, -apple-system, Segoe UI, Roboto, Helvetica, Arial, sans-serif;
+      color: var(--text-dark);
+      background:
+        radial-gradient(circle at 10% 10%, rgba(255, 213, 74, 0.25), transparent 40%),
+        radial-gradient(circle at 90% 20%, rgba(31, 94, 255, 0.20), transparent 42%),
+        linear-gradient(180deg, #fdfefe 0%, var(--bg-soft) 100%);
+      min-height: 100vh;
+      padding: 24px;
+    }
+
+    .page {
+      width: 100%;
+      max-width: 1120px;
+      margin: 0 auto;
+      display: grid;
+      gap: 22px;
+    }
+
+    .topbar {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 16px;
+    }
+
+    .brand {
+      display: flex;
+      align-items: center;
+      gap: 10px;
+      font-weight: 800;
+      font-size: 1.15rem;
+      letter-spacing: 0.2px;
+      color: var(--text-dark);
+    }
+
+    .brand-badge {
+      width: 42px;
+      height: 42px;
+      border-radius: 12px;
+      overflow: hidden;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      box-shadow: 0 8px 20px rgba(20, 27, 52, 0.08);
+      background: white;
+    }
+
+    .brand-icon {
+      width: 100%;
+      height: 100%;
+      object-fit: cover;
+      display: block;
+    }
+
+    .account {
+      position: relative;
+      display: flex;
+      align-items: center;
+      gap: 10px;
+    }
+
+    .account-button {
+      border: 1px solid var(--border);
+      background: rgba(255, 255, 255, 0.78);
+      color: var(--text-dark);
+      border-radius: 999px;
+      padding: 8px 10px 8px 14px;
+      display: flex;
+      align-items: center;
+      gap: 10px;
+      cursor: pointer;
+      box-shadow: 0 8px 20px rgba(20, 27, 52, 0.06);
+      font-weight: 700;
+      max-width: 280px;
+    }
+
+    .account-email {
+      overflow: hidden;
+      text-overflow: ellipsis;
+      white-space: nowrap;
+      font-size: 0.88rem;
+      color: var(--text-muted);
+    }
+
+    .account-avatar {
+      width: 30px;
+      height: 30px;
+      border-radius: 999px;
+      background: var(--vita-blue);
+      color: white;
+      display: grid;
+      place-items: center;
+      font-size: 0.85rem;
+      font-weight: 900;
+      flex-shrink: 0;
+    }
+
+    .account-menu {
+      display: none;
+      position: absolute;
+      right: 0;
+      top: calc(100% + 10px);
+      width: 220px;
+      background: white;
+      border: 1px solid var(--border);
+      border-radius: 16px;
+      box-shadow: var(--shadow);
+      padding: 8px;
+      z-index: 10;
+    }
+
+    .account-menu.is-open {
+      display: block;
+    }
+
+    .account-menu a {
+      display: block;
+      color: var(--text-dark);
+      text-decoration: none;
+      padding: 10px 11px;
+      border-radius: 11px;
+      font-weight: 700;
+      font-size: 0.92rem;
+    }
+
+    .account-menu a:hover {
+      background: #f7f9ff;
+    }
+
+    .hero {
+      background: linear-gradient(160deg, var(--vita-blue) 0%, #3d7dff 55%, #6aa0ff 100%);
+      color: white;
+      border-radius: 28px;
+      padding: 34px 32px;
+      position: relative;
+      overflow: hidden;
+      box-shadow: var(--shadow);
+    }
+
+    .hero::before,
+    .hero::after {
+      content: "";
+      position: absolute;
+      border-radius: 999px;
+      filter: blur(2px);
+      opacity: 0.9;
+    }
+
+    .hero::before {
+      width: 250px;
+      height: 250px;
+      background: rgba(255, 213, 74, 0.35);
+      top: -95px;
+      right: -55px;
+    }
+
+    .hero::after {
+      width: 180px;
+      height: 180px;
+      background: rgba(255, 255, 255, 0.15);
+      bottom: -55px;
+      left: -35px;
+    }
+
+    .hero-content {
+      position: relative;
+      z-index: 1;
+      max-width: 720px;
+    }
+
+    .hero h1 {
+      margin: 0 0 12px;
+      font-size: clamp(2rem, 4vw, 3.15rem);
+      line-height: 1.05;
+      letter-spacing: -0.04em;
+    }
+
+    .hero p {
+      margin: 0;
+      color: rgba(255, 255, 255, 0.92);
+      max-width: 62ch;
+      line-height: 1.55;
+      font-size: 1.05rem;
+    }
+
+    .status-strip {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 10px;
+      margin-top: 22px;
+    }
+
+    .status-pill {
+      background: rgba(255, 255, 255, 0.12);
+      border: 1px solid rgba(255, 255, 255, 0.16);
+      color: white;
+      padding: 8px 12px;
+      border-radius: 999px;
+      font-size: 0.9rem;
+      backdrop-filter: blur(4px);
+      font-weight: 700;
+    }
+
+    .section-header {
+      display: flex;
+      align-items: flex-end;
+      justify-content: space-between;
+      gap: 16px;
+      margin-top: 4px;
+    }
+
+    .section-header h2 {
+      margin: 0;
+      font-size: 1.45rem;
+      letter-spacing: -0.03em;
+    }
+
+    .section-header p {
+      margin: 6px 0 0;
+      color: var(--text-muted);
+      line-height: 1.45;
+    }
+
+    .dashboard-grid {
+      display: grid;
+      grid-template-columns: repeat(4, 1fr);
+      gap: 16px;
+      align-items: stretch;
+    }
+
+    .activity-card {
+      position: relative;
+      background: var(--card);
+      border: 1px solid var(--border);
+      border-radius: 24px;
+      box-shadow: 0 12px 32px rgba(24, 42, 100, 0.08);
+      padding: 22px;
+      min-height: 260px;
+      display: flex;
+      flex-direction: column;
+      text-decoration: none;
+      color: var(--text-dark);
+      overflow: hidden;
+      transition: transform 0.15s ease, box-shadow 0.15s ease, border-color 0.15s ease;
+    }
+
+    .activity-card:hover {
+      transform: translateY(-3px);
+      box-shadow: var(--shadow);
+      border-color: rgba(31, 94, 255, 0.26);
+    }
+
+    .activity-card.highlighted {
+      order: -1;
+      border-color: rgba(31, 94, 255, 0.42);
+      box-shadow: 0 18px 45px rgba(31, 94, 255, 0.18);
+      animation: attentionPulse 1.8s ease-in-out infinite;
+    }
+
+    .activity-card.highlighted::before {
+      content: "";
+      position: absolute;
+      inset: 0;
+      background: radial-gradient(circle at 85% 10%, rgba(255, 213, 74, 0.32), transparent 38%);
+      pointer-events: none;
+    }
+
+    @keyframes attentionPulse {
+      0%, 100% {
+        transform: translateY(0);
+      }
+
+      50% {
+        transform: translateY(-4px);
+      }
+    }
+
+    .activity-card.locked {
+      opacity: 0.52;
+      filter: grayscale(0.15);
+      cursor: not-allowed;
+    }
+
+    .activity-card.locked:hover {
+      transform: none;
+      box-shadow: 0 12px 32px rgba(24, 42, 100, 0.08);
+      border-color: var(--border);
+    }
+
+    .card-topline {
+      display: flex;
+      align-items: flex-start;
+      justify-content: space-between;
+      gap: 12px;
+      position: relative;
+      z-index: 1;
+    }
+
+    .icon-circle {
+      width: 46px;
+      height: 46px;
+      border-radius: 16px;
+      background: rgba(31, 94, 255, 0.09);
+      color: var(--vita-blue);
+      display: grid;
+      place-items: center;
+      font-size: 1.35rem;
+      font-weight: 900;
+      flex-shrink: 0;
+    }
+
+    .highlighted .icon-circle {
+      background: var(--vita-blue);
+      color: white;
+    }
+
+    .mini-badge {
+      background: rgba(31, 94, 255, 0.09);
+      color: var(--vita-blue);
+      border-radius: 999px;
+      padding: 6px 9px;
+      font-size: 0.75rem;
+      font-weight: 850;
+      white-space: nowrap;
+    }
+
+    .mini-badge.review {
+      background: rgba(247, 144, 9, 0.12);
+      color: #b54708;
+    }
+
+    .activity-card h3 {
+      position: relative;
+      z-index: 1;
+      margin: 20px 0 9px;
+      font-size: 1.25rem;
+      letter-spacing: -0.025em;
+    }
+
+    .activity-card p {
+      position: relative;
+      z-index: 1;
+      margin: 0;
+      color: var(--text-muted);
+      line-height: 1.5;
+      font-size: 0.94rem;
+    }
+
+    .card-action {
+      position: relative;
+      z-index: 1;
+      margin-top: auto;
+      padding-top: 20px;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 8px;
+      color: var(--vita-blue);
+      font-weight: 850;
+      font-size: 0.94rem;
+    }
+
+    .locked-note {
+      position: relative;
+      z-index: 1;
+      margin-top: auto;
+      padding-top: 18px;
+      color: var(--text-muted);
+      font-size: 0.84rem;
+      line-height: 1.45;
+      font-weight: 700;
+    }
+
+    .locked-note strong {
+      color: var(--text-dark);
+    }
+
+    .bottom-note {
+      text-align: center;
+      color: var(--text-muted);
+      font-size: 0.88rem;
+      line-height: 1.45;
+      margin-bottom: 4px;
+    }
+
+    @media (max-width: 980px) {
+      .dashboard-grid {
+        grid-template-columns: repeat(2, 1fr);
+      }
+    }
+
+    @media (max-width: 640px) {
+      body {
+        padding: 18px;
+      }
+
+      .topbar {
+        align-items: flex-start;
+      }
+
+      .account-button {
+        max-width: 190px;
+      }
+
+      .hero {
+        padding: 28px 22px;
+      }
+
+      .dashboard-grid {
+        grid-template-columns: 1fr;
+      }
+
+      .section-header {
+        display: block;
+      }
+    }
+  </style>
+</head>
+
+<body>
+  <main class="page">
+    <header class="topbar">
+      <div class="brand">
+        <div class="brand-badge">
+          <img src="/static/icon.png" alt="Vitamova icon" class="brand-icon">
+        </div>
+        <span>Vitamova</span>
+      </div>
+
+      <div class="account">
+        <button class="account-button" type="button" id="accountButton" aria-haspopup="true" aria-expanded="false">
+          <span class="account-email">{{ user_email }}</span>
+          <span class="account-avatar">{{ first_name|first|upper }}</span>
+        </button>
+
+        <nav class="account-menu" id="accountMenu" aria-label="Account menu">
+          <a href="/account/">Edit account</a>
+          <a href="/subscribe/">Manage subscription</a>
+          <a href="/accounts/logout/">Sign out</a>
+        </nav>
+      </div>
+    </header>
+
+    <section class="hero" aria-label="Vitamova Dashboard Welcome">
+      <div class="hero-content">
+        <h1>Welcome back, {{ first_name }}</h1>
+        <p>
+          Keep building the kind of Spanish vocabulary that helps you speak with more precision,
+          understand more naturally, and move beyond beginner-level practice.
+        </p>
+
+        <div class="status-strip">
+          {% if has_score %}
+            <span class="status-pill">Vocabulary score ready</span>
+          {% else %}
+            <span class="status-pill">Start with your first vocabulary test</span>
+          {% endif %}
+
+          {% if review_count > 0 %}
+            <span class="status-pill">{{ review_count }} terms ready for review</span>
+          {% else %}
+            <span class="status-pill">No reviews due today</span>
+          {% endif %}
+        </div>
+      </div>
+    </section>
+
+    <section aria-label="Learning Activities">
+      <div class="section-header">
+        <div>
+          <h2>Your learning dashboard</h2>
+          <p>Choose what you want to work on today.</p>
+        </div>
+      </div>
+
+      <div class="dashboard-grid">
+        <a class="activity-card" href="/vocab-test/">
+          <div class="card-topline">
+            <div class="icon-circle">A+</div>
+            {% if not has_score %}
+              <span class="mini-badge">Start here</span>
+            {% endif %}
+          </div>
+
+          <h3>Vocabulary Test</h3>
+          <p>
+            Estimate your current vocabulary level so Vitamova can personalize your Spanish learning path.
+          </p>
+
+          <div class="card-action">
+            <span>{% if has_score %}Retake test{% else %}Take your first test{% endif %}</span>
+            <span>→</span>
+          </div>
+        </a>
+
+        {% if has_score %}
+          <a class="activity-card" href="/vocab-builder/">
+            <div class="card-topline">
+              <div class="icon-circle">✦</div>
+            </div>
+
+            <h3>Vocabulary Builder</h3>
+            <p>
+              Learn new words in the frequency range that best matches your current level.
+            </p>
+
+            <div class="card-action">
+              <span>Build vocabulary</span>
+              <span>→</span>
+            </div>
+          </a>
+        {% else %}
+          <div class="activity-card locked">
+            <div class="card-topline">
+              <div class="icon-circle">✦</div>
+            </div>
+
+            <h3>Vocabulary Builder</h3>
+            <p>
+              Learn new words in the frequency range that best matches your current level.
+            </p>
+
+            <div class="locked-note">
+              <strong>Almost ready.</strong> Complete your first vocabulary test so we can recommend the right words.
+            </div>
+          </div>
+        {% endif %}
+
+        {% if has_score %}
+          <a class="activity-card {% if review_count > 0 %}highlighted{% endif %}" href="/review/">
+            <div class="card-topline">
+              <div class="icon-circle">↻</div>
+              {% if review_count > 0 %}
+                <span class="mini-badge review">{{ review_count }} due</span>
+              {% endif %}
+            </div>
+
+            <h3>Review Queue</h3>
+            <p>
+              Revisit terms that are ready for another pass and keep them active in long-term memory.
+            </p>
+
+            <div class="card-action">
+              <span>{% if review_count > 0 %}Review now{% else %}Check reviews{% endif %}</span>
+              <span>→</span>
+            </div>
+          </a>
+        {% else %}
+          <div class="activity-card locked">
+            <div class="card-topline">
+              <div class="icon-circle">↻</div>
+            </div>
+
+            <h3>Review Queue</h3>
+            <p>
+              Revisit terms that are ready for another pass and keep them active in long-term memory.
+            </p>
+
+            <div class="locked-note">
+              <strong>Coming next.</strong> Complete your first vocabulary test so your reviews can be personalized.
+            </div>
+          </div>
+        {% endif %}
+
+        {% if has_score %}
+          <a class="activity-card" href="/reading-practice/">
+            <div class="card-topline">
+              <div class="icon-circle">¶</div>
+            </div>
+
+            <h3>Reading Lab</h3>
+            <p>
+              Practice Spanish in context with reading passages matched to your vocabulary level.
+            </p>
+
+            <div class="card-action">
+              <span>Start reading</span>
+              <span>→</span>
+            </div>
+          </a>
+        {% else %}
+          <div class="activity-card locked">
+            <div class="card-topline">
+              <div class="icon-circle">¶</div>
+            </div>
+
+            <h3>Reading Lab</h3>
+            <p>
+              Practice Spanish in context with reading passages matched to your vocabulary level.
+            </p>
+
+            <div class="locked-note">
+              <strong>Personalization needed.</strong> Complete your first vocabulary test so readings match your level.
+            </div>
+          </div>
+        {% endif %}
+      </div>
+    </section>
+
+    <div class="bottom-note">
+      Small, consistent practice compounds. Pick one activity and keep the streak moving.
+    </div>
+  </main>
+
+  <script>
+    const accountButton = document.getElementById("accountButton");
+    const accountMenu = document.getElementById("accountMenu");
+
+    accountButton.addEventListener("click", () => {
+      const isOpen = accountMenu.classList.toggle("is-open");
+      accountButton.setAttribute("aria-expanded", isOpen ? "true" : "false");
+    });
+
+    document.addEventListener("click", (event) => {
+      if (!accountButton.contains(event.target) && !accountMenu.contains(event.target)) {
+        accountMenu.classList.remove("is-open");
+        accountButton.setAttribute("aria-expanded", "false");
+      }
+    });
+
+    document.addEventListener("keydown", (event) => {
+      if (event.key === "Escape") {
+        accountMenu.classList.remove("is-open");
+        accountButton.setAttribute("aria-expanded", "false");
+      }
+    });
+  </script>
+</body>
+</html>

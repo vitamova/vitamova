@@ -83,9 +83,6 @@ def check_vitamova_subscription_in_stripe(user_email):
 
                     if current_period_end:
                         subscription_expiration = date.fromtimestamp(current_period_end)
-                    else:
-                        print("WARNING: Matched Vitamova subscription but no current_period_end found")
-                        print("Subscription ID:", subscription_id)
 
                     return {
                         "subscribed": subscribed,
@@ -264,7 +261,12 @@ def home(request):
         )
 
     if subscribed and subscription_expiration and subscription_expiration > today:
-        return render(request, "home.html")
+        return render(request, "home.html", {
+            "first_name": request.user.first_name,
+            "user_email": request.user.email,
+            "has_score": False,
+            "review_count": 0,
+})
 
     if vocab_score == -1:
         return render(request, "home_unsubscribed_noscore.html")
