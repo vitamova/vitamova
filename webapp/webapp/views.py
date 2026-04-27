@@ -232,19 +232,19 @@ def home(request):
     vocab_score = registered_user[3]
 
     with connection.cursor() as cursor:
-    cursor.execute(
-        """
-        SELECT COUNT(*)
-        FROM user_vocabulary
-        WHERE user_id = %s
-          AND next_review_at IS NOT NULL
-          AND next_review_at < %s
-        """,
-        [
-            request.user.id,
-            timezone.now(),
-        ]
-    )
+        cursor.execute(
+            """
+            SELECT COUNT(*)
+            FROM user_vocabulary
+            WHERE user_id = %s
+            AND next_review_at IS NOT NULL
+            AND next_review_at < %s
+            """,
+            [
+                request.user.id,
+                timezone.now(),
+            ]
+        )
     review_count = cursor.fetchone()[0]
 
     today = date.today()
