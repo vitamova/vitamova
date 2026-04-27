@@ -5,43 +5,34 @@ from datetime import date
 from pathlib import Path
 
 VITAMOVA_PRICE_MAP = {
-    # Replace this with your real Stripe monthly price ID
     "price_1TQtOmKOiNtX3Wewk310Ygu5": "Vitamova Monthly",
     "price_1TQtPSKOiNtX3WewCEePEtQg": "Vitamova Yearly"
 }
 
+"STRIPE_PUBLIC_KEY": "pk_live_51RIChJKOiNtX3WewnOeHxiL99XltNWm2TluZew2fn6fzcmuHJ3R2x7EuLbbNpb74k1gnHlSRPHOoFJsFTEd5z8fp00rYr00NmV"
 # Stripe key is in data/stripe_key.txt
 stripe_key_path = Path.home() / 'data' / 'stripe_key.txt'
 with open(stripe_key_path, 'r') as f:
     stripe.api_key = f.read().strip()
 
-def create_checkout_session(request):
-    if request.method != 'POST':
-        return redirect('home')
+# Helper functions
 
-    price_id = request.POST.get('price_id')
+def is_registered_user(user):
+    if not user or not user.is_authenticated:
+        return False
 
-    if price_id not in VITAMOVA_PRICE_MAP:
-        return redirect('home')
-
-    try:
-        checkout_session = stripe.checkout.Session.create(
-            customer_email=request.user.email,
-            line_items=[
-                {
-                    'price': price_id,
-                    'quantity': 1,
-                },
-            ],
-            mode='subscription',
-            success_url=request.build_absolute_uri('/?checkout=success'),
-            cancel_url=request.build_absolute_uri('/?checkout=cancel'),
+    with connection.cursor() as cursor:
+        cursor.execute(
+            """
+            SELECT 1
+            FROM registered_user
+            WHERE user_id = %s
+            LIMIT 1
+            """,
+            [user.id]
         )
-        return redirect(checkout_session.url)
-    except Exception as e:
-        print(f"Error creating Stripe checkout session: {e}")
-        return redirect('home')
-
+        return cursor.fetchone() is not None
+    
 def check_vitamova_subscription_in_stripe(user_email):
     subscribed = False
     subscription_expiration = None
@@ -94,6 +85,35 @@ def check_vitamova_subscription_in_stripe(user_email):
         "stripe_customer_id": stripe_customer_id,
         "subscription_id": subscription_id,
     }
+
+# Views
+    
+def create_checkout_session(request):
+    if request.method != 'POST':
+        return redirect('home')
+
+    price_id = request.POST.get('price_id')
+
+    if price_id not in VITAMOVA_PRICE_MAP:
+        return redirect('home')
+
+    try:
+        checkout_session = stripe.checkout.Session.create(
+            customer_email=request.user.email,
+            line_items=[
+                {
+                    'price': price_id,
+                    'quantity': 1,
+                },
+            ],
+            mode='subscription',
+            success_url=request.build_absolute_uri('/?checkout=success'),
+            cancel_url=request.build_absolute_uri('/?checkout=cancel'),
+        )
+        return redirect(checkout_session.url)
+    except Exception as e:
+        print(f"Error creating Stripe checkout session: {e}")
+        return redirect('home')
 
 
 def home(request):
@@ -159,7 +179,10 @@ def home(request):
     return render(request, "home_unsubscribed.html")
 
 def login(request):
-    return render(request, 'login.html')
+    if request.user.is_authenticated:
+        return redirect('home')
+    else:
+        return render(request, 'login.html')
 
 def register(request):
     if not request.user.is_authenticated:
@@ -261,3 +284,80 @@ def register(request):
         return render(request, 'register.html', {
             'first_name': request.user.first_name
         })
+    
+def vocab_test(request):
+    if not request.user.is_authenticated:
+        return redirect("login")
+
+    with connection.cursor() as cursor:
+        cursor.execute(
+            """
+            SELECT subscribed, subscription_expiration, stripe_customer_id, vocab_score
+            FROM registered_user
+            WHERE user_id = %s
+            LIMIT 1
+            """,
+            [request.user.id]
+        )
+        registered_user = cursor.fetchone()
+
+    if not registered_user:
+        return redirect("/register/")
+
+    subscribed = registered_user[0]
+    subscription_expiration = registered_user[1]
+    stripe_customer_id = registered_user[2]
+    vocab_score = registered_user[3]
+
+    today = date.today()
+
+    has_current_subscription = (
+        subscribed
+        and subscription_expiration
+        and subscription_expiration > today
+    )
+
+    # Let users take the vocab test for free if they have not been assessed yet.
+    if has_current_subscription or vocab_score == -1:
+        return render(request, "vocab_test.html")
+
+    # Local DB says they are not currently subscribed and they already have a score,
+    # so check Stripe one more time before redirecting them to subscribe.
+    stripe_status = check_vitamova_subscription_in_stripe(request.user.email)
+
+    subscribed = stripe_status["subscribed"]
+    subscription_expiration = stripe_status["subscription_expiration"]
+    stripe_customer_id = stripe_status["stripe_customer_id"]
+
+    with connection.cursor() as cursor:
+        cursor.execute(
+            """
+            UPDATE registered_user
+            SET subscribed = %s,
+                subscription_expiration = %s,
+                stripe_customer_id = COALESCE(%s, stripe_customer_id)
+            WHERE user_id = %s
+            """,
+            [
+                subscribed,
+                subscription_expiration,
+                stripe_customer_id,
+                request.user.id,
+            ]
+        )
+
+    has_current_subscription = (
+        subscribed
+        and subscription_expiration
+        and subscription_expiration > today
+    )
+
+    if has_current_subscription or vocab_score == -1:
+        return render(request, "vocab_test.html")
+
+    return redirect("/subscribe/")
+
+def subscribe(request):
+    if not request.user.is_authenticated or not is_registered_user(request.user):
+        return redirect("login")
+    return render(request, "subscribe.html", {"stripe_public_key": STRIPE_PUBLIC_KEY})

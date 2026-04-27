@@ -21,5 +21,8 @@ urlpatterns = [
     path('', views.home, name='home'),
     path('login/', views.login, name='login'),
     path('accounts/', include('allauth.urls')),
-    path('register/', views.register, name='register')
+    path('register/', views.register, name='register'),
+    path('create-checkout-session/', views.create_checkout_session, name='create-checkout-session'),
+    path('vocab-test/', views.vocab_test, name='vocab-test'),
+    path('subscribe/', views.subscribe, name='subscribe')
 ]
