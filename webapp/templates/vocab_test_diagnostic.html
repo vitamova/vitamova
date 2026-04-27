@@ -1,0 +1,848 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <link rel="icon" href="/static/icon.png">
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+
+  <title>Vitamova | Vocabulary Diagnostic</title>
+
+  <style>
+    :root {
+      --vita-yellow: #ffd54a;
+      --vita-yellow-dark: #f4bf20;
+      --vita-blue: #1f5eff;
+      --vita-blue-dark: #1748c6;
+      --bg-soft: #f7f9ff;
+      --text-dark: #1a1f36;
+      --text-muted: #667085;
+      --card: #ffffff;
+      --border: #e6eaf2;
+      --shadow: 0 18px 45px rgba(24, 42, 100, 0.12);
+      --danger: #b42318;
+      --danger-soft: #fff3f0;
+      --success: #12b76a;
+      --success-soft: #ecfdf3;
+    }
+
+    * {
+      box-sizing: border-box;
+    }
+
+    body {
+      margin: 0;
+      font-family: Inter, ui-sans-serif, system-ui, -apple-system, Segoe UI, Roboto, Helvetica, Arial, sans-serif;
+      color: var(--text-dark);
+      background:
+        radial-gradient(circle at 10% 10%, rgba(255, 213, 74, 0.25), transparent 40%),
+        radial-gradient(circle at 90% 20%, rgba(31, 94, 255, 0.20), transparent 42%),
+        linear-gradient(180deg, #fdfefe 0%, var(--bg-soft) 100%);
+      min-height: 100vh;
+      padding: 24px;
+    }
+
+    .page {
+      width: 100%;
+      max-width: 960px;
+      min-height: calc(100vh - 48px);
+      margin: 0 auto;
+      display: grid;
+      gap: 22px;
+      align-content: center;
+    }
+
+    .brand {
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      gap: 10px;
+      font-weight: 800;
+      font-size: 1.15rem;
+      letter-spacing: 0.2px;
+      color: var(--text-dark);
+    }
+
+    .brand-badge {
+      width: 42px;
+      height: 42px;
+      border-radius: 12px;
+      overflow: hidden;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      box-shadow: 0 8px 20px rgba(20, 27, 52, 0.08);
+      background: white;
+    }
+
+    .brand-icon {
+      width: 100%;
+      height: 100%;
+      object-fit: cover;
+      display: block;
+    }
+
+    .title-card {
+      background: linear-gradient(160deg, var(--vita-blue) 0%, #3d7dff 55%, #6aa0ff 100%);
+      color: white;
+      border-radius: 28px;
+      padding: 30px 28px;
+      position: relative;
+      overflow: hidden;
+      box-shadow: var(--shadow);
+      text-align: center;
+    }
+
+    .title-card::before,
+    .title-card::after {
+      content: "";
+      position: absolute;
+      border-radius: 999px;
+      filter: blur(2px);
+      opacity: 0.9;
+    }
+
+    .title-card::before {
+      width: 240px;
+      height: 240px;
+      background: rgba(255, 213, 74, 0.35);
+      top: -90px;
+      right: -50px;
+    }
+
+    .title-card::after {
+      width: 180px;
+      height: 180px;
+      background: rgba(255, 255, 255, 0.15);
+      bottom: -55px;
+      left: -35px;
+    }
+
+    .title-card-content {
+      position: relative;
+      z-index: 1;
+      max-width: 720px;
+      margin: 0 auto;
+    }
+
+    .title-card h1 {
+      margin: 0 0 12px;
+      font-size: clamp(1.9rem, 4vw, 3rem);
+      line-height: 1.05;
+      letter-spacing: -0.04em;
+    }
+
+    .title-card p {
+      margin: 0 auto;
+      color: rgba(255, 255, 255, 0.92);
+      max-width: 64ch;
+      line-height: 1.55;
+      font-size: 1.02rem;
+    }
+
+    .warning {
+      margin-top: 18px;
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      gap: 8px;
+      border: 1px solid rgba(255, 255, 255, 0.22);
+      background: rgba(255, 255, 255, 0.12);
+      color: white;
+      padding: 9px 13px;
+      border-radius: 999px;
+      font-size: 0.9rem;
+      font-weight: 800;
+      backdrop-filter: blur(4px);
+    }
+
+    .test-card {
+      background: var(--card);
+      border: 1px solid var(--border);
+      border-radius: 28px;
+      box-shadow: var(--shadow);
+      padding: 28px;
+    }
+
+    .progress-row {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 14px;
+      margin-bottom: 18px;
+    }
+
+    .progress-label {
+      color: var(--text-muted);
+      font-size: 0.92rem;
+      font-weight: 800;
+    }
+
+    .progress-count {
+      color: var(--vita-blue);
+      font-size: 0.92rem;
+      font-weight: 900;
+      white-space: nowrap;
+    }
+
+    .progress-bar {
+      width: 100%;
+      height: 12px;
+      background: #edf1f8;
+      border-radius: 999px;
+      overflow: hidden;
+      margin-bottom: 24px;
+    }
+
+    .progress-fill {
+      height: 100%;
+      width: 0%;
+      background: linear-gradient(90deg, var(--vita-blue), #6aa0ff);
+      border-radius: 999px;
+      transition: width 0.25s ease;
+    }
+
+    .question-list {
+      display: grid;
+      gap: 18px;
+    }
+
+    .question-card {
+      border: 1px solid var(--border);
+      border-radius: 20px;
+      background: #fbfcff;
+      padding: 18px;
+    }
+
+    .question-topline {
+      display: flex;
+      align-items: flex-start;
+      justify-content: space-between;
+      gap: 12px;
+      margin-bottom: 12px;
+    }
+
+    .question-number {
+      color: var(--vita-blue);
+      font-size: 0.82rem;
+      font-weight: 900;
+      text-transform: uppercase;
+      letter-spacing: 0.04em;
+      white-space: nowrap;
+    }
+
+    .question-text {
+      margin: 0;
+      font-size: 1.05rem;
+      line-height: 1.45;
+      font-weight: 800;
+      color: var(--text-dark);
+    }
+
+    .options {
+      display: grid;
+      gap: 10px;
+      margin-top: 14px;
+    }
+
+    .option {
+      display: flex;
+      align-items: flex-start;
+      gap: 10px;
+      border: 1px solid var(--border);
+      border-radius: 14px;
+      background: white;
+      padding: 12px;
+      cursor: pointer;
+      transition: border-color 0.15s ease, box-shadow 0.15s ease, background-color 0.15s ease;
+    }
+
+    .option:hover {
+      border-color: rgba(31, 94, 255, 0.28);
+      box-shadow: 0 8px 20px rgba(20, 27, 52, 0.06);
+    }
+
+    .option input {
+      margin-top: 3px;
+      accent-color: var(--vita-blue);
+      flex-shrink: 0;
+    }
+
+    .option span {
+      color: var(--text-dark);
+      line-height: 1.35;
+      font-weight: 650;
+    }
+
+    .actions {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 12px;
+      margin-top: 24px;
+    }
+
+    .btn {
+      border: none;
+      border-radius: 14px;
+      padding: 14px 16px;
+      font-size: 0.98rem;
+      font-weight: 850;
+      cursor: pointer;
+      transition: transform 0.04s ease, box-shadow 0.15s ease, background-color 0.15s ease, border-color 0.15s ease;
+      text-decoration: none;
+      text-align: center;
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+    }
+
+    .btn:active {
+      transform: translateY(1px);
+    }
+
+    .btn-primary {
+      background: var(--vita-blue);
+      color: white;
+      box-shadow: 0 8px 20px rgba(31, 94, 255, 0.18);
+    }
+
+    .btn-primary:hover {
+      background: var(--vita-blue-dark);
+    }
+
+    .btn-primary:disabled {
+      opacity: 0.55;
+      cursor: not-allowed;
+      box-shadow: none;
+    }
+
+    .btn-secondary {
+      background: white;
+      color: var(--vita-blue);
+      border: 1px solid rgba(31, 94, 255, 0.22);
+      box-shadow: 0 8px 20px rgba(20, 27, 52, 0.05);
+    }
+
+    .btn-secondary:hover {
+      background: #fbfcff;
+      border-color: rgba(31, 94, 255, 0.35);
+    }
+
+    .small-note {
+      color: var(--text-muted);
+      font-size: 0.88rem;
+      line-height: 1.45;
+    }
+
+    .error {
+      display: none;
+      margin-top: 16px;
+      color: var(--danger);
+      background: var(--danger-soft);
+      border: 1px solid #ffd6cc;
+      border-radius: 14px;
+      padding: 12px 14px;
+      font-size: 0.9rem;
+      line-height: 1.4;
+      font-weight: 700;
+    }
+
+    .error.is-visible {
+      display: block;
+    }
+
+    .loading {
+      display: none;
+      text-align: center;
+      padding: 30px 10px;
+      color: var(--text-muted);
+      font-weight: 800;
+    }
+
+    .loading.is-visible {
+      display: block;
+    }
+
+    .result-card {
+      display: none;
+      background: var(--card);
+      border: 1px solid var(--border);
+      border-radius: 28px;
+      box-shadow: var(--shadow);
+      padding: 34px 28px;
+      text-align: center;
+    }
+
+    .result-card.is-visible {
+      display: block;
+    }
+
+    .score-ring {
+      width: 170px;
+      height: 170px;
+      border-radius: 999px;
+      margin: 0 auto 22px;
+      background:
+        radial-gradient(circle at center, white 56%, transparent 57%),
+        conic-gradient(var(--vita-blue) var(--score-percent), #edf1f8 0);
+      display: grid;
+      place-items: center;
+      box-shadow: 0 14px 34px rgba(31, 94, 255, 0.16);
+    }
+
+    .score-inner {
+      display: grid;
+      gap: 2px;
+    }
+
+    .score-value {
+      font-size: 2.25rem;
+      line-height: 1;
+      font-weight: 900;
+      letter-spacing: -0.05em;
+      color: var(--text-dark);
+    }
+
+    .score-label {
+      color: var(--text-muted);
+      font-size: 0.82rem;
+      font-weight: 850;
+    }
+
+    .result-card h2 {
+      margin: 0;
+      font-size: clamp(1.6rem, 3vw, 2.25rem);
+      letter-spacing: -0.035em;
+    }
+
+    .result-card p {
+      margin: 12px auto 0;
+      color: var(--text-muted);
+      line-height: 1.55;
+      max-width: 62ch;
+    }
+
+    .word-range {
+      margin: 22px auto 0;
+      max-width: 620px;
+      border: 1px solid var(--border);
+      border-radius: 18px;
+      background: #fbfcff;
+      padding: 18px;
+      color: var(--text-dark);
+      font-weight: 800;
+      line-height: 1.45;
+    }
+
+    .word-range span {
+      color: var(--vita-blue);
+    }
+
+    .result-actions {
+      margin-top: 26px;
+      display: flex;
+      justify-content: center;
+    }
+
+    @media (max-width: 640px) {
+      body {
+        padding: 18px;
+      }
+
+      .page {
+        min-height: calc(100vh - 36px);
+      }
+
+      .title-card,
+      .test-card,
+      .result-card {
+        padding: 24px 20px;
+      }
+
+      .progress-row,
+      .actions {
+        align-items: flex-start;
+        flex-direction: column;
+      }
+
+      .btn {
+        width: 100%;
+      }
+    }
+  </style>
+</head>
+
+<body>
+  <main class="page">
+    <div class="brand">
+      <div class="brand-badge">
+        <img src="/static/icon.png" alt="Vitamova icon" class="brand-icon">
+      </div>
+      <span>Vitamova</span>
+    </div>
+
+    <section class="title-card" aria-label="Vocabulary Diagnostic Intro">
+      <div class="title-card-content">
+        <h1>Vocabulary Diagnostic</h1>
+        <p>
+          Answer each question as honestly as you can. This diagnostic helps Vitamova estimate
+          your vocabulary level and recommend the right words to study next.
+        </p>
+
+        <div class="warning">
+          Please do not navigate away until the test is complete.
+        </div>
+      </div>
+    </section>
+
+    <section class="test-card" id="testCard" aria-label="Vocabulary Diagnostic Questions">
+      <div class="progress-row">
+        <div>
+          <div class="progress-label" id="roundLabel">Round 1 of 4</div>
+          <div class="small-note">Each round has 12 questions.</div>
+        </div>
+
+        <div class="progress-count" id="progressCount">0/48 questions</div>
+      </div>
+
+      <div class="progress-bar" aria-hidden="true">
+        <div class="progress-fill" id="progressFill"></div>
+      </div>
+
+      <div class="loading is-visible" id="loadingState">
+        Loading your questions...
+      </div>
+
+      <form id="diagnosticForm" style="display: none;">
+        <div class="question-list" id="questionList"></div>
+
+        <div class="actions">
+          <div class="small-note" id="answerNote">
+            Select one answer for each question before continuing.
+          </div>
+
+          <button class="btn btn-primary" type="submit" id="submitRoundButton" disabled>
+            Submit round
+          </button>
+        </div>
+
+        <div class="error" id="errorMessage"></div>
+      </form>
+    </section>
+
+    <section class="result-card" id="resultCard" aria-label="Vocabulary Diagnostic Result">
+      <div class="score-ring" id="scoreRing" style="--score-percent: 0%;">
+        <div class="score-inner">
+          <div class="score-value" id="scoreValue">0</div>
+          <div class="score-label">out of 6,000</div>
+        </div>
+      </div>
+
+      <h2>Your first vocabulary estimate is ready</h2>
+
+      <p id="scoreSummary">
+        Vitamova has estimated your current vocabulary level.
+      </p>
+
+      <div class="word-range" id="wordRange">
+        Estimated vocabulary known: <span>calculating...</span>
+      </div>
+
+      <p>
+        This score is not a limit. It is a starting point. Vitamova can help you grow from here by
+        targeting the words that are challenging enough to matter, but not so advanced that they waste your time.
+      </p>
+
+      <div class="result-actions">
+        <a class="btn btn-primary" href="/">
+          Return to home
+        </a>
+      </div>
+    </section>
+  </main>
+
+  <script>
+    const TOTAL_ROUNDS = 4;
+    const QUESTIONS_PER_ROUND = 12;
+    const TOTAL_QUESTIONS = TOTAL_ROUNDS * QUESTIONS_PER_ROUND;
+
+    let currentRound = 1;
+    let currentQuestions = [];
+    let currentAnswers = {};
+    let completedAnswers = [];
+
+    const testCard = document.getElementById("testCard");
+    const resultCard = document.getElementById("resultCard");
+    const loadingState = document.getElementById("loadingState");
+    const diagnosticForm = document.getElementById("diagnosticForm");
+    const questionList = document.getElementById("questionList");
+    const submitRoundButton = document.getElementById("submitRoundButton");
+    const errorMessage = document.getElementById("errorMessage");
+    const progressFill = document.getElementById("progressFill");
+    const progressCount = document.getElementById("progressCount");
+    const roundLabel = document.getElementById("roundLabel");
+    const scoreRing = document.getElementById("scoreRing");
+    const scoreValue = document.getElementById("scoreValue");
+    const scoreSummary = document.getElementById("scoreSummary");
+    const wordRange = document.getElementById("wordRange");
+
+    function getCookie(name) {
+      const cookies = document.cookie ? document.cookie.split(";") : [];
+
+      for (let i = 0; i < cookies.length; i++) {
+        const cookie = cookies[i].trim();
+
+        if (cookie.substring(0, name.length + 1) === (name + "=")) {
+          return decodeURIComponent(cookie.substring(name.length + 1));
+        }
+      }
+
+      return null;
+    }
+
+    function showError(message) {
+      errorMessage.textContent = message;
+      errorMessage.classList.add("is-visible");
+    }
+
+    function clearError() {
+      errorMessage.textContent = "";
+      errorMessage.classList.remove("is-visible");
+    }
+
+    function updateProgress() {
+      const completedCount = completedAnswers.length;
+      const selectedThisRound = Object.keys(currentAnswers).length;
+      const displayedProgress = Math.min(completedCount + selectedThisRound, TOTAL_QUESTIONS);
+      const percent = (displayedProgress / TOTAL_QUESTIONS) * 100;
+
+      progressFill.style.width = `${percent}%`;
+      progressCount.textContent = `${displayedProgress}/${TOTAL_QUESTIONS} questions`;
+      roundLabel.textContent = `Round ${currentRound} of ${TOTAL_ROUNDS}`;
+    }
+
+    function updateSubmitButton() {
+      submitRoundButton.disabled = Object.keys(currentAnswers).length !== currentQuestions.length;
+      updateProgress();
+    }
+
+    function escapeHtml(value) {
+      return String(value)
+        .replaceAll("&", "&amp;")
+        .replaceAll("<", "&lt;")
+        .replaceAll(">", "&gt;")
+        .replaceAll('"', "&quot;")
+        .replaceAll("'", "&#039;");
+    }
+
+    function renderQuestions(questions) {
+      currentQuestions = questions;
+      currentAnswers = {};
+      questionList.innerHTML = "";
+
+      questions.forEach((question, index) => {
+        const globalQuestionNumber = completedAnswers.length + index + 1;
+
+        const questionCard = document.createElement("div");
+        questionCard.className = "question-card";
+
+        const optionsHtml = question.options.map((option) => {
+          return `
+            <label class="option">
+              <input
+                type="radio"
+                name="question_${escapeHtml(question.question_id)}"
+                value="${escapeHtml(option.option_id)}"
+                data-question-id="${escapeHtml(question.question_id)}"
+              >
+              <span>${escapeHtml(option.text)}</span>
+            </label>
+          `;
+        }).join("");
+
+        questionCard.innerHTML = `
+          <div class="question-topline">
+            <div>
+              <div class="question-number">Question ${globalQuestionNumber}</div>
+              <p class="question-text">${escapeHtml(question.question)}</p>
+            </div>
+          </div>
+
+          <div class="options">
+            ${optionsHtml}
+          </div>
+        `;
+
+        questionList.appendChild(questionCard);
+      });
+
+      questionList.querySelectorAll("input[type='radio']").forEach((input) => {
+        input.addEventListener("change", (event) => {
+          const questionId = event.target.dataset.questionId;
+          const optionId = event.target.value;
+
+          currentAnswers[questionId] = {
+            question_id: Number(questionId),
+            selected_option_id: optionId
+          };
+
+          updateSubmitButton();
+        });
+      });
+
+      loadingState.classList.remove("is-visible");
+      diagnosticForm.style.display = "block";
+      updateSubmitButton();
+    }
+
+    async function postDiagnostic(payload) {
+      const response = await fetch("/vocab-test/", {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+          "X-CSRFToken": getCookie("csrftoken")
+        },
+        body: JSON.stringify(payload)
+      });
+
+      let data = null;
+
+      try {
+        data = await response.json();
+      } catch (error) {
+        throw new Error("The server returned an invalid response.");
+      }
+
+      if (!response.ok) {
+        throw new Error(data.error || "Something went wrong.");
+      }
+
+      return data;
+    }
+
+    async function loadRound(roundNumber) {
+      clearError();
+      loadingState.classList.add("is-visible");
+      diagnosticForm.style.display = "none";
+
+      const data = await postDiagnostic({
+        action: "get_questions",
+        round: roundNumber,
+        previous_answers: completedAnswers
+      });
+
+      if (data.status !== "questions" || !Array.isArray(data.questions)) {
+        throw new Error("The server did not return questions.");
+      }
+
+      if (data.questions.length !== QUESTIONS_PER_ROUND) {
+        throw new Error(`Expected ${QUESTIONS_PER_ROUND} questions, but received ${data.questions.length}.`);
+      }
+
+      renderQuestions(data.questions);
+    }
+
+    async function submitCurrentRound() {
+      clearError();
+
+      const roundAnswers = Object.values(currentAnswers);
+
+      if (roundAnswers.length !== currentQuestions.length) {
+        showError("Please answer every question before continuing.");
+        return;
+      }
+
+      submitRoundButton.disabled = true;
+      submitRoundButton.textContent = currentRound === TOTAL_ROUNDS ? "Calculating score..." : "Loading next round...";
+
+      const data = await postDiagnostic({
+        action: "submit_round",
+        round: currentRound,
+        answers: roundAnswers,
+        previous_answers: completedAnswers
+      });
+
+      completedAnswers = completedAnswers.concat(roundAnswers);
+
+      if (data.status === "questions") {
+        currentRound += 1;
+        submitRoundButton.textContent = "Submit round";
+        renderQuestions(data.questions);
+        return;
+      }
+
+      if (data.status === "complete") {
+        showResult(data.score);
+        return;
+      }
+
+      throw new Error("The server returned an unexpected response.");
+    }
+
+    function estimateWordsKnown(score) {
+      /*
+        Frontend display estimate.
+
+        Since the backend score is out of 6,000, this keeps the message simple:
+        - Score 0 means the learner is just getting started.
+        - Score 6,000 means the diagnostic estimates roughly 6,000 common words known.
+
+        You can make this more sophisticated later if your backend score does not map
+        directly to estimated word count.
+      */
+      const safeScore = Math.max(0, Math.min(6000, Number(score) || 0));
+
+      const lower = Math.max(0, Math.round((safeScore * 0.85) / 100) * 100);
+      const upper = Math.min(6000, Math.round((safeScore * 1.15) / 100) * 100);
+
+      if (safeScore < 300) {
+        return "You are likely at the beginning of your measured vocabulary range.";
+      }
+
+      return `You likely know roughly ${lower.toLocaleString()} to ${upper.toLocaleString()} high-frequency Spanish words.`;
+    }
+
+    function showResult(score) {
+      const safeScore = Math.max(0, Math.min(6000, Number(score) || 0));
+      const percent = (safeScore / 6000) * 100;
+
+      testCard.style.display = "none";
+      resultCard.classList.add("is-visible");
+
+      scoreRing.style.setProperty("--score-percent", `${percent}%`);
+      scoreValue.textContent = safeScore.toLocaleString();
+
+      scoreSummary.textContent = `Your estimated vocabulary score is ${safeScore.toLocaleString()} out of 6,000.`;
+      wordRange.innerHTML = `Estimated vocabulary known: <span>${estimateWordsKnown(safeScore)}</span>`;
+
+      window.onbeforeunload = null;
+    }
+
+    diagnosticForm.addEventListener("submit", async (event) => {
+      event.preventDefault();
+
+      try {
+        await submitCurrentRound();
+      } catch (error) {
+        submitRoundButton.disabled = false;
+        submitRoundButton.textContent = "Submit round";
+        showError(error.message || "Something went wrong. Please try again.");
+      }
+    });
+
+    window.onbeforeunload = function () {
+      return "Your diagnostic is still in progress. Are you sure you want to leave?";
+    };
+
+    document.addEventListener("DOMContentLoaded", async () => {
+      try {
+        await loadRound(1);
+      } catch (error) {
+        loadingState.classList.remove("is-visible");
+        diagnosticForm.style.display = "block";
+        showError(error.message || "Unable to load questions. Please refresh and try again.");
+      }
+    });
+  </script>
+</body>
+</html>

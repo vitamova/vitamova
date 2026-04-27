@@ -390,74 +390,50 @@ def register(request):
             'first_name': request.user.first_name
         })
     
+from django.shortcuts import render, redirect
+from django.db import connection
+
+
 def vocab_test(request):
     if not request.user.is_authenticated:
         return redirect("login")
 
+    if not is_registered_user(request.user):
+        return redirect("/register/")
+
     with connection.cursor() as cursor:
         cursor.execute(
             """
-            SELECT subscribed, subscription_expiration, stripe_customer_id, vocab_score
+            SELECT vocab_score
             FROM registered_user
             WHERE user_id = %s
             LIMIT 1
             """,
             [request.user.id]
         )
-        registered_user = cursor.fetchone()
+        row = cursor.fetchone()
 
-    if not registered_user:
-        return redirect("/register/")
+    vocab_score = row[0]
 
-    subscribed = registered_user[0]
-    subscription_expiration = registered_user[1]
-    stripe_customer_id = registered_user[2]
-    vocab_score = registered_user[3]
+    if request.method == "POST":
+        # TODO:
+        # Handle vocab diagnostic XHR requests here.
+        #
+        # Expected actions from the frontend:
+        # - action = "get_questions"
+        # - action = "submit_round"
+        #
+        # This should eventually return JsonResponse objects with either:
+        # - the next 12 diagnostic questions
+        # - or the final vocab score after round 4
+        pass
 
-    today = date.today()
+    # Users with no vocab score can always take the free diagnostic,
+    # regardless of subscription status.
+    if vocab_score == -1:
+        return render(request, "vocab_test_diagnostic.html")
 
-    has_current_subscription = (
-        subscribed
-        and subscription_expiration
-        and subscription_expiration > today
-    )
-
-    # Let users take the vocab test for free if they have not been assessed yet.
-    if has_current_subscription or vocab_score == -1:
-        return render(request, "vocab_test.html")
-
-    # Local DB says they are not currently subscribed and they already have a score,
-    # so check Stripe one more time before redirecting them to subscribe.
-    stripe_status = check_vitamova_subscription_in_stripe(request.user.email)
-
-    subscribed = stripe_status["subscribed"]
-    subscription_expiration = stripe_status["subscription_expiration"]
-    stripe_customer_id = stripe_status["stripe_customer_id"]
-
-    with connection.cursor() as cursor:
-        cursor.execute(
-            """
-            UPDATE registered_user
-            SET subscribed = %s,
-                subscription_expiration = %s,
-                stripe_customer_id = COALESCE(%s, stripe_customer_id)
-            WHERE user_id = %s
-            """,
-            [
-                subscribed,
-                subscription_expiration,
-                stripe_customer_id,
-                request.user.id,
-            ]
-        )
-
-    has_current_subscription = (
-        subscribed
-        and subscription_expiration
-        and subscription_expiration > today
-    )
-
-    if has_current_subscription or vocab_score == -1:
+    if is_user_subscribed(request.user):
         return render(request, "vocab_test.html")
 
     return redirect("/subscribe/")
