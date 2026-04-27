@@ -236,8 +236,8 @@ def home(request):
         return render(request, "home.html", {
             "first_name": request.user.first_name,
             "user_email": request.user.email,
-            "has_score": False,
-            "review_count": 0,
+            "has_score": True,
+            "review_count": 5,
             })
 
     # If the local table says the user is unsubscribed or expired,
