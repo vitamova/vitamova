@@ -74,11 +74,18 @@ def check_vitamova_subscription_in_stripe(user_email):
                     subscribed = True
                     stripe_customer_id = customer_id
                     subscription_id = sub.get("id")
-
                     current_period_end = sub.get("current_period_end")
+
+                    if not current_period_end:
+                        items = sub.get("items", {}).get("data", [])
+                        if items:
+                            current_period_end = items[0].get("current_period_end")
 
                     if current_period_end:
                         subscription_expiration = date.fromtimestamp(current_period_end)
+                    else:
+                        print("WARNING: Matched Vitamova subscription but no current_period_end found")
+                        print("Subscription ID:", subscription_id)
 
                     return {
                         "subscribed": subscribed,
