@@ -237,11 +237,13 @@ def home(request):
             SELECT COUNT(*)
             FROM user_vocabulary
             WHERE user_id = %s
+            AND language = %s
             AND next_review_at IS NOT NULL
             AND next_review_at < %s
             """,
             [
                 request.user.id,
+                language,
                 timezone.now(),
             ]
         )
