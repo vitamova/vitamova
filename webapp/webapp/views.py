@@ -231,24 +231,6 @@ def home(request):
     stripe_customer_id = registered_user[2]
     vocab_score = registered_user[3]
 
-    with connection.cursor() as cursor:
-        cursor.execute(
-            """
-            SELECT COUNT(*)
-            FROM user_vocabulary
-            WHERE user_id = %s
-            AND language = %s
-            AND next_review_at IS NOT NULL
-            AND next_review_at < %s
-            """,
-            [
-                request.user.id,
-                language,
-                timezone.now(),
-            ]
-        )
-        review_count = cursor.fetchone()[0]
-
     #See if language is specified as a query parameter
     target_language = request.GET.get("language")
 
@@ -266,6 +248,24 @@ def home(request):
             )
             target_language_row = cursor.fetchone()
             target_language = target_language_row[0] if target_language_row else None
+
+       with connection.cursor() as cursor:
+        cursor.execute(
+            """
+            SELECT COUNT(*)
+            FROM user_vocabulary
+            WHERE user_id = %s
+            AND language = %s
+            AND next_review_at IS NOT NULL
+            AND next_review_at < %s
+            """,
+            [
+                request.user.id,
+                target_language,
+                timezone.now(),
+            ]
+        )
+        review_count = cursor.fetchone()[0]
 
     today = date.today()
 
