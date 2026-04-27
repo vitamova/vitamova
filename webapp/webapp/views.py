@@ -94,6 +94,64 @@ def check_vitamova_subscription_in_stripe(user_email):
         "subscription_id": subscription_id,
     }
 
+def is_user_subscribed(user, check_stripe_if_stale=True):
+    if not user or not user.is_authenticated:
+        return False
+
+    with connection.cursor() as cursor:
+        cursor.execute(
+            """
+            SELECT subscribed, subscription_expiration
+            FROM registered_user
+            WHERE user_id = %s
+            LIMIT 1
+            """,
+            [user.id]
+        )
+        row = cursor.fetchone()
+
+    if not row:
+        return False
+
+    subscribed = row[0]
+    subscription_expiration = row[1]
+    today = date.today()
+
+    if subscribed and subscription_expiration and subscription_expiration > today:
+        return True
+
+    if not check_stripe_if_stale:
+        return False
+
+    stripe_status = check_vitamova_subscription_in_stripe(user.email)
+
+    subscribed = stripe_status["subscribed"]
+    subscription_expiration = stripe_status["subscription_expiration"]
+    stripe_customer_id = stripe_status["stripe_customer_id"]
+
+    with connection.cursor() as cursor:
+        cursor.execute(
+            """
+            UPDATE registered_user
+            SET subscribed = %s,
+                subscription_expiration = %s,
+                stripe_customer_id = COALESCE(%s, stripe_customer_id)
+            WHERE user_id = %s
+            """,
+            [
+                subscribed,
+                subscription_expiration,
+                stripe_customer_id,
+                user.id,
+            ]
+        )
+
+    return bool(
+        subscribed
+        and subscription_expiration
+        and subscription_expiration > today
+    )
+
 # Views
     
 @require_POST
@@ -345,6 +403,15 @@ def vocab_test(request):
     return redirect("/subscribe/")
 
 def subscribe(request):
-    if not request.user.is_authenticated or not is_registered_user(request.user):
+    if not request.user.is_authenticated:
         return redirect("login")
-    return render(request, "subscribe.html", {"stripe_public_key": STRIPE_PUBLIC_KEY})
+
+    if not is_registered_user(request.user):
+        return redirect("/register/")
+
+    if is_user_subscribed(request.user):
+        return redirect("home")
+
+    return render(request, "subscribe.html", {
+        "stripe_public_key": STRIPE_PUBLIC_KEY
+    })
