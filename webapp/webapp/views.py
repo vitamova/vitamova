@@ -15,6 +15,33 @@ stripe_key_path = Path.home() / 'data' / 'stripe_key.txt'
 with open(stripe_key_path, 'r') as f:
     stripe.api_key = f.read().strip()
 
+def create_checkout_session(request):
+    if request.method != 'POST':
+        return redirect('home')
+
+    price_id = request.POST.get('price_id')
+
+    if price_id not in VITAMOVA_PRICE_MAP:
+        return redirect('home')
+
+    try:
+        checkout_session = stripe.checkout.Session.create(
+            customer_email=request.user.email,
+            line_items=[
+                {
+                    'price': price_id,
+                    'quantity': 1,
+                },
+            ],
+            mode='subscription',
+            success_url=request.build_absolute_uri('/?checkout=success'),
+            cancel_url=request.build_absolute_uri('/?checkout=cancel'),
+        )
+        return redirect(checkout_session.url)
+    except Exception as e:
+        print(f"Error creating Stripe checkout session: {e}")
+        return redirect('home')
+
 def check_vitamova_subscription_in_stripe(user_email):
     subscribed = False
     subscription_expiration = None
