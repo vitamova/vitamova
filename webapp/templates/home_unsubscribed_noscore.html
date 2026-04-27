@@ -34,69 +34,29 @@
         radial-gradient(circle at 90% 20%, rgba(31, 94, 255, 0.20), transparent 42%),
         linear-gradient(180deg, #fdfefe 0%, var(--bg-soft) 100%);
       min-height: 100vh;
-      display: grid;
-      place-items: center;
       padding: 24px;
     }
 
     .page {
       width: 100%;
-      max-width: 940px;
-      display: grid;
-      grid-template-columns: 1.05fr 0.95fr;
-      gap: 22px;
-      align-items: stretch;
-    }
-
-    .hero {
-      background: linear-gradient(160deg, var(--vita-blue) 0%, #3d7dff 55%, #6aa0ff 100%);
-      color: white;
-      border-radius: 24px;
-      padding: 28px;
-      position: relative;
-      overflow: hidden;
-      box-shadow: var(--shadow);
-      min-height: 520px;
+      max-width: 860px;
+      min-height: calc(100vh - 48px);
+      margin: 0 auto;
       display: flex;
       flex-direction: column;
       justify-content: center;
-    }
-
-    .hero::before,
-    .hero::after {
-      content: "";
-      position: absolute;
-      border-radius: 999px;
-      filter: blur(2px);
-      opacity: 0.9;
-    }
-
-    .hero::before {
-      width: 240px;
-      height: 240px;
-      background: rgba(255, 213, 74, 0.35);
-      top: -70px;
-      right: -40px;
-    }
-
-    .hero::after {
-      width: 180px;
-      height: 180px;
-      background: rgba(255, 255, 255, 0.15);
-      bottom: 40px;
-      left: -40px;
+      gap: 22px;
     }
 
     .brand {
-      position: relative;
-      z-index: 1;
       display: flex;
       align-items: center;
+      justify-content: center;
       gap: 10px;
-      font-weight: 700;
-      font-size: 1.1rem;
+      font-weight: 800;
+      font-size: 1.15rem;
       letter-spacing: 0.2px;
-      margin-bottom: 26px;
+      color: var(--text-dark);
     }
 
     .brand-badge {
@@ -107,6 +67,7 @@
       display: flex;
       align-items: center;
       justify-content: center;
+      box-shadow: 0 8px 20px rgba(20, 27, 52, 0.08);
     }
 
     .brand-icon {
@@ -116,25 +77,62 @@
       display: block;
     }
 
-    .hero-content {
+    .title-card {
+      background: linear-gradient(160deg, var(--vita-blue) 0%, #3d7dff 55%, #6aa0ff 100%);
+      color: white;
+      border-radius: 28px;
+      padding: 34px 28px;
+      position: relative;
+      overflow: hidden;
+      box-shadow: var(--shadow);
+      text-align: center;
+    }
+
+    .title-card::before,
+    .title-card::after {
+      content: "";
+      position: absolute;
+      border-radius: 999px;
+      filter: blur(2px);
+      opacity: 0.9;
+    }
+
+    .title-card::before {
+      width: 240px;
+      height: 240px;
+      background: rgba(255, 213, 74, 0.35);
+      top: -90px;
+      right: -50px;
+    }
+
+    .title-card::after {
+      width: 180px;
+      height: 180px;
+      background: rgba(255, 255, 255, 0.15);
+      bottom: -55px;
+      left: -35px;
+    }
+
+    .title-card-content {
       position: relative;
       z-index: 1;
+      max-width: 650px;
+      margin: 0 auto;
     }
 
-    .hero h1 {
+    .title-card h1 {
       margin: 0 0 14px;
-      font-size: clamp(1.9rem, 2.8vw, 2.5rem);
-      line-height: 1.08;
-      letter-spacing: -0.02em;
-      max-width: 16ch;
+      font-size: clamp(2rem, 4vw, 3.25rem);
+      line-height: 1.05;
+      letter-spacing: -0.04em;
     }
 
-    .hero p {
-      margin: 0;
-      color: rgba(255, 255, 255, 0.9);
-      max-width: 44ch;
+    .title-card p {
+      margin: 0 auto;
+      color: rgba(255, 255, 255, 0.92);
+      max-width: 58ch;
       line-height: 1.55;
-      font-size: 1rem;
+      font-size: 1.05rem;
     }
 
     .feature-chips {
@@ -142,6 +140,7 @@
       z-index: 1;
       display: flex;
       flex-wrap: wrap;
+      justify-content: center;
       gap: 10px;
       margin-top: 22px;
     }
@@ -156,64 +155,61 @@
       backdrop-filter: blur(4px);
     }
 
-    .main-panel {
+    .action-card {
       background: var(--card);
       border: 1px solid var(--border);
-      border-radius: 24px;
+      border-radius: 28px;
       box-shadow: var(--shadow);
-      padding: 28px;
-      display: flex;
-      flex-direction: column;
-      justify-content: center;
-      min-height: 520px;
+      padding: 34px 28px;
+      text-align: center;
     }
 
-    .panel-header h2 {
+    .action-card h2 {
       margin: 0;
-      font-size: 1.6rem;
-      letter-spacing: -0.02em;
+      font-size: clamp(1.55rem, 2.5vw, 2rem);
+      letter-spacing: -0.03em;
     }
 
-    .panel-header p {
-      margin: 10px 0 0;
+    .action-card p {
+      margin: 12px auto 0;
       color: var(--text-muted);
-      line-height: 1.5;
-    }
-
-    .score-card {
-      margin-top: 24px;
-      padding: 18px;
-      border: 1px solid var(--border);
-      border-radius: 18px;
-      background: #fbfcff;
-    }
-
-    .score-card strong {
-      display: block;
-      margin-bottom: 8px;
-      color: var(--text-dark);
+      line-height: 1.55;
+      max-width: 56ch;
       font-size: 1rem;
     }
 
-    .score-card p {
-      margin: 0;
+    .score-pill {
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      margin-top: 22px;
+      padding: 10px 14px;
+      border-radius: 999px;
+      background: #fbfcff;
+      border: 1px solid var(--border);
       color: var(--text-muted);
-      line-height: 1.5;
-      font-size: 0.94rem;
+      font-size: 0.92rem;
+      font-weight: 700;
+    }
+
+    .score-pill span {
+      color: var(--vita-blue);
+      margin-left: 4px;
     }
 
     .actions {
-      margin-top: 24px;
+      margin: 28px auto 0;
       display: grid;
       gap: 12px;
+      max-width: 380px;
     }
 
     .btn {
       border: none;
-      border-radius: 12px;
-      padding: 13px 14px;
-      font-size: 0.96rem;
-      font-weight: 700;
+      border-radius: 14px;
+      padding: 14px 16px;
+      font-size: 0.98rem;
+      font-weight: 800;
       cursor: pointer;
       transition: transform 0.04s ease, box-shadow 0.15s ease, background-color 0.15s ease, border-color 0.15s ease;
       text-decoration: none;
@@ -238,11 +234,11 @@
     }
 
     .btn-secondary {
-      background: white;
+      background: transparent;
       color: var(--text-muted);
       border: 1px solid var(--border);
       font-size: 0.9rem;
-      box-shadow: 0 8px 20px rgba(20, 27, 52, 0.05);
+      box-shadow: none;
     }
 
     .btn-secondary:hover {
@@ -252,16 +248,11 @@
     }
 
     .helper {
-      margin-top: 4px;
+      margin: 14px auto 0;
       color: var(--text-muted);
       font-size: 0.88rem;
       line-height: 1.45;
-      text-align: center;
-    }
-
-    .highlight {
-      color: var(--vita-blue);
-      font-weight: 700;
+      max-width: 46ch;
     }
 
     .modal-backdrop {
@@ -337,6 +328,7 @@
       display: flex;
       flex-direction: column;
       gap: 12px;
+      text-align: left;
     }
 
     .plan.featured {
@@ -406,23 +398,20 @@
       text-align: center;
     }
 
-    @media (max-width: 860px) {
-      .page {
-        grid-template-columns: 1fr;
-      }
-
-      .hero {
-        min-height: auto;
-        padding: 22px;
-      }
-
-      .main-panel {
-        min-height: auto;
-        padding: 22px;
-      }
-    }
-
     @media (max-width: 620px) {
+      body {
+        padding: 18px;
+      }
+
+      .page {
+        min-height: calc(100vh - 36px);
+      }
+
+      .title-card,
+      .action-card {
+        padding: 26px 20px;
+      }
+
       .plans {
         grid-template-columns: 1fr;
       }
@@ -436,59 +425,53 @@
 
 <body>
   <main class="page">
-    <section class="hero" aria-label="Vitamova Welcome Panel">
-      <div class="brand">
-        <div class="brand-badge">
-          <img src="/static/icon.png" alt="Vitamova icon" class="brand-icon">
-        </div>
-        <span>Vitamova</span>
+    <div class="brand">
+      <div class="brand-badge">
+        <img src="/static/icon.png" alt="Vitamova icon" class="brand-icon">
       </div>
+      <span>Vitamova</span>
+    </div>
 
-      <div class="hero-content">
-        <h1>Start with your vocabulary baseline</h1>
+    <section class="title-card" aria-label="Vitamova Vocabulary Intro">
+      <div class="title-card-content">
+        <h1>Find your vocabulary baseline</h1>
         <p>
-          Before Vitamova recommends what to study, we need a quick estimate of your
-          current vocabulary level. The test is free and helps us personalize your learning path.
+          Before Vitamova recommends what to study, take a quick free test so we can estimate
+          your current Spanish vocabulary level and personalize your learning path.
         </p>
 
         <div class="feature-chips">
-          <span class="chip">Free vocab test</span>
+          <span class="chip">Free test</span>
           <span class="chip">Personalized score</span>
-          <span class="chip">Spanish learning path</span>
-          <span class="chip">Advanced vocabulary</span>
+          <span class="chip">Targeted practice</span>
+          <span class="chip">Spanish vocabulary</span>
         </div>
       </div>
     </section>
 
-    <section class="main-panel" aria-label="Vocabulary Test">
-      <div class="panel-header">
-        <h2>Take your free vocabulary test</h2>
-        <p>
-          Your account is set up, but you have not assessed your vocabulary yet.
-          Start with a quick diagnostic so Vitamova can recommend the right words.
-        </p>
-      </div>
+    <section class="action-card" aria-label="Take Vocabulary Test">
+      <h2>Take your free vocabulary test</h2>
+      <p>
+        Your vocabulary score has not been assessed yet. Start here so Vitamova can recommend
+        the right frequency range and avoid wasting your time on words that are too easy or too advanced.
+      </p>
 
-      <div class="score-card">
-        <strong>Your current vocabulary score: not assessed</strong>
-        <p>
-          After the test, you’ll get an estimated vocabulary score and a better idea of
-          which frequency range to focus on first.
-        </p>
+      <div class="score-pill">
+        Current score: <span>not assessed</span>
       </div>
 
       <div class="actions">
         <a class="btn btn-primary" href="/vocab-test/">
-          Take the free vocab test
+          Start free vocab test
         </a>
 
         <button class="btn btn-secondary" type="button" id="openSubscribeModal">
-          Skip the test and view subscription options
+          View subscription options instead
         </button>
+      </div>
 
-        <div class="helper">
-          The test is the best place to start. Subscription is optional until you are ready.
-        </div>
+      <div class="helper">
+        The test is the best place to start. You can subscribe later once your learning path is ready.
       </div>
     </section>
   </main>
