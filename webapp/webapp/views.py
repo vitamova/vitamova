@@ -266,7 +266,7 @@ def home(request):
             "user_email": request.user.email,
             "has_score": False,
             "review_count": 0,
-})
+            })
 
     if vocab_score == -1:
         return render(request, "home_unsubscribed_noscore.html")
