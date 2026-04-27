@@ -3,3 +3,4 @@ gunicorn
 django-allauth==0.61.1
 psycopg2-binary
 stripe==5.0.0
+openai>=1.82.0
