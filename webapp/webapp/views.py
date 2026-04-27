@@ -28,8 +28,12 @@ def login(request):
     return render(request, 'login.html')
 
 def register(request):
+    if not request.user.is_authenticated:
+        return redirect('login')
     if request.method == 'POST':
         # Handle registration logic here (e.g., create user, validate input)
         return redirect('home')  # Redirect to home after successful registration   
     elif request.method == 'GET':
-        return render(request, 'register.html')
+        return render(request, 'register.html', {
+            'first_name': request.user.first_name
+            })
