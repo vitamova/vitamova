@@ -1,6 +1,7 @@
 from django.shortcuts import render, redirect
 from django.db import connection
 from django.views.decorators.http import require_POST
+from django.utils import timezone
 import stripe
 from datetime import date
 from pathlib import Path
@@ -230,6 +231,22 @@ def home(request):
     stripe_customer_id = registered_user[2]
     vocab_score = registered_user[3]
 
+    with connection.cursor() as cursor:
+    cursor.execute(
+        """
+        SELECT COUNT(*)
+        FROM user_vocabulary
+        WHERE user_id = %s
+          AND next_review_at IS NOT NULL
+          AND next_review_at < %s
+        """,
+        [
+            request.user.id,
+            timezone.now(),
+        ]
+    )
+    review_count = cursor.fetchone()[0]
+
     today = date.today()
 
     if subscribed and subscription_expiration and subscription_expiration > today:
@@ -237,7 +254,7 @@ def home(request):
             "first_name": request.user.first_name,
             "user_email": request.user.email,
             "has_score": vocab_score != -1,
-            "review_count": 5,
+            "review_count": review_count
             })
 
     # If the local table says the user is unsubscribed or expired,
@@ -270,7 +287,7 @@ def home(request):
             "first_name": request.user.first_name,
             "user_email": request.user.email,
             "has_score": vocab_score != -1,
-            "review_count": 0,
+            "review_count": review_count
             })
 
     if vocab_score == -1:
