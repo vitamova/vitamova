@@ -1,7 +1,18 @@
 from django.shortcuts import render, redirect
 from django.db import connection
+import stripe
+from datetime import date
 
-#Need this to be UTF-8
+VITAMOVA_PRICE_MAP = {
+    # Replace this with your real Stripe monthly price ID
+    "price_1TQtOmKOiNtX3Wewk310Ygu5": "Vitamova Monthly",
+    "price_1TQtPSKOiNtX3WewCEePEtQg": "Vitamova Yearly"
+}
+
+# Stripe key is in data/stripe_key.txt
+stripe_key_path = "data/stripe_key.txt"
+with open(stripe_key_path, 'r') as f:
+    stripe.api_key = f.read().strip()
 
 def home(request):
     if not request.user.is_authenticated:
@@ -30,10 +41,100 @@ def login(request):
 def register(request):
     if not request.user.is_authenticated:
         return redirect('login')
+
     if request.method == 'POST':
-        # Handle registration logic here (e.g., create user, validate input)
-        return redirect('home')  # Redirect to home after successful registration   
+        native_language = request.POST.get('native_language')
+        target_language = request.POST.get('target_language')
+        agree_terms = request.POST.get('agree_terms')
+
+        if not agree_terms:
+            return render(request, 'register.html', {
+                'first_name': request.user.first_name,
+                'error': 'You must agree to the Terms and Conditions to continue.'
+            })
+
+        subscribed = False
+        subscription_expiration = None
+        stripe_customer_id = None
+        vitamova_subscription_id = None
+
+        customers = stripe.Customer.list(
+            email=request.user.email,
+            limit=10
+        ).data
+
+        for customer in customers:
+            subscriptions = stripe.Subscription.list(
+                customer=customer.id,
+                status='all',
+                limit=100
+            ).data
+
+            for sub in subscriptions:
+                # Only count active/trialing subscriptions as subscribed.
+                # You can add "past_due" here later if you want to keep access
+                # during failed payment recovery.
+                if sub.status not in ["active", "trialing"]:
+                    continue
+
+                items = sub["items"]["data"]
+
+                for item in items:
+                    price_id = item["price"]["id"]
+
+                    if price_id in VITAMOVA_PRICE_MAP:
+                        subscribed = True
+                        stripe_customer_id = customer.id
+                        vitamova_subscription_id = sub.id
+
+                        if sub.current_period_end:
+                            subscription_expiration = date.fromtimestamp(
+                                sub.current_period_end
+                            )
+
+                        break
+
+                if subscribed:
+                    break
+
+            if subscribed:
+                break
+
+        with connection.cursor() as cursor:
+            cursor.execute(
+                """
+                INSERT INTO registered_user (
+                    user_id,
+                    native_language,
+                    target_language,
+                    vocab_score,
+                    subscribed,
+                    subscription_expiration,
+                    stripe_customer_id
+                )
+                VALUES (%s, %s, %s, %s, %s, %s, %s)
+                ON CONFLICT (user_id)
+                DO UPDATE SET
+                    native_language = EXCLUDED.native_language,
+                    target_language = EXCLUDED.target_language,
+                    subscribed = EXCLUDED.subscribed,
+                    subscription_expiration = EXCLUDED.subscription_expiration,
+                    stripe_customer_id = EXCLUDED.stripe_customer_id
+                """,
+                [
+                    request.user.id,
+                    native_language,
+                    target_language,
+                    0,
+                    subscribed,
+                    subscription_expiration,
+                    stripe_customer_id,
+                ]
+            )
+
+        return redirect('home')
+
     elif request.method == 'GET':
         return render(request, 'register.html', {
             'first_name': request.user.first_name
-            })
+        })
