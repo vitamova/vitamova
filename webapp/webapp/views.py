@@ -245,7 +245,7 @@ def home(request):
                 timezone.now(),
             ]
         )
-    review_count = cursor.fetchone()[0]
+        review_count = cursor.fetchone()[0]
 
     today = date.today()
 
