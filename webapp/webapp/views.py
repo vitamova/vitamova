@@ -275,7 +275,8 @@ def home(request):
             "review_count": review_count,
             "language": target_language,
             "language_options": [
-                {"code": "es", "name": "Spanish"},
+                {"code": "ru", "name": "Russian"},
+                {"code": "es", "name": "Spanish"}
                 ]
             })
 
