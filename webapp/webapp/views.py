@@ -236,7 +236,7 @@ def home(request):
         return render(request, "home.html", {
             "first_name": request.user.first_name,
             "user_email": request.user.email,
-            "has_score": True,
+            "has_score": vocab_score != -1,
             "review_count": 5,
             })
 
@@ -269,7 +269,7 @@ def home(request):
         return render(request, "home.html", {
             "first_name": request.user.first_name,
             "user_email": request.user.email,
-            "has_score": False,
+            "has_score": vocab_score != -1,
             "review_count": 0,
             })
 
