@@ -233,7 +233,12 @@ def home(request):
     today = date.today()
 
     if subscribed and subscription_expiration and subscription_expiration > today:
-        return render(request, "home.html")
+        return render(request, "home.html", {
+            "first_name": request.user.first_name,
+            "user_email": request.user.email,
+            "has_score": False,
+            "review_count": 0,
+            })
 
     # If the local table says the user is unsubscribed or expired,
     # check Stripe again before showing the unsubscribed page.
