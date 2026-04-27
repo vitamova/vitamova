@@ -83,6 +83,52 @@
       display: block;
     }
 
+    .topbar-actions {
+      display: flex;
+      align-items: center;
+      gap: 10px;
+    }
+
+    .language-form {
+      margin: 0;
+    }
+
+    .language-select-wrap {
+      position: relative;
+    }
+
+    .language-select {
+      appearance: none;
+      border: 1px solid var(--border);
+      background: rgba(255, 255, 255, 0.78);
+      color: var(--text-dark);
+      border-radius: 999px;
+      padding: 10px 34px 10px 14px;
+      font-weight: 800;
+      font-size: 0.88rem;
+      cursor: pointer;
+      box-shadow: 0 8px 20px rgba(20, 27, 52, 0.06);
+      outline: none;
+      min-width: 128px;
+    }
+
+    .language-select:focus-visible {
+      outline: 3px solid rgba(31, 94, 255, 0.18);
+      outline-offset: 2px;
+      border-color: rgba(31, 94, 255, 0.35);
+    }
+
+    .language-select-wrap::after {
+      content: "⌄";
+      position: absolute;
+      right: 13px;
+      top: 50%;
+      transform: translateY(-54%);
+      color: var(--text-muted);
+      font-weight: 900;
+      pointer-events: none;
+    }
+
     .account {
       position: relative;
       display: flex;
@@ -429,7 +475,17 @@
         align-items: flex-start;
       }
 
+      .topbar-actions {
+        flex-direction: column-reverse;
+        align-items: flex-end;
+        gap: 8px;
+      }
+
       .account-button {
+        max-width: 190px;
+      }
+
+      .language-select {
         max-width: 190px;
       }
 
@@ -458,17 +514,31 @@
         <span>Vitamova</span>
       </div>
 
-      <div class="account">
-        <button class="account-button" type="button" id="accountButton" aria-haspopup="true" aria-expanded="false">
-          <span class="account-email">{{ user_email }}</span>
-          <span class="account-avatar">{{ first_name|first|upper }}</span>
-        </button>
+      <div class="topbar-actions">
+        <form class="language-form" method="GET" action="/" aria-label="Choose learning language">
+          <div class="language-select-wrap">
+            <select class="language-select" name="language" id="languageSelect">
+              {% for option in language_options %}
+                <option value="{{ option.code }}" {% if option.code == language %}selected{% endif %}>
+                  {{ option.name }}
+                </option>
+              {% endfor %}
+            </select>
+          </div>
+        </form>
 
-        <nav class="account-menu" id="accountMenu" aria-label="Account menu">
-          <a href="/account/">Edit account</a>
-          <a href="/subscribe/">Manage subscription</a>
-          <a href="/accounts/logout/">Sign out</a>
-        </nav>
+        <div class="account">
+          <button class="account-button" type="button" id="accountButton" aria-haspopup="true" aria-expanded="false">
+            <span class="account-email">{{ user_email }}</span>
+            <span class="account-avatar">{{ first_name|first|upper }}</span>
+          </button>
+
+          <nav class="account-menu" id="accountMenu" aria-label="Account menu">
+            <a href="/account/">Edit account</a>
+            <a href="/subscribe/">Manage subscription</a>
+            <a href="/accounts/logout/">Sign out</a>
+          </nav>
+        </div>
       </div>
     </header>
 
@@ -476,7 +546,7 @@
       <div class="hero-content">
         <h1>Welcome back, {{ first_name }}</h1>
         <p>
-          Keep building the kind of Spanish vocabulary that helps you speak with more precision,
+          Keep building the kind of vocabulary that helps you speak with more precision,
           understand more naturally, and move beyond beginner-level practice.
         </p>
 
@@ -492,6 +562,8 @@
           {% else %}
             <span class="status-pill">No reviews due today</span>
           {% endif %}
+
+          <span class="status-pill">Current language: {{ language }}</span>
         </div>
       </div>
     </section>
@@ -505,7 +577,7 @@
       </div>
 
       <div class="dashboard-grid">
-        <a class="activity-card" href="/vocab-test/">
+        <a class="activity-card" href="/vocab-test/?language={{ language }}">
           <div class="card-topline">
             <div class="icon-circle">A+</div>
             {% if not has_score %}
@@ -515,7 +587,7 @@
 
           <h3>Vocabulary Test</h3>
           <p>
-            Estimate your current vocabulary level so Vitamova can personalize your Spanish learning path.
+            Estimate your current vocabulary level so Vitamova can personalize your learning path.
           </p>
 
           <div class="card-action">
@@ -525,7 +597,7 @@
         </a>
 
         {% if has_score %}
-          <a class="activity-card" href="/vocab-builder/">
+          <a class="activity-card" href="/vocab-builder/?language={{ language }}">
             <div class="card-topline">
               <div class="icon-circle">✦</div>
             </div>
@@ -558,7 +630,7 @@
         {% endif %}
 
         {% if has_score %}
-          <a class="activity-card {% if review_count > 0 %}highlighted{% endif %}" href="/review/">
+          <a class="activity-card {% if review_count > 0 %}highlighted{% endif %}" href="/review/?language={{ language }}">
             <div class="card-topline">
               <div class="icon-circle">↻</div>
               {% if review_count > 0 %}
@@ -594,14 +666,14 @@
         {% endif %}
 
         {% if has_score %}
-          <a class="activity-card" href="/reading-practice/">
+          <a class="activity-card" href="/reading-practice/?language={{ language }}">
             <div class="card-topline">
               <div class="icon-circle">¶</div>
             </div>
 
             <h3>Reading Lab</h3>
             <p>
-              Practice Spanish in context with reading passages matched to your vocabulary level.
+              Practice in context with reading passages matched to your vocabulary level.
             </p>
 
             <div class="card-action">
@@ -617,7 +689,7 @@
 
             <h3>Reading Lab</h3>
             <p>
-              Practice Spanish in context with reading passages matched to your vocabulary level.
+              Practice in context with reading passages matched to your vocabulary level.
             </p>
 
             <div class="locked-note">
@@ -634,6 +706,14 @@
   </main>
 
   <script>
+    const languageSelect = document.getElementById("languageSelect");
+
+    if (languageSelect) {
+      languageSelect.addEventListener("change", () => {
+        languageSelect.form.submit();
+      });
+    }
+
     const accountButton = document.getElementById("accountButton");
     const accountMenu = document.getElementById("accountMenu");
 

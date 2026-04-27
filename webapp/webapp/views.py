@@ -247,6 +247,24 @@ def home(request):
         )
         review_count = cursor.fetchone()[0]
 
+    #See if language is specified as a query parameter
+    target_language = request.GET.get("language")
+
+    #Get target_language value from registered_user table to pass to template
+    if not target_language:
+        with connection.cursor() as cursor:
+            cursor.execute(
+                """
+                SELECT target_language
+                FROM registered_user
+                WHERE user_id = %s
+                LIMIT 1
+                """,
+                [request.user.id]
+            )
+            target_language_row = cursor.fetchone()
+            target_language = target_language_row[0] if target_language_row else None
+
     today = date.today()
 
     if subscribed and subscription_expiration and subscription_expiration > today:
@@ -254,7 +272,8 @@ def home(request):
             "first_name": request.user.first_name,
             "user_email": request.user.email,
             "has_score": vocab_score != -1,
-            "review_count": review_count
+            "review_count": review_count,
+            "language": target_language
             })
 
     # If the local table says the user is unsubscribed or expired,
@@ -287,7 +306,8 @@ def home(request):
             "first_name": request.user.first_name,
             "user_email": request.user.email,
             "has_score": vocab_score != -1,
-            "review_count": review_count
+            "review_count": review_count,
+            "language": target_language
             })
 
     if vocab_score == -1:
