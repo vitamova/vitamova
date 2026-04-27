@@ -135,26 +135,6 @@
       font-size: 1.05rem;
     }
 
-    .feature-chips {
-      position: relative;
-      z-index: 1;
-      display: flex;
-      flex-wrap: wrap;
-      justify-content: center;
-      gap: 10px;
-      margin-top: 22px;
-    }
-
-    .chip {
-      background: rgba(255, 255, 255, 0.12);
-      border: 1px solid rgba(255, 255, 255, 0.16);
-      color: #fff;
-      padding: 8px 12px;
-      border-radius: 999px;
-      font-size: 0.9rem;
-      backdrop-filter: blur(4px);
-    }
-
     .action-card {
       background: var(--card);
       border: 1px solid var(--border);
@@ -255,149 +235,6 @@
       max-width: 46ch;
     }
 
-    .modal-backdrop {
-      display: none;
-      position: fixed;
-      inset: 0;
-      background: rgba(17, 24, 39, 0.52);
-      z-index: 20;
-      padding: 24px;
-      place-items: center;
-    }
-
-    .modal-backdrop.is-open {
-      display: grid;
-    }
-
-    .modal {
-      width: 100%;
-      max-width: 620px;
-      background: white;
-      border-radius: 24px;
-      box-shadow: 0 24px 70px rgba(17, 24, 39, 0.28);
-      border: 1px solid var(--border);
-      padding: 24px;
-      position: relative;
-    }
-
-    .modal-header {
-      display: flex;
-      align-items: flex-start;
-      justify-content: space-between;
-      gap: 16px;
-      margin-bottom: 18px;
-    }
-
-    .modal-header h3 {
-      margin: 0;
-      font-size: 1.35rem;
-      letter-spacing: -0.02em;
-    }
-
-    .modal-header p {
-      margin: 8px 0 0;
-      color: var(--text-muted);
-      line-height: 1.45;
-      font-size: 0.94rem;
-    }
-
-    .modal-close {
-      border: none;
-      background: #f2f4f8;
-      color: var(--text-muted);
-      width: 34px;
-      height: 34px;
-      border-radius: 999px;
-      cursor: pointer;
-      font-size: 1.15rem;
-      line-height: 1;
-      flex-shrink: 0;
-    }
-
-    .plans {
-      display: grid;
-      grid-template-columns: 1fr 1fr;
-      gap: 14px;
-    }
-
-    .plan {
-      border: 1px solid var(--border);
-      border-radius: 18px;
-      padding: 18px;
-      background: #fbfcff;
-      display: flex;
-      flex-direction: column;
-      gap: 12px;
-      text-align: left;
-    }
-
-    .plan.featured {
-      border-color: rgba(31, 94, 255, 0.35);
-      background:
-        radial-gradient(circle at 90% 10%, rgba(255, 213, 74, 0.22), transparent 38%),
-        #fbfcff;
-    }
-
-    .plan-title {
-      display: flex;
-      align-items: center;
-      justify-content: space-between;
-      gap: 8px;
-    }
-
-    .plan-title h4 {
-      margin: 0;
-      font-size: 1rem;
-    }
-
-    .badge {
-      background: rgba(31, 94, 255, 0.09);
-      color: var(--vita-blue);
-      border-radius: 999px;
-      padding: 5px 8px;
-      font-size: 0.75rem;
-      font-weight: 800;
-    }
-
-    .price {
-      font-size: 1.7rem;
-      font-weight: 800;
-      letter-spacing: -0.03em;
-      color: var(--text-dark);
-    }
-
-    .price span {
-      font-size: 0.86rem;
-      color: var(--text-muted);
-      font-weight: 600;
-      letter-spacing: 0;
-    }
-
-    .plan p {
-      margin: 0;
-      color: var(--text-muted);
-      line-height: 1.45;
-      font-size: 0.9rem;
-    }
-
-    .btn-plan {
-      margin-top: auto;
-      background: var(--vita-blue);
-      color: white;
-    }
-
-    .btn-plan:hover {
-      background: var(--vita-blue-dark);
-    }
-
-    .modal-note {
-      margin-top: 16px;
-      color: var(--text-muted);
-      font-size: 0.82rem;
-      line-height: 1.45;
-      text-align: center;
-    }
-
     @media (max-width: 620px) {
       body {
         padding: 18px;
@@ -410,14 +247,6 @@
       .title-card,
       .action-card {
         padding: 26px 20px;
-      }
-
-      .plans {
-        grid-template-columns: 1fr;
-      }
-
-      .modal {
-        padding: 20px;
       }
     }
   </style>
@@ -458,9 +287,9 @@
           Start free vocab test
         </a>
 
-        <button class="btn btn-secondary" type="button" id="openSubscribeModal">
+        <a class="btn btn-secondary" href="/subscribe/">
           View subscription options instead
-        </button>
+        </a>
       </div>
 
       <div class="helper">
@@ -468,117 +297,5 @@
       </div>
     </section>
   </main>
-
-  <div class="modal-backdrop" id="subscribeModal" aria-hidden="true">
-    <div class="modal" role="dialog" aria-modal="true" aria-labelledby="subscribeTitle">
-      <div class="modal-header">
-        <div>
-          <h3 id="subscribeTitle">Choose a Vitamova plan</h3>
-          <p>
-            Subscribe to unlock the full learning experience after your free vocabulary test.
-          </p>
-        </div>
-
-        <button class="modal-close" type="button" id="closeSubscribeModal" aria-label="Close subscription options">
-          ×
-        </button>
-      </div>
-
-      <div class="plans">
-        <div class="plan">
-          <div class="plan-title">
-            <h4>Monthly</h4>
-          </div>
-
-          <div class="price">
-            $5 <span>/ month</span>
-          </div>
-
-          <p>
-            Flexible monthly access to personalized vocabulary practice and progress tracking.
-          </p>
-
-          <!--
-            Replace this dummy href with your real checkout endpoint.
-
-            Recommended pattern:
-            1. Create a Django view like /create-checkout-session/
-            2. Have this link or form send the selected plan, such as ?plan=monthly
-            3. In the Django view, use your Stripe secret key server-side
-            4. Create a Stripe Checkout Session with your monthly Price ID
-            5. Redirect the user to session.url
-
-            Example:
-            href="/create-checkout-session/?plan=monthly"
-          -->
-          <a class="btn btn-plan" href="/dummy-monthly-checkout-link/">
-            Choose monthly
-          </a>
-        </div>
-
-        <div class="plan featured">
-          <div class="plan-title">
-            <h4>Yearly</h4>
-            <span class="badge">Best value</span>
-          </div>
-
-          <div class="price">
-            $50 <span>/ year</span>
-          </div>
-
-          <p>
-            A better value for learners who want to build vocabulary consistently over time.
-          </p>
-
-          <!--
-            Replace this dummy href with your real checkout endpoint.
-
-            Example:
-            href="/create-checkout-session/?plan=yearly"
-
-            In your backend, map "yearly" to your yearly Stripe Price ID.
-            Do not put your Stripe secret key in the frontend.
-          -->
-          <a class="btn btn-plan" href="/dummy-yearly-checkout-link/">
-            Choose yearly
-          </a>
-        </div>
-      </div>
-
-      <div class="modal-note">
-        Stripe checkout should be created server-side using your real monthly and yearly Price IDs.
-      </div>
-    </div>
-  </div>
-
-  <script>
-    const subscribeModal = document.getElementById("subscribeModal");
-    const openSubscribeModal = document.getElementById("openSubscribeModal");
-    const closeSubscribeModal = document.getElementById("closeSubscribeModal");
-
-    openSubscribeModal.addEventListener("click", () => {
-      subscribeModal.classList.add("is-open");
-      subscribeModal.setAttribute("aria-hidden", "false");
-    });
-
-    closeSubscribeModal.addEventListener("click", () => {
-      subscribeModal.classList.remove("is-open");
-      subscribeModal.setAttribute("aria-hidden", "true");
-    });
-
-    subscribeModal.addEventListener("click", (event) => {
-      if (event.target === subscribeModal) {
-        subscribeModal.classList.remove("is-open");
-        subscribeModal.setAttribute("aria-hidden", "true");
-      }
-    });
-
-    document.addEventListener("keydown", (event) => {
-      if (event.key === "Escape") {
-        subscribeModal.classList.remove("is-open");
-        subscribeModal.setAttribute("aria-hidden", "true");
-      }
-    });
-  </script>
 </body>
 </html>
