@@ -28,6 +28,7 @@ DEBUG = True
 ALLOWED_HOSTS = ['app.vitamova.com']
 CSRF_TRUSTED_ORIGINS = ['https://app.vitamova.com']
 
+LOGIN_REDIRECT_URL = '/'
 
 # Application definition
 
@@ -72,6 +73,21 @@ SOCIALACCOUNT_PROVIDERS = {
     "AUTH_PARAMS": {"access_type": "online"},
     }    
 }
+
+# Make social signup automatic when possible
+SOCIALACCOUNT_AUTO_SIGNUP = True
+
+# Usually for Google you want:
+ACCOUNT_EMAIL_REQUIRED = True
+ACCOUNT_UNIQUE_EMAIL = True
+
+# If you are okay not having a separate username:
+# (recommended if you just want email as ID)
+ACCOUNT_USERNAME_REQUIRED = False
+
+USE_X_FORWARDED_HOST = True
+ACCOUNT_DEFAULT_HTTP_PROTOCOL = "https"
+SECURE_PROXY_SSL_HEADER = ("HTTP_X_FORWARDED_PROTO", "https")
 
 MIDDLEWARE = [
     'django.middleware.security.SecurityMiddleware',
