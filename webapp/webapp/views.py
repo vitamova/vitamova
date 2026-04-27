@@ -42,7 +42,7 @@ def check_vitamova_subscription_in_stripe(user_email):
             for item in items:
                 price_id = item["price"]["id"]
 
-                # Only count Vitamova subscriptions
+                # Only count Vitamova subscriptions.
                 # This prevents another Evenstar product from granting Vitamova access.
                 if price_id in VITAMOVA_PRICE_MAP:
                     subscribed = True
@@ -76,7 +76,7 @@ def home(request):
     with connection.cursor() as cursor:
         cursor.execute(
             """
-            SELECT subscribed, subscription_expiration, stripe_customer_id
+            SELECT subscribed, subscription_expiration, stripe_customer_id, vocab_score
             FROM registered_user
             WHERE user_id = %s
             LIMIT 1
@@ -91,6 +91,7 @@ def home(request):
     subscribed = registered_user[0]
     subscription_expiration = registered_user[1]
     stripe_customer_id = registered_user[2]
+    vocab_score = registered_user[3]
 
     today = date.today()
 
@@ -124,6 +125,9 @@ def home(request):
 
     if subscribed and subscription_expiration and subscription_expiration > today:
         return render(request, "home.html")
+
+    if vocab_score == -1:
+        return render(request, "home_unsubscribed_noscore.html")
 
     return render(request, "home_unsubscribed.html")
 

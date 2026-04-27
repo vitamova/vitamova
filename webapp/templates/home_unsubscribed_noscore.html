@@ -1,0 +1,608 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <link rel="icon" href="/static/icon.png">
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+
+  <title>Vitamova | Start Your Vocabulary Test</title>
+
+  <style>
+    :root {
+      --vita-yellow: #ffd54a;
+      --vita-yellow-dark: #f4bf20;
+      --vita-blue: #1f5eff;
+      --vita-blue-dark: #1748c6;
+      --bg-soft: #f7f9ff;
+      --text-dark: #1a1f36;
+      --text-muted: #667085;
+      --card: #ffffff;
+      --border: #e6eaf2;
+      --shadow: 0 18px 45px rgba(24, 42, 100, 0.12);
+    }
+
+    * {
+      box-sizing: border-box;
+    }
+
+    body {
+      margin: 0;
+      font-family: Inter, ui-sans-serif, system-ui, -apple-system, Segoe UI, Roboto, Helvetica, Arial, sans-serif;
+      color: var(--text-dark);
+      background:
+        radial-gradient(circle at 10% 10%, rgba(255, 213, 74, 0.25), transparent 40%),
+        radial-gradient(circle at 90% 20%, rgba(31, 94, 255, 0.20), transparent 42%),
+        linear-gradient(180deg, #fdfefe 0%, var(--bg-soft) 100%);
+      min-height: 100vh;
+      display: grid;
+      place-items: center;
+      padding: 24px;
+    }
+
+    .page {
+      width: 100%;
+      max-width: 940px;
+      display: grid;
+      grid-template-columns: 1.05fr 0.95fr;
+      gap: 22px;
+      align-items: stretch;
+    }
+
+    .hero {
+      background: linear-gradient(160deg, var(--vita-blue) 0%, #3d7dff 55%, #6aa0ff 100%);
+      color: white;
+      border-radius: 24px;
+      padding: 28px;
+      position: relative;
+      overflow: hidden;
+      box-shadow: var(--shadow);
+      min-height: 520px;
+      display: flex;
+      flex-direction: column;
+      justify-content: center;
+    }
+
+    .hero::before,
+    .hero::after {
+      content: "";
+      position: absolute;
+      border-radius: 999px;
+      filter: blur(2px);
+      opacity: 0.9;
+    }
+
+    .hero::before {
+      width: 240px;
+      height: 240px;
+      background: rgba(255, 213, 74, 0.35);
+      top: -70px;
+      right: -40px;
+    }
+
+    .hero::after {
+      width: 180px;
+      height: 180px;
+      background: rgba(255, 255, 255, 0.15);
+      bottom: 40px;
+      left: -40px;
+    }
+
+    .brand {
+      position: relative;
+      z-index: 1;
+      display: flex;
+      align-items: center;
+      gap: 10px;
+      font-weight: 700;
+      font-size: 1.1rem;
+      letter-spacing: 0.2px;
+      margin-bottom: 26px;
+    }
+
+    .brand-badge {
+      width: 42px;
+      height: 42px;
+      border-radius: 12px;
+      overflow: hidden;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+    }
+
+    .brand-icon {
+      width: 100%;
+      height: 100%;
+      object-fit: cover;
+      display: block;
+    }
+
+    .hero-content {
+      position: relative;
+      z-index: 1;
+    }
+
+    .hero h1 {
+      margin: 0 0 14px;
+      font-size: clamp(1.9rem, 2.8vw, 2.5rem);
+      line-height: 1.08;
+      letter-spacing: -0.02em;
+      max-width: 16ch;
+    }
+
+    .hero p {
+      margin: 0;
+      color: rgba(255, 255, 255, 0.9);
+      max-width: 44ch;
+      line-height: 1.55;
+      font-size: 1rem;
+    }
+
+    .feature-chips {
+      position: relative;
+      z-index: 1;
+      display: flex;
+      flex-wrap: wrap;
+      gap: 10px;
+      margin-top: 22px;
+    }
+
+    .chip {
+      background: rgba(255, 255, 255, 0.12);
+      border: 1px solid rgba(255, 255, 255, 0.16);
+      color: #fff;
+      padding: 8px 12px;
+      border-radius: 999px;
+      font-size: 0.9rem;
+      backdrop-filter: blur(4px);
+    }
+
+    .main-panel {
+      background: var(--card);
+      border: 1px solid var(--border);
+      border-radius: 24px;
+      box-shadow: var(--shadow);
+      padding: 28px;
+      display: flex;
+      flex-direction: column;
+      justify-content: center;
+      min-height: 520px;
+    }
+
+    .panel-header h2 {
+      margin: 0;
+      font-size: 1.6rem;
+      letter-spacing: -0.02em;
+    }
+
+    .panel-header p {
+      margin: 10px 0 0;
+      color: var(--text-muted);
+      line-height: 1.5;
+    }
+
+    .score-card {
+      margin-top: 24px;
+      padding: 18px;
+      border: 1px solid var(--border);
+      border-radius: 18px;
+      background: #fbfcff;
+    }
+
+    .score-card strong {
+      display: block;
+      margin-bottom: 8px;
+      color: var(--text-dark);
+      font-size: 1rem;
+    }
+
+    .score-card p {
+      margin: 0;
+      color: var(--text-muted);
+      line-height: 1.5;
+      font-size: 0.94rem;
+    }
+
+    .actions {
+      margin-top: 24px;
+      display: grid;
+      gap: 12px;
+    }
+
+    .btn {
+      border: none;
+      border-radius: 12px;
+      padding: 13px 14px;
+      font-size: 0.96rem;
+      font-weight: 700;
+      cursor: pointer;
+      transition: transform 0.04s ease, box-shadow 0.15s ease, background-color 0.15s ease, border-color 0.15s ease;
+      text-decoration: none;
+      text-align: center;
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+    }
+
+    .btn:active {
+      transform: translateY(1px);
+    }
+
+    .btn-primary {
+      background: var(--vita-blue);
+      color: white;
+      box-shadow: 0 8px 20px rgba(31, 94, 255, 0.18);
+    }
+
+    .btn-primary:hover {
+      background: var(--vita-blue-dark);
+    }
+
+    .btn-secondary {
+      background: white;
+      color: var(--text-muted);
+      border: 1px solid var(--border);
+      font-size: 0.9rem;
+      box-shadow: 0 8px 20px rgba(20, 27, 52, 0.05);
+    }
+
+    .btn-secondary:hover {
+      background: #fbfcff;
+      color: var(--text-dark);
+      border-color: #d6dce8;
+    }
+
+    .helper {
+      margin-top: 4px;
+      color: var(--text-muted);
+      font-size: 0.88rem;
+      line-height: 1.45;
+      text-align: center;
+    }
+
+    .highlight {
+      color: var(--vita-blue);
+      font-weight: 700;
+    }
+
+    .modal-backdrop {
+      display: none;
+      position: fixed;
+      inset: 0;
+      background: rgba(17, 24, 39, 0.52);
+      z-index: 20;
+      padding: 24px;
+      place-items: center;
+    }
+
+    .modal-backdrop.is-open {
+      display: grid;
+    }
+
+    .modal {
+      width: 100%;
+      max-width: 620px;
+      background: white;
+      border-radius: 24px;
+      box-shadow: 0 24px 70px rgba(17, 24, 39, 0.28);
+      border: 1px solid var(--border);
+      padding: 24px;
+      position: relative;
+    }
+
+    .modal-header {
+      display: flex;
+      align-items: flex-start;
+      justify-content: space-between;
+      gap: 16px;
+      margin-bottom: 18px;
+    }
+
+    .modal-header h3 {
+      margin: 0;
+      font-size: 1.35rem;
+      letter-spacing: -0.02em;
+    }
+
+    .modal-header p {
+      margin: 8px 0 0;
+      color: var(--text-muted);
+      line-height: 1.45;
+      font-size: 0.94rem;
+    }
+
+    .modal-close {
+      border: none;
+      background: #f2f4f8;
+      color: var(--text-muted);
+      width: 34px;
+      height: 34px;
+      border-radius: 999px;
+      cursor: pointer;
+      font-size: 1.15rem;
+      line-height: 1;
+      flex-shrink: 0;
+    }
+
+    .plans {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 14px;
+    }
+
+    .plan {
+      border: 1px solid var(--border);
+      border-radius: 18px;
+      padding: 18px;
+      background: #fbfcff;
+      display: flex;
+      flex-direction: column;
+      gap: 12px;
+    }
+
+    .plan.featured {
+      border-color: rgba(31, 94, 255, 0.35);
+      background:
+        radial-gradient(circle at 90% 10%, rgba(255, 213, 74, 0.22), transparent 38%),
+        #fbfcff;
+    }
+
+    .plan-title {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 8px;
+    }
+
+    .plan-title h4 {
+      margin: 0;
+      font-size: 1rem;
+    }
+
+    .badge {
+      background: rgba(31, 94, 255, 0.09);
+      color: var(--vita-blue);
+      border-radius: 999px;
+      padding: 5px 8px;
+      font-size: 0.75rem;
+      font-weight: 800;
+    }
+
+    .price {
+      font-size: 1.7rem;
+      font-weight: 800;
+      letter-spacing: -0.03em;
+      color: var(--text-dark);
+    }
+
+    .price span {
+      font-size: 0.86rem;
+      color: var(--text-muted);
+      font-weight: 600;
+      letter-spacing: 0;
+    }
+
+    .plan p {
+      margin: 0;
+      color: var(--text-muted);
+      line-height: 1.45;
+      font-size: 0.9rem;
+    }
+
+    .btn-plan {
+      margin-top: auto;
+      background: var(--vita-blue);
+      color: white;
+    }
+
+    .btn-plan:hover {
+      background: var(--vita-blue-dark);
+    }
+
+    .modal-note {
+      margin-top: 16px;
+      color: var(--text-muted);
+      font-size: 0.82rem;
+      line-height: 1.45;
+      text-align: center;
+    }
+
+    @media (max-width: 860px) {
+      .page {
+        grid-template-columns: 1fr;
+      }
+
+      .hero {
+        min-height: auto;
+        padding: 22px;
+      }
+
+      .main-panel {
+        min-height: auto;
+        padding: 22px;
+      }
+    }
+
+    @media (max-width: 620px) {
+      .plans {
+        grid-template-columns: 1fr;
+      }
+
+      .modal {
+        padding: 20px;
+      }
+    }
+  </style>
+</head>
+
+<body>
+  <main class="page">
+    <section class="hero" aria-label="Vitamova Welcome Panel">
+      <div class="brand">
+        <div class="brand-badge">
+          <img src="/static/icon.png" alt="Vitamova icon" class="brand-icon">
+        </div>
+        <span>Vitamova</span>
+      </div>
+
+      <div class="hero-content">
+        <h1>Start with your vocabulary baseline</h1>
+        <p>
+          Before Vitamova recommends what to study, we need a quick estimate of your
+          current vocabulary level. The test is free and helps us personalize your learning path.
+        </p>
+
+        <div class="feature-chips">
+          <span class="chip">Free vocab test</span>
+          <span class="chip">Personalized score</span>
+          <span class="chip">Spanish learning path</span>
+          <span class="chip">Advanced vocabulary</span>
+        </div>
+      </div>
+    </section>
+
+    <section class="main-panel" aria-label="Vocabulary Test">
+      <div class="panel-header">
+        <h2>Take your free vocabulary test</h2>
+        <p>
+          Your account is set up, but you have not assessed your vocabulary yet.
+          Start with a quick diagnostic so Vitamova can recommend the right words.
+        </p>
+      </div>
+
+      <div class="score-card">
+        <strong>Your current vocabulary score: not assessed</strong>
+        <p>
+          After the test, you’ll get an estimated vocabulary score and a better idea of
+          which frequency range to focus on first.
+        </p>
+      </div>
+
+      <div class="actions">
+        <a class="btn btn-primary" href="/vocab-test/">
+          Take the free vocab test
+        </a>
+
+        <button class="btn btn-secondary" type="button" id="openSubscribeModal">
+          Skip the test and view subscription options
+        </button>
+
+        <div class="helper">
+          The test is the best place to start. Subscription is optional until you are ready.
+        </div>
+      </div>
+    </section>
+  </main>
+
+  <div class="modal-backdrop" id="subscribeModal" aria-hidden="true">
+    <div class="modal" role="dialog" aria-modal="true" aria-labelledby="subscribeTitle">
+      <div class="modal-header">
+        <div>
+          <h3 id="subscribeTitle">Choose a Vitamova plan</h3>
+          <p>
+            Subscribe to unlock the full learning experience after your free vocabulary test.
+          </p>
+        </div>
+
+        <button class="modal-close" type="button" id="closeSubscribeModal" aria-label="Close subscription options">
+          ×
+        </button>
+      </div>
+
+      <div class="plans">
+        <div class="plan">
+          <div class="plan-title">
+            <h4>Monthly</h4>
+          </div>
+
+          <div class="price">
+            $X <span>/ month</span>
+          </div>
+
+          <p>
+            Flexible monthly access to personalized vocabulary practice and progress tracking.
+          </p>
+
+          <!--
+            Replace this dummy href with your real checkout endpoint.
+
+            Recommended pattern:
+            1. Create a Django view like /create-checkout-session/
+            2. Have this link or form send the selected plan, such as ?plan=monthly
+            3. In the Django view, use your Stripe secret key server-side
+            4. Create a Stripe Checkout Session with your monthly Price ID
+            5. Redirect the user to session.url
+
+            Example:
+            href="/create-checkout-session/?plan=monthly"
+          -->
+          <a class="btn btn-plan" href="/dummy-monthly-checkout-link/">
+            Choose monthly
+          </a>
+        </div>
+
+        <div class="plan featured">
+          <div class="plan-title">
+            <h4>Yearly</h4>
+            <span class="badge">Best value</span>
+          </div>
+
+          <div class="price">
+            $X <span>/ year</span>
+          </div>
+
+          <p>
+            A better value for learners who want to build vocabulary consistently over time.
+          </p>
+
+          <!--
+            Replace this dummy href with your real checkout endpoint.
+
+            Example:
+            href="/create-checkout-session/?plan=yearly"
+
+            In your backend, map "yearly" to your yearly Stripe Price ID.
+            Do not put your Stripe secret key in the frontend.
+          -->
+          <a class="btn btn-plan" href="/dummy-yearly-checkout-link/">
+            Choose yearly
+          </a>
+        </div>
+      </div>
+
+      <div class="modal-note">
+        Stripe checkout should be created server-side using your real monthly and yearly Price IDs.
+      </div>
+    </div>
+  </div>
+
+  <script>
+    const subscribeModal = document.getElementById("subscribeModal");
+    const openSubscribeModal = document.getElementById("openSubscribeModal");
+    const closeSubscribeModal = document.getElementById("closeSubscribeModal");
+
+    openSubscribeModal.addEventListener("click", () => {
+      subscribeModal.classList.add("is-open");
+      subscribeModal.setAttribute("aria-hidden", "false");
+    });
+
+    closeSubscribeModal.addEventListener("click", () => {
+      subscribeModal.classList.remove("is-open");
+      subscribeModal.setAttribute("aria-hidden", "true");
+    });
+
+    subscribeModal.addEventListener("click", (event) => {
+      if (event.target === subscribeModal) {
+        subscribeModal.classList.remove("is-open");
+        subscribeModal.setAttribute("aria-hidden", "true");
+      }
+    });
+
+    document.addEventListener("keydown", (event) => {
+      if (event.key === "Escape") {
+        subscribeModal.classList.remove("is-open");
+        subscribeModal.setAttribute("aria-hidden", "true");
+      }
+    });
+  </script>
+</body>
+</html>
