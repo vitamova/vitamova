@@ -2,6 +2,7 @@ from django.shortcuts import render, redirect
 from django.db import connection
 import stripe
 from datetime import date
+from pathlib import Path
 
 VITAMOVA_PRICE_MAP = {
     # Replace this with your real Stripe monthly price ID
@@ -10,7 +11,7 @@ VITAMOVA_PRICE_MAP = {
 }
 
 # Stripe key is in data/stripe_key.txt
-stripe_key_path = "data/stripe_key.txt"
+stripe_key_path = Path.home() / 'data' / 'stripe_key.txt'
 with open(stripe_key_path, 'r') as f:
     stripe.api_key = f.read().strip()
 
