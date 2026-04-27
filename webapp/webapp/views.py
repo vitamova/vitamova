@@ -46,32 +46,39 @@ def check_vitamova_subscription_in_stripe(user_email):
     ).data
 
     for customer in customers:
+        customer_id = customer.get("id")
+
+        if not customer_id:
+            continue
+
         subscriptions = stripe.Subscription.list(
-            customer=customer.id,
+            customer=customer_id,
             status="all",
             limit=100
         ).data
 
         for sub in subscriptions:
-            if sub.status not in ["active", "trialing"]:
+            sub_status = sub.get("status")
+
+            if sub_status not in ["active", "trialing"]:
                 continue
 
-            items = sub["items"]["data"]
+            items = sub.get("items", {}).get("data", [])
 
             for item in items:
-                price_id = item["price"]["id"]
+                price_id = item.get("price", {}).get("id")
 
                 # Only count Vitamova subscriptions.
                 # This prevents another Evenstar product from granting Vitamova access.
                 if price_id in VITAMOVA_PRICE_MAP:
                     subscribed = True
-                    stripe_customer_id = customer.id
-                    subscription_id = sub.id
+                    stripe_customer_id = customer_id
+                    subscription_id = sub.get("id")
 
-                    if sub.current_period_end:
-                        subscription_expiration = date.fromtimestamp(
-                            sub.current_period_end
-                        )
+                    current_period_end = sub.get("current_period_end")
+
+                    if current_period_end:
+                        subscription_expiration = date.fromtimestamp(current_period_end)
 
                     return {
                         "subscribed": subscribed,
@@ -220,52 +227,11 @@ def register(request):
                 'error': 'You must agree to the Terms and Conditions to continue.'
             })
 
-        subscribed = False
-        subscription_expiration = None
-        stripe_customer_id = None
-        vitamova_subscription_id = None
+        stripe_status = check_vitamova_subscription_in_stripe(request.user.email)
 
-        customers = stripe.Customer.list(
-            email=request.user.email,
-            limit=10
-        ).data
-
-        for customer in customers:
-            subscriptions = stripe.Subscription.list(
-                customer=customer.id,
-                status='all',
-                limit=100
-            ).data
-
-            for sub in subscriptions:
-                # Only count active/trialing subscriptions as subscribed.
-                # You can add "past_due" here later if you want to keep access
-                # during failed payment recovery.
-                if sub.status not in ["active", "trialing"]:
-                    continue
-
-                items = sub["items"]["data"]
-
-                for item in items:
-                    price_id = item["price"]["id"]
-
-                    if price_id in VITAMOVA_PRICE_MAP:
-                        subscribed = True
-                        stripe_customer_id = customer.id
-                        vitamova_subscription_id = sub.id
-
-                        if sub.current_period_end:
-                            subscription_expiration = date.fromtimestamp(
-                                sub.current_period_end
-                            )
-
-                        break
-
-                if subscribed:
-                    break
-
-            if subscribed:
-                break
+        subscribed = stripe_status["subscribed"]
+        subscription_expiration = stripe_status["subscription_expiration"]
+        stripe_customer_id = stripe_status["stripe_customer_id"]
 
         with connection.cursor() as cursor:
             cursor.execute(
@@ -292,7 +258,7 @@ def register(request):
                     request.user.id,
                     native_language,
                     target_language,
-                    0,
+                    -1,
                     subscribed,
                     subscription_expiration,
                     stripe_customer_id,
