@@ -29,6 +29,7 @@ with open(secret_key_path, 'r') as f:
 DEBUG = True
 
 ALLOWED_HOSTS = ['app.vitamova.com']
+CSRF_TRUSTED_ORIGINS = ['https://app.vespersecure.com']
 
 
 # Application definition
