@@ -249,7 +249,7 @@ def home(request):
             target_language_row = cursor.fetchone()
             target_language = target_language_row[0] if target_language_row else None
 
-       with connection.cursor() as cursor:
+    with connection.cursor() as cursor:
         cursor.execute(
             """
             SELECT COUNT(*)
