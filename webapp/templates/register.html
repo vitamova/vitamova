@@ -1,0 +1,453 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <link rel="icon" href="/static/icon.png">
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Vitamova | Register</title>
+  <style>
+    :root {
+      --vita-yellow: #ffd54a;
+      --vita-yellow-dark: #f4bf20;
+      --vita-blue: #1f5eff;
+      --vita-blue-dark: #1748c6;
+      --bg-soft: #f7f9ff;
+      --text-dark: #1a1f36;
+      --text-muted: #667085;
+      --card: #ffffff;
+      --border: #e6eaf2;
+      --shadow: 0 18px 45px rgba(24, 42, 100, 0.12);
+    }
+
+    * {
+      box-sizing: border-box;
+    }
+
+    body {
+      margin: 0;
+      font-family: Inter, ui-sans-serif, system-ui, -apple-system, Segoe UI, Roboto, Helvetica, Arial, sans-serif;
+      color: var(--text-dark);
+      background:
+        radial-gradient(circle at 10% 10%, rgba(255, 213, 74, 0.25), transparent 40%),
+        radial-gradient(circle at 90% 20%, rgba(31, 94, 255, 0.20), transparent 42%),
+        linear-gradient(180deg, #fdfefe 0%, var(--bg-soft) 100%);
+      min-height: 100vh;
+      display: grid;
+      place-items: center;
+      padding: 24px;
+    }
+
+    .page {
+      width: 100%;
+      max-width: 940px;
+      display: grid;
+      grid-template-columns: 1.05fr 0.95fr;
+      gap: 22px;
+      align-items: stretch;
+    }
+
+    .hero {
+      background: linear-gradient(160deg, var(--vita-blue) 0%, #3d7dff 55%, #6aa0ff 100%);
+      color: white;
+      border-radius: 24px;
+      padding: 28px;
+      position: relative;
+      overflow: hidden;
+      box-shadow: var(--shadow);
+      min-height: 520px;
+      display: flex;
+      flex-direction: column;
+      justify-content: center;
+    }
+
+    .hero::before,
+    .hero::after {
+      content: "";
+      position: absolute;
+      border-radius: 999px;
+      filter: blur(2px);
+      opacity: 0.9;
+    }
+
+    .hero::before {
+      width: 240px;
+      height: 240px;
+      background: rgba(255, 213, 74, 0.35);
+      top: -70px;
+      right: -40px;
+    }
+
+    .hero::after {
+      width: 180px;
+      height: 180px;
+      background: rgba(255, 255, 255, 0.15);
+      bottom: 40px;
+      left: -40px;
+    }
+
+    .brand {
+      position: relative;
+      z-index: 1;
+      display: flex;
+      align-items: center;
+      gap: 10px;
+      font-weight: 700;
+      font-size: 1.1rem;
+      letter-spacing: 0.2px;
+      margin-bottom: 26px;
+    }
+
+    .brand-badge {
+      width: 42px;
+      height: 42px;
+      border-radius: 12px;
+      overflow: hidden;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+    }
+
+    .brand-icon {
+      width: 100%;
+      height: 100%;
+      object-fit: cover;
+      display: block;
+    }
+
+    .hero-content {
+      position: relative;
+      z-index: 1;
+    }
+
+    .hero h1 {
+      margin: 0 0 14px;
+      font-size: clamp(1.9rem, 2.8vw, 2.5rem);
+      line-height: 1.08;
+      letter-spacing: -0.02em;
+      max-width: 16ch;
+    }
+
+    .hero p {
+      margin: 0;
+      color: rgba(255, 255, 255, 0.9);
+      max-width: 44ch;
+      line-height: 1.55;
+      font-size: 1rem;
+    }
+
+    .feature-chips {
+      position: relative;
+      z-index: 1;
+      display: flex;
+      flex-wrap: wrap;
+      gap: 10px;
+      margin-top: 22px;
+    }
+
+    .chip {
+      background: rgba(255, 255, 255, 0.12);
+      border: 1px solid rgba(255, 255, 255, 0.16);
+      color: #fff;
+      padding: 8px 12px;
+      border-radius: 999px;
+      font-size: 0.9rem;
+      backdrop-filter: blur(4px);
+    }
+
+    .login-panel {
+      background: var(--card);
+      border: 1px solid var(--border);
+      border-radius: 24px;
+      box-shadow: var(--shadow);
+      padding: 28px;
+      display: flex;
+      flex-direction: column;
+      justify-content: center;
+      min-height: 520px;
+    }
+
+    .login-header h2 {
+      margin: 0;
+      font-size: 1.6rem;
+      letter-spacing: -0.02em;
+    }
+
+    .login-header p {
+      margin: 10px 0 0;
+      color: var(--text-muted);
+      line-height: 1.5;
+    }
+
+    .form {
+      margin-top: 26px;
+      display: grid;
+      gap: 16px;
+    }
+
+    .field {
+      display: grid;
+      gap: 7px;
+    }
+
+    .field label {
+      font-size: 0.92rem;
+      font-weight: 700;
+      color: var(--text-dark);
+    }
+
+    .select {
+      width: 100%;
+      border: 1px solid var(--border);
+      border-radius: 12px;
+      padding: 13px 14px;
+      background: white;
+      color: var(--text-dark);
+      font-size: 0.96rem;
+      font-weight: 600;
+      outline: none;
+    }
+
+    .select:focus-visible {
+      border-color: var(--vita-blue);
+      outline: 3px solid rgba(31, 94, 255, 0.16);
+    }
+
+    .label-row {
+      display: flex;
+      align-items: center;
+      gap: 6px;
+    }
+
+    .info {
+      position: relative;
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      width: 18px;
+      height: 18px;
+      border-radius: 999px;
+      background: rgba(31, 94, 255, 0.09);
+      color: var(--vita-blue);
+      font-size: 0.78rem;
+      font-weight: 800;
+      cursor: help;
+    }
+
+    .info-text {
+      visibility: hidden;
+      opacity: 0;
+      position: absolute;
+      left: 50%;
+      bottom: 135%;
+      transform: translateX(-50%);
+      width: 220px;
+      background: #1f2937;
+      color: white;
+      padding: 9px 10px;
+      border-radius: 10px;
+      font-size: 0.78rem;
+      font-weight: 600;
+      line-height: 1.35;
+      box-shadow: 0 12px 28px rgba(17, 24, 39, 0.22);
+      transition: opacity 0.15s ease, visibility 0.15s ease;
+      z-index: 5;
+    }
+
+    .info:hover .info-text,
+    .info:focus .info-text {
+      visibility: visible;
+      opacity: 1;
+    }
+
+    .terms {
+      max-height: 160px;
+      overflow-y: auto;
+      border: 1px solid var(--border);
+      border-radius: 14px;
+      background: #fbfcff;
+      padding: 14px;
+      color: var(--text-muted);
+      font-size: 0.86rem;
+      line-height: 1.45;
+    }
+
+    .terms strong {
+      display: block;
+      color: var(--text-dark);
+      margin-bottom: 6px;
+      font-size: 0.95rem;
+    }
+
+    .terms p {
+      margin: 0 0 10px;
+    }
+
+    .checkbox {
+      display: flex;
+      align-items: flex-start;
+      gap: 10px;
+      color: var(--text-muted);
+      font-size: 0.9rem;
+      line-height: 1.4;
+    }
+
+    .checkbox input {
+      margin-top: 3px;
+      accent-color: var(--vita-blue);
+    }
+
+    .btn {
+      border: none;
+      border-radius: 12px;
+      padding: 13px 14px;
+      font-size: 0.96rem;
+      font-weight: 700;
+      cursor: pointer;
+      transition: transform 0.04s ease, box-shadow 0.15s ease, background-color 0.15s ease, border-color 0.15s ease;
+      text-decoration: none;
+    }
+
+    .btn:active {
+      transform: translateY(1px);
+    }
+
+    .btn-primary {
+      background: var(--vita-blue);
+      color: white;
+      box-shadow: 0 8px 20px rgba(31, 94, 255, 0.18);
+    }
+
+    .btn-primary:hover {
+      background: var(--vita-blue-dark);
+    }
+
+    .btn-primary:focus-visible {
+      outline: 3px solid rgba(31, 94, 255, 0.22);
+      outline-offset: 2px;
+    }
+
+    .helper {
+      margin-top: 4px;
+      color: var(--text-muted);
+      font-size: 0.9rem;
+      line-height: 1.45;
+      text-align: center;
+    }
+
+    .highlight {
+      color: var(--vita-blue);
+      font-weight: 700;
+    }
+
+    @media (max-width: 860px) {
+      .page {
+        grid-template-columns: 1fr;
+      }
+
+      .hero {
+        min-height: auto;
+        padding: 22px;
+      }
+
+      .login-panel {
+        min-height: auto;
+        padding: 22px;
+      }
+    }
+  </style>
+</head>
+<body>
+  <main class="page">
+    <section class="hero" aria-label="Vitamova Welcome Panel">
+      <div class="brand">
+        <div class="brand-badge">
+          <img src="/static/icon.png" alt="Vitamova icon" class="brand-icon">
+        </div>
+        <span>Vitamova</span>
+      </div>
+
+      <div class="hero-content">
+        <h1>Welcome, {{ first_name }}</h1>
+        <p>
+          Let’s set up your language profile so Vitamova can tailor your
+          <strong>intermediate and advanced</strong> vocabulary practice to your goals.
+        </p>
+
+        <div class="feature-chips">
+          <span class="chip">Personalized practice</span>
+          <span class="chip">Vocabulary scoring</span>
+          <span class="chip">Spanish learning path</span>
+          <span class="chip">More languages soon</span>
+        </div>
+      </div>
+    </section>
+
+    <section class="login-panel" aria-label="Register">
+      <div class="login-header">
+        <h2>Finish setting up your account</h2>
+        <p>
+          Choose your language pair and agree to the basic terms to continue.
+        </p>
+      </div>
+
+      <form class="form" method="POST" action="/register">
+        {% csrf_token %}
+
+        <div class="field">
+          <label for="native_language">Native language</label>
+          <select class="select" id="native_language" name="native_language" required>
+            <option value="en">English</option>
+          </select>
+        </div>
+
+        <div class="field">
+          <div class="label-row">
+            <label for="target_language">Target language</label>
+            <span class="info" tabindex="0" aria-label="More language information">
+              i
+              <span class="info-text">More languages will be added in the future.</span>
+            </span>
+          </div>
+
+          <select class="select" id="target_language" name="target_language" required>
+            <option value="es">Spanish</option>
+          </select>
+        </div>
+
+        <div class="terms">
+          <strong>Terms and Conditions</strong>
+          <p>
+            By using Vitamova, you agree to use the service for personal language-learning
+            purposes and to provide accurate account information.
+          </p>
+          <p>
+            Vocabulary scores, recommendations, and learning estimates are educational tools
+            and do not represent official language proficiency results.
+          </p>
+          <p>
+            You agree not to misuse the platform, interfere with the service, attempt
+            unauthorized access, or submit harmful, abusive, or unlawful content.
+          </p>
+          <p>
+            Vitamova may update these terms as the service grows. Continued use of the
+            service means you accept the current version of the terms.
+          </p>
+        </div>
+
+        <label class="checkbox">
+          <input type="checkbox" name="agree_terms" required>
+          <span>I agree to the Terms and Conditions.</span>
+        </label>
+
+        <button class="btn btn-primary" type="submit">
+          Continue
+        </button>
+
+        <div class="helper">
+          Your language settings can help personalize your vocabulary practice.
+        </div>
+      </form>
+    </section>
+  </main>
+</body>
+</html>
