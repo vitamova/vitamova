@@ -273,7 +273,10 @@ def home(request):
             "user_email": request.user.email,
             "has_score": vocab_score != -1,
             "review_count": review_count,
-            "language": target_language
+            "language": target_language,
+            "language_options": [
+                {"code": "es", "name": "Spanish"},
+                ]
             })
 
     # If the local table says the user is unsubscribed or expired,
@@ -307,7 +310,10 @@ def home(request):
             "user_email": request.user.email,
             "has_score": vocab_score != -1,
             "review_count": review_count,
-            "language": target_language
+            "language": target_language,
+            "language_options": [
+                {"code": "es", "name": "Spanish"},
+                ]
             })
 
     if vocab_score == -1:
