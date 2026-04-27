@@ -9,7 +9,7 @@ VITAMOVA_PRICE_MAP = {
     "price_1TQtPSKOiNtX3WewCEePEtQg": "Vitamova Yearly"
 }
 
-"STRIPE_PUBLIC_KEY": "pk_live_51RIChJKOiNtX3WewnOeHxiL99XltNWm2TluZew2fn6fzcmuHJ3R2x7EuLbbNpb74k1gnHlSRPHOoFJsFTEd5z8fp00rYr00NmV"
+STRIPE_PUBLIC_KEY= "pk_live_51RIChJKOiNtX3WewnOeHxiL99XltNWm2TluZew2fn6fzcmuHJ3R2x7EuLbbNpb74k1gnHlSRPHOoFJsFTEd5z8fp00rYr00NmV"
 # Stripe key is in data/stripe_key.txt
 stripe_key_path = Path.home() / 'data' / 'stripe_key.txt'
 with open(stripe_key_path, 'r') as f:
