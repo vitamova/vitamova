@@ -114,8 +114,8 @@ def create_checkout_session(request):
             mode="subscription",
             allow_promotion_codes=True,
             payment_method_collection="if_required",
-            success_url=request.build_absolute_uri("/?checkout=success"),
-            cancel_url=request.build_absolute_uri("/subscribe/?checkout=cancel"),
+            success_url=request.build_absolute_uri("/"),
+            cancel_url=request.build_absolute_uri("/"),
             metadata={
                 "user_id": str(request.user.id),
                 "product": "vitamova",
