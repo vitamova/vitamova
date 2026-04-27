@@ -410,13 +410,13 @@
             <li>Targeted Spanish learning path</li>
           </ul>
 
-          <button
-            class="btn btn-secondary checkout-button"
-            type="button"
-            data-price-id="price_1TQtOmKOiNtX3Wewk310Ygu5"
-          >
-            Choose monthly
-          </button>
+            <form method="POST" action="/create-checkout-session/">
+            {% csrf_token %}
+            <input type="hidden" name="price_id" value="price_1TQtOmKOiNtX3Wewk310Ygu5">
+            <button class="btn btn-secondary" type="submit">
+                Choose monthly
+            </button>
+            </form>
         </article>
 
         <article class="plan featured">
@@ -439,13 +439,13 @@
             <li>Stay focused on consistent learning</li>
           </ul>
 
-          <button
-            class="btn btn-primary checkout-button"
-            type="button"
-            data-price-id="price_1TQtPSKOiNtX3WewCEePEtQg"
-          >
-            Choose yearly
-          </button>
+            <form method="POST" action="/create-checkout-session/">
+            {% csrf_token %}
+            <input type="hidden" name="price_id" value="price_1TQtPSKOiNtX3WewCEePEtQg">
+            <button class="btn btn-primary" type="submit">
+                Choose yearly
+            </button>
+            </form>
         </article>
       </div>
 
