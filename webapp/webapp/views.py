@@ -1,5 +1,6 @@
 from django.shortcuts import render, redirect
 from django.db import connection
+from django.views.decorators.http import require_POST
 import stripe
 from datetime import date
 from pathlib import Path
