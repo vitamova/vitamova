@@ -390,14 +390,21 @@
         </p>
       </div>
 
-      <form class="form" method="POST" action="/register">
+      <form class="form" method="POST" action="/register/">
         {% csrf_token %}
 
         <div class="field">
-          <label for="native_language">Native language</label>
-          <select class="select" id="native_language" name="native_language" required>
+        <div class="label-row">
+            <label for="native_language">Native language</label>
+            <span class="info" tabindex="0" aria-label="More native language information">
+            i
+            <span class="info-text">More languages will be added in the future.</span>
+            </span>
+        </div>
+
+        <select class="select" id="native_language" name="native_language" required>
             <option value="en">English</option>
-          </select>
+        </select>
         </div>
 
         <div class="field">
