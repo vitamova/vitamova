@@ -88,32 +88,51 @@ def check_vitamova_subscription_in_stripe(user_email):
 
 # Views
     
+@require_POST
 def create_checkout_session(request):
-    if request.method != 'POST':
-        return redirect('home')
+    if not request.user.is_authenticated:
+        return redirect("login")
 
-    price_id = request.POST.get('price_id')
+    if not is_registered_user(request.user):
+        return redirect("/register/")
+
+    price_id = request.POST.get("price_id")
 
     if price_id not in VITAMOVA_PRICE_MAP:
-        return redirect('home')
+        return redirect("/subscribe/")
 
     try:
         checkout_session = stripe.checkout.Session.create(
             customer_email=request.user.email,
             line_items=[
                 {
-                    'price': price_id,
-                    'quantity': 1,
-                },
+                    "price": price_id,
+                    "quantity": 1,
+                }
             ],
-            mode='subscription',
-            success_url=request.build_absolute_uri('/?checkout=success'),
-            cancel_url=request.build_absolute_uri('/?checkout=cancel'),
+            mode="subscription",
+            allow_promotion_codes=True,
+            success_url=request.build_absolute_uri("/?checkout=success"),
+            cancel_url=request.build_absolute_uri("/subscribe/?checkout=cancel"),
+            metadata={
+                "user_id": str(request.user.id),
+                "product": "vitamova",
+                "price_id": price_id,
+            },
+            subscription_data={
+                "metadata": {
+                    "user_id": str(request.user.id),
+                    "product": "vitamova",
+                    "price_id": price_id,
+                }
+            },
         )
+
         return redirect(checkout_session.url)
+
     except Exception as e:
         print(f"Error creating Stripe checkout session: {e}")
-        return redirect('home')
+        return redirect("/subscribe/")
 
 
 def home(request):
