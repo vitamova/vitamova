@@ -56,6 +56,25 @@ AUTHENTICATION_BACKENDS = [
     'allauth.account.auth_backends.AuthenticationBackend',
 ]
 
+# Client ID and secret are in data/google_sso_client.txt, in the format: client_id\nclient_secret
+google_sso_client_path = Path.home() / 'data' / 'google_sso_client.txt'
+with open(google_sso_client_path, 'r') as f:
+    lines = f.read().strip().split('\n')
+    GOOGLE_CLIENT_ID = lines[0]
+    GOOGLE_CLIENT_SECRET = lines[1]
+
+SOCIALACCOUNT_PROVIDERS = {
+    "google": {
+        "APP": {
+            "client_id": GOOGLE_CLIENT_ID,
+            "secret": GOOGLE_CLIENT_SECRET,
+            "key": ""
+        },
+    "SCOPE": ["profile", "email"],
+    "AUTH_PARAMS": {"access_type": "online"},
+    }    
+}
+
 MIDDLEWARE = [
     'django.middleware.security.SecurityMiddleware',
     'django.contrib.sessions.middleware.SessionMiddleware',
