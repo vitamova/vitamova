@@ -14,7 +14,9 @@ DB_HOST = "vitamova-db.cluster-cartvcorpihi.us-east-1.rds.amazonaws.com"
 DB_NAME = "vitamova"
 DB_USER = "webapp"
 
-MODEL = "gpt-5-mini"
+# Use a stronger model for offline question-bank generation.
+# This is not live user traffic, so quality matters more than ultra-low cost.
+MODEL = "gpt-5.1"
 
 TOTAL_QUESTIONS_TARGET = 1000
 OPENAI_BATCH_SIZE = 5
@@ -61,7 +63,6 @@ def get_level_targets(total_questions):
     for level in range(1, 7):
         targets[level] = base
 
-    # Spread the remainder across the lower levels.
     for level in range(1, remainder + 1):
         targets[level] += 1
 
@@ -149,27 +150,62 @@ def build_prompt(lemma_rows):
         })
 
     return f"""
-You are creating multiple-choice Spanish vocabulary diagnostic questions.
+You are creating high-quality Spanish vocabulary diagnostic questions for intermediate and advanced learners.
 
-For each Spanish lemma, create one fill-in-the-blank question entirely in Spanish.
+For each Spanish lemma, create one multiple-choice fill-in-the-blank question entirely in Spanish.
 
-Question style:
+The most important requirement:
+- Exactly one answer option must be clearly and naturally correct.
+- The other three options must be plausible-looking but wrong in meaning.
+- If more than one option could naturally fit the blank, the question is invalid and must be rewritten.
+
+Question design rules:
 - The question must be a natural Spanish sentence with exactly one blank.
 - Write the blank exactly as _____.
-- The blank should test whether the learner understands how to use the target lemma in context.
-- Use the lemma, part of speech, English translation, and Spanish definition to disambiguate meaning.
-- The correct_answer must be the target Spanish lemma, or the most natural inflected form of it if the sentence requires inflection.
-- The distractors must also be Spanish words or short Spanish phrases.
-- Distractors should be plausible in the sentence structure but clearly wrong in meaning.
-- Avoid distractors that are only spelling variants, gender variants, number variants, or near-identical synonyms of the correct answer.
-- Avoid distractors that are obviously impossible only because of grammar.
-- Keep the sentence short and clear.
-- Prefer everyday, natural contexts.
+- The sentence must include a semantic clue that points uniquely to the correct answer.
+- Do not write generic sentences where many options could fit.
+- Do not rely only on grammar to make distractors wrong.
+- Do not make distractors obviously absurd.
+- Do not use distractors that are near-synonyms of the correct answer.
+- Do not use distractors that are just spelling variants, gender variants, number variants, or conjugation variants of the correct answer.
+- Do not include the correct answer anywhere in the question sentence.
 - Do not include English anywhere in the question or answer options.
-- Do not include the correct answer inside the question sentence.
-- Return only valid JSON.
+- Keep the sentence short, natural, and clear.
+- Prefer everyday contexts, but make the clue strong enough to remove ambiguity.
+- The correct_answer must be the target Spanish lemma, or the most natural inflected form if the sentence requires inflection.
+
+Before finalizing each item, mentally test all four options in the blank:
+1. Put the correct answer into the blank.
+2. Put distractor_1 into the blank.
+3. Put distractor_2 into the blank.
+4. Put distractor_3 into the blank.
+
+Only return the item if the correct answer is the only natural answer.
+
+Bad example:
+Question: "Compré _____ manzanas en el mercado."
+Options: "varias", "tres", "ninguna", "pocas"
+Why bad: varias, tres, and pocas can all fit naturally.
+
+Good example:
+Question: "Compré _____ manzanas; no recuerdo el número exacto."
+Correct answer: "varias"
+Distractors: "tres", "ninguna", "cada"
+Why good: "no recuerdo el número exacto" points uniquely toward an indefinite quantity.
+
+Bad example:
+Question: "El _____ requiere presupuesto y un equipo dedicado."
+Options: "proyecto", "evento", "contrato", "curso"
+Why bad: proyecto, evento, and curso can all fit naturally.
+
+Good example:
+Question: "El _____ tendrá varias fases, fechas límite y un equipo dedicado."
+Correct answer: "proyecto"
+Distractors: "contrato", "evento", "curso"
+Why good: "varias fases" and "fechas límite" point most clearly to proyecto.
 
 Output requirements:
+- Return only valid JSON.
 - Return a JSON object with one key: "results".
 - "results" must be an array.
 - Return exactly one result for each input lemma.
@@ -180,11 +216,10 @@ Output requirements:
   - distractor_1
   - distractor_2
   - distractor_3
+  - ambiguity_check
 
-Example:
-Question: "No puedo salir porque tengo que _____ para el examen."
-Correct answer: "estudiar"
-Distractors: "cocinar", "romper", "vender"
+The ambiguity_check field must be a short Spanish or English explanation of why only the correct answer fits naturally.
+Do not include any markdown.
 
 Input lemmas:
 {json.dumps(input_items, ensure_ascii=False)}
@@ -202,6 +237,7 @@ def validate_generated_questions(results, expected_ranks):
         "distractor_1",
         "distractor_2",
         "distractor_3",
+        "ambiguity_check",
     ]
 
     returned_ranks = set()
@@ -218,6 +254,11 @@ def validate_generated_questions(results, expected_ranks):
         returned_ranks.add(lemma_rank)
 
         question = str(item["question"]).strip()
+        correct_answer = str(item["correct_answer"]).strip()
+        distractor_1 = str(item["distractor_1"]).strip()
+        distractor_2 = str(item["distractor_2"]).strip()
+        distractor_3 = str(item["distractor_3"]).strip()
+        ambiguity_check = str(item["ambiguity_check"]).strip()
 
         if "_____" not in question:
             raise ValueError(f"Question for rank {lemma_rank} does not include _____.")
@@ -225,25 +266,56 @@ def validate_generated_questions(results, expected_ranks):
         if question.count("_____") != 1:
             raise ValueError(f"Question for rank {lemma_rank} does not have exactly one blank.")
 
-        correct_answer = str(item["correct_answer"]).strip()
-
         if correct_answer.casefold() in question.casefold():
             raise ValueError(f"Question for rank {lemma_rank} appears to contain the correct answer.")
 
         options = [
-            item["correct_answer"],
-            item["distractor_1"],
-            item["distractor_2"],
-            item["distractor_3"],
+            correct_answer,
+            distractor_1,
+            distractor_2,
+            distractor_3,
         ]
 
         normalized_options = [
-            str(option).strip().casefold()
+            option.strip().casefold()
             for option in options
         ]
 
         if len(set(normalized_options)) != 4:
             raise ValueError(f"Duplicate answer options for rank {lemma_rank}.")
+
+        # Reject obviously self-reported ambiguity.
+        bad_ambiguity_phrases = [
+            "more than one",
+            "multiple",
+            "ambiguous",
+            "could fit",
+            "also fits",
+            "también encaja",
+            "más de una",
+            "varias opciones",
+            "ambiguo",
+            "ambigua",
+        ]
+
+        ambiguity_lower = ambiguity_check.casefold()
+
+        for phrase in bad_ambiguity_phrases:
+            if phrase in ambiguity_lower:
+                raise ValueError(
+                    f"Ambiguity check for rank {lemma_rank} suggests the item may be ambiguous: {ambiguity_check}"
+                )
+
+        # Simple local sanity checks for Spanish fill-in-the-blank quality.
+        if len(question.split()) < 5:
+            raise ValueError(f"Question for rank {lemma_rank} is too short.")
+
+        if len(correct_answer.split()) > 4:
+            raise ValueError(f"Correct answer for rank {lemma_rank} is too long.")
+
+        for option in options:
+            if len(option.split()) > 4:
+                raise ValueError(f"Option for rank {lemma_rank} is too long: {option}")
 
     missing_ranks = expected_ranks - returned_ranks
     unexpected_ranks = returned_ranks - expected_ranks
@@ -253,6 +325,111 @@ def validate_generated_questions(results, expected_ranks):
 
     if unexpected_ranks:
         raise ValueError(f"Unexpected lemma ranks: {sorted(unexpected_ranks)}")
+
+
+def build_review_prompt(generated_questions):
+    return f"""
+You are reviewing Spanish fill-in-the-blank vocabulary diagnostic questions.
+
+Your task:
+- Identify whether each question has exactly one clearly correct answer.
+- Reject any item where two or more options can naturally fit the blank.
+- Reject any item where the correct answer is only correct because of grammar and not meaning.
+- Reject any item where the distractors are too absurd or too obviously wrong.
+- Reject any item where the sentence is too generic.
+- Accept only questions that are fair diagnostic questions.
+
+Return only valid JSON.
+
+Output format:
+{{
+  "reviews": [
+    {{
+      "lemma_rank": 123,
+      "is_valid": true,
+      "reason": "Only the correct answer fits because..."
+    }}
+  ]
+}}
+
+Questions to review:
+{json.dumps(generated_questions, ensure_ascii=False)}
+"""
+
+
+def review_questions_with_openai(client, generated_questions):
+    if not generated_questions:
+        return []
+
+    expected_ranks = {int(item["lemma_rank"]) for item in generated_questions}
+    prompt = build_review_prompt(generated_questions)
+
+    response = client.responses.create(
+        model=MODEL,
+        input=prompt,
+        text={
+            "format": {
+                "type": "json_schema",
+                "name": "vocab_diagnostic_question_reviews",
+                "schema": {
+                    "type": "object",
+                    "properties": {
+                        "reviews": {
+                            "type": "array",
+                            "items": {
+                                "type": "object",
+                                "properties": {
+                                    "lemma_rank": {"type": "integer"},
+                                    "is_valid": {"type": "boolean"},
+                                    "reason": {"type": "string"},
+                                },
+                                "required": [
+                                    "lemma_rank",
+                                    "is_valid",
+                                    "reason",
+                                ],
+                                "additionalProperties": False,
+                            },
+                        }
+                    },
+                    "required": ["reviews"],
+                    "additionalProperties": False,
+                },
+            }
+        },
+    )
+
+    parsed = json.loads(response.output_text)
+    reviews = parsed["reviews"]
+
+    returned_ranks = {int(item["lemma_rank"]) for item in reviews}
+
+    missing_ranks = expected_ranks - returned_ranks
+    unexpected_ranks = returned_ranks - expected_ranks
+
+    if missing_ranks:
+        raise ValueError(f"Review response missing lemma ranks: {sorted(missing_ranks)}")
+
+    if unexpected_ranks:
+        raise ValueError(f"Review response included unexpected lemma ranks: {sorted(unexpected_ranks)}")
+
+    review_lookup = {
+        int(item["lemma_rank"]): item
+        for item in reviews
+    }
+
+    valid_questions = []
+
+    for question in generated_questions:
+        lemma_rank = int(question["lemma_rank"])
+        review = review_lookup[lemma_rank]
+
+        if review["is_valid"]:
+            valid_questions.append(question)
+        else:
+            print(f"Rejected rank {lemma_rank}: {review['reason']}")
+
+    return valid_questions
 
 
 def generate_questions_with_openai(client, lemma_rows):
@@ -284,6 +461,7 @@ def generate_questions_with_openai(client, lemma_rows):
                                             "distractor_1": {"type": "string"},
                                             "distractor_2": {"type": "string"},
                                             "distractor_3": {"type": "string"},
+                                            "ambiguity_check": {"type": "string"},
                                         },
                                         "required": [
                                             "lemma_rank",
@@ -292,6 +470,7 @@ def generate_questions_with_openai(client, lemma_rows):
                                             "distractor_1",
                                             "distractor_2",
                                             "distractor_3",
+                                            "ambiguity_check",
                                         ],
                                         "additionalProperties": False,
                                     },
@@ -309,12 +488,31 @@ def generate_questions_with_openai(client, lemma_rows):
 
             validate_generated_questions(results, expected_ranks)
 
-            return results
+            reviewed_results = review_questions_with_openai(client, results)
+
+            if len(reviewed_results) != len(results):
+                rejected_count = len(results) - len(reviewed_results)
+                raise ValueError(f"Review rejected {rejected_count} generated question(s). Retrying batch.")
+
+            # The DB table does not have ambiguity_check, so strip it before insert.
+            cleaned_results = []
+
+            for item in reviewed_results:
+                cleaned_results.append({
+                    "lemma_rank": item["lemma_rank"],
+                    "question": item["question"],
+                    "correct_answer": item["correct_answer"],
+                    "distractor_1": item["distractor_1"],
+                    "distractor_2": item["distractor_2"],
+                    "distractor_3": item["distractor_3"],
+                })
+
+            return cleaned_results
 
         except Exception as e:
             last_error = e
 
-            print(f"\nOpenAI generation failed. Attempt {attempt}/{MAX_RETRIES}")
+            print(f"\nOpenAI generation/review failed. Attempt {attempt}/{MAX_RETRIES}")
             print("Error type:", type(e).__name__)
             print("Error:", e)
             traceback.print_exc()
@@ -427,7 +625,7 @@ def main():
                 except Exception as e:
                     conn.rollback()
 
-                    print("\nFailed to generate/insert this batch. Rolled back this batch only.")
+                    print("\nFailed to generate/review/insert this batch. Rolled back this batch only.")
                     print("Continuing to next batch.")
                     print("Error:", e)
                     traceback.print_exc()
