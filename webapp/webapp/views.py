@@ -554,10 +554,59 @@ def fetch_lemmas_for_question_generation(level, count):
         )
         return cursor.fetchall()
 
+def validate_generated_questions(results, expected_ranks):
+    if not isinstance(results, list):
+        raise ValueError("OpenAI response results was not a list.")
 
-def generate_questions_with_openai(lemma_rows):
-    #Create the client
-    OPENAI_CLIENT = OpenAI(api_key=OPENAI_KEY)
+    returned_ranks = set()
+
+    required_fields = [
+        "lemma_rank",
+        "question",
+        "correct_answer",
+        "distractor_1",
+        "distractor_2",
+        "distractor_3",
+    ]
+
+    for item in results:
+        for field in required_fields:
+            if field not in item:
+                raise ValueError(f"OpenAI response missing field: {field}")
+
+            if item[field] is None or str(item[field]).strip() == "":
+                raise ValueError(f"OpenAI response had empty field: {field}")
+
+        lemma_rank = int(item["lemma_rank"])
+        returned_ranks.add(lemma_rank)
+
+        question = item["question"]
+
+        if "_____" not in question:
+            raise ValueError(f"Question for rank {lemma_rank} does not include a blank.")
+
+        options = [
+            item["correct_answer"],
+            item["distractor_1"],
+            item["distractor_2"],
+            item["distractor_3"],
+        ]
+
+        normalized_options = [str(option).strip().casefold() for option in options]
+
+        if len(set(normalized_options)) != 4:
+            raise ValueError(f"Duplicate options found for rank {lemma_rank}.")
+
+    missing_ranks = expected_ranks - returned_ranks
+    unexpected_ranks = returned_ranks - expected_ranks
+
+    if missing_ranks:
+        raise ValueError(f"OpenAI response missing lemma ranks: {sorted(missing_ranks)}")
+
+    if unexpected_ranks:
+        raise ValueError(f"OpenAI response included unexpected lemma ranks: {sorted(unexpected_ranks)}")
+
+def generate_questions_with_openai(lemma_rows, max_retries=3):
     """
     lemma_rows:
     [
@@ -580,6 +629,8 @@ def generate_questions_with_openai(lemma_rows):
     if not lemma_rows:
         return []
 
+    client = OpenAI(api_key=OPENAI_KEY)
+
     input_items = []
 
     for rank, lemma, pos, translation, definition in lemma_rows:
@@ -590,6 +641,8 @@ def generate_questions_with_openai(lemma_rows):
             "translation": translation,
             "definition_es": definition,
         })
+
+    expected_ranks = {int(row[0]) for row in lemma_rows}
 
     prompt = f"""
 You are creating multiple-choice Spanish vocabulary diagnostic questions.
@@ -608,11 +661,14 @@ Question style:
 - Keep the sentence short and clear.
 - Prefer everyday, natural contexts.
 - Do not include English anywhere in the question or answer options.
+- Use exactly one blank, written as _____.
+- Do not put the correct answer inside the question sentence.
 - Return only valid JSON.
 
 Output requirements:
 - Return a JSON object with one key: "results".
 - "results" must be an array.
+- Return exactly one result for each input lemma.
 - Each object inside "results" must include:
   - lemma_rank
   - question
@@ -630,61 +686,71 @@ Input lemmas:
 {json.dumps(input_items, ensure_ascii=False)}
 """
 
-    try:
-        response = OPENAI_CLIENT.responses.create(
-            model=DIAGNOSTIC_MODEL,
-            input=prompt,
-            text={
-                "format": {
-                    "type": "json_schema",
-                    "name": "vocab_diagnostic_questions",
-                    "schema": {
-                        "type": "object",
-                        "properties": {
-                            "results": {
-                                "type": "array",
-                                "items": {
-                                    "type": "object",
-                                    "properties": {
-                                        "lemma_rank": {"type": "integer"},
-                                        "question": {"type": "string"},
-                                        "correct_answer": {"type": "string"},
-                                        "distractor_1": {"type": "string"},
-                                        "distractor_2": {"type": "string"},
-                                        "distractor_3": {"type": "string"}
-                                    },
-                                    "required": [
-                                        "lemma_rank",
-                                        "question",
-                                        "correct_answer",
-                                        "distractor_1",
-                                        "distractor_2",
-                                        "distractor_3"
-                                    ],
-                                    "additionalProperties": False
+    last_error = None
+
+    for attempt in range(1, max_retries + 1):
+        try:
+            response = client.responses.create(
+                model=DIAGNOSTIC_MODEL,
+                input=prompt,
+                text={
+                    "format": {
+                        "type": "json_schema",
+                        "name": "vocab_diagnostic_questions",
+                        "schema": {
+                            "type": "object",
+                            "properties": {
+                                "results": {
+                                    "type": "array",
+                                    "items": {
+                                        "type": "object",
+                                        "properties": {
+                                            "lemma_rank": {"type": "integer"},
+                                            "question": {"type": "string"},
+                                            "correct_answer": {"type": "string"},
+                                            "distractor_1": {"type": "string"},
+                                            "distractor_2": {"type": "string"},
+                                            "distractor_3": {"type": "string"}
+                                        },
+                                        "required": [
+                                            "lemma_rank",
+                                            "question",
+                                            "correct_answer",
+                                            "distractor_1",
+                                            "distractor_2",
+                                            "distractor_3"
+                                        ],
+                                        "additionalProperties": False
+                                    }
                                 }
-                            }
-                        },
-                        "required": ["results"],
-                        "additionalProperties": False
+                            },
+                            "required": ["results"],
+                            "additionalProperties": False
+                        }
                     }
                 }
-            }
-        )
-    except Exception as e:
-        import traceback
-        traceback.print_exc()
+            )
 
-        return JsonResponse(
-            {
-                "error": str(e),
-                "error_type": type(e).__name__,
-            },
-            status=500
-        )
+            parsed = json.loads(response.output_text)
+            results = parsed.get("results", [])
 
-    parsed = json.loads(response.output_text)
-    return parsed["results"]
+            validate_generated_questions(results, expected_ranks)
+
+            return results
+
+        except Exception as e:
+            last_error = e
+
+            print(f"OpenAI question generation failed on attempt {attempt}/{max_retries}")
+            print("Error type:", type(e).__name__)
+            print("Error:", e)
+            traceback.print_exc()
+
+            if attempt < max_retries:
+                sleep_seconds = (2 ** (attempt - 1)) + random.uniform(0, 0.5)
+                time.sleep(sleep_seconds)
+
+    raise last_error
 
 
 def insert_generated_questions(generated_questions):
