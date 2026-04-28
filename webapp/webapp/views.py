@@ -611,46 +611,61 @@ Input lemmas:
 {json.dumps(input_items, ensure_ascii=False)}
 """
 
-    response = OPENAI_CLIENT.responses.create(
-        model=DIAGNOSTIC_MODEL,
-        input=prompt,
-        text={
-            "format": {
-                "type": "json_schema",
-                "name": "vocab_diagnostic_questions",
-                "schema": {
-                    "type": "object",
-                    "properties": {
-                        "results": {
-                            "type": "array",
-                            "items": {
-                                "type": "object",
-                                "properties": {
-                                    "lemma_rank": {"type": "integer"},
-                                    "question": {"type": "string"},
-                                    "correct_answer": {"type": "string"},
-                                    "distractor_1": {"type": "string"},
-                                    "distractor_2": {"type": "string"},
-                                    "distractor_3": {"type": "string"}
-                                },
-                                "required": [
-                                    "lemma_rank",
-                                    "question",
-                                    "correct_answer",
-                                    "distractor_1",
-                                    "distractor_2",
-                                    "distractor_3"
-                                ],
-                                "additionalProperties": False
+    try:
+        response = OPENAI_CLIENT.responses.create(
+            model=DIAGNOSTIC_MODEL,
+            input=prompt,
+            text={
+                "format": {
+                    "type": "json_schema",
+                    "name": "vocab_diagnostic_questions",
+                    "schema": {
+                        "type": "object",
+                        "properties": {
+                            "results": {
+                                "type": "array",
+                                "items": {
+                                    "type": "object",
+                                    "properties": {
+                                        "lemma_rank": {"type": "integer"},
+                                        "question": {"type": "string"},
+                                        "correct_answer": {"type": "string"},
+                                        "distractor_1": {"type": "string"},
+                                        "distractor_2": {"type": "string"},
+                                        "distractor_3": {"type": "string"}
+                                    },
+                                    "required": [
+                                        "lemma_rank",
+                                        "question",
+                                        "correct_answer",
+                                        "distractor_1",
+                                        "distractor_2",
+                                        "distractor_3"
+                                    ],
+                                    "additionalProperties": False
+                                }
                             }
-                        }
-                    },
-                    "required": ["results"],
-                    "additionalProperties": False
+                        },
+                        "required": ["results"],
+                        "additionalProperties": False
+                    }
                 }
             }
-        }
-    )
+        )
+    except Exception as e:
+        import traceback
+        traceback.print_exc()
+
+        print("OpenAI error type:", type(e))
+        print("OpenAI error:", e)
+
+        if hasattr(e, "response"):
+            print("OpenAI response:", e.response)
+
+        if hasattr(e, "body"):
+            print("OpenAI error body:", e.body)
+
+        raise
 
     parsed = json.loads(response.output_text)
     return parsed["results"]
