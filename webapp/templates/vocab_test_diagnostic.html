@@ -23,6 +23,8 @@
       --danger-soft: #fff3f0;
       --success: #12b76a;
       --success-soft: #ecfdf3;
+      --warning: #f79009;
+      --warning-soft: #fff8e6;
     }
 
     * {
@@ -43,7 +45,7 @@
 
     .page {
       width: 100%;
-      max-width: 960px;
+      max-width: 900px;
       min-height: calc(100vh - 48px);
       margin: 0 auto;
       display: grid;
@@ -201,16 +203,11 @@
       transition: width 0.25s ease;
     }
 
-    .question-list {
-      display: grid;
-      gap: 18px;
-    }
-
     .question-card {
       border: 1px solid var(--border);
-      border-radius: 20px;
+      border-radius: 22px;
       background: #fbfcff;
-      padding: 18px;
+      padding: 22px;
     }
 
     .question-topline {
@@ -218,7 +215,7 @@
       align-items: flex-start;
       justify-content: space-between;
       gap: 12px;
-      margin-bottom: 12px;
+      margin-bottom: 14px;
     }
 
     .question-number {
@@ -228,20 +225,58 @@
       text-transform: uppercase;
       letter-spacing: 0.04em;
       white-space: nowrap;
+      margin-bottom: 8px;
     }
 
     .question-text {
       margin: 0;
-      font-size: 1.05rem;
-      line-height: 1.45;
-      font-weight: 800;
+      font-size: clamp(1.18rem, 2.4vw, 1.55rem);
+      line-height: 1.42;
+      font-weight: 850;
       color: var(--text-dark);
+    }
+
+    .flag-button {
+      border: 1px solid rgba(247, 144, 9, 0.35);
+      background: var(--warning-soft);
+      color: #b54708;
+      border-radius: 999px;
+      padding: 8px 11px;
+      font-size: 0.82rem;
+      font-weight: 850;
+      cursor: pointer;
+      white-space: nowrap;
+      transition: background-color 0.15s ease, border-color 0.15s ease, transform 0.04s ease;
+    }
+
+    .flag-button:hover {
+      background: #fff2cc;
+      border-color: rgba(247, 144, 9, 0.55);
+    }
+
+    .flag-button:active {
+      transform: translateY(1px);
+    }
+
+    .flag-button.is-flagged {
+      background: var(--success-soft);
+      border-color: rgba(18, 183, 106, 0.35);
+      color: #027a48;
+      cursor: default;
+    }
+
+    .flag-status {
+      margin-top: 10px;
+      min-height: 20px;
+      color: var(--text-muted);
+      font-size: 0.84rem;
+      font-weight: 700;
     }
 
     .options {
       display: grid;
       gap: 10px;
-      margin-top: 14px;
+      margin-top: 18px;
     }
 
     .option {
@@ -251,7 +286,7 @@
       border: 1px solid var(--border);
       border-radius: 14px;
       background: white;
-      padding: 12px;
+      padding: 13px;
       cursor: pointer;
       transition: border-color 0.15s ease, box-shadow 0.15s ease, background-color 0.15s ease;
     }
@@ -270,7 +305,7 @@
     .option span {
       color: var(--text-dark);
       line-height: 1.35;
-      font-weight: 650;
+      font-weight: 700;
     }
 
     .actions {
@@ -448,13 +483,19 @@
       }
 
       .progress-row,
-      .actions {
+      .actions,
+      .question-topline {
         align-items: flex-start;
         flex-direction: column;
       }
 
       .btn {
         width: 100%;
+      }
+
+      .flag-button {
+        width: 100%;
+        justify-content: center;
       }
     }
   </style>
@@ -483,7 +524,7 @@
       </div>
     </section>
 
-    <section class="test-card" id="testCard" aria-label="Vocabulary Diagnostic Questions">
+    <section class="test-card" id="testCard" aria-label="Vocabulary Diagnostic Question">
       <div class="progress-row">
         <div>
           <div class="progress-label" id="progressLabel">Diagnostic in progress</div>
@@ -498,18 +539,18 @@
       </div>
 
       <div class="loading is-visible" id="loadingState">
-        Loading your questions...
+        Loading your question...
       </div>
 
       <form id="diagnosticForm" style="display: none;">
-        <div class="question-list" id="questionList"></div>
+        <div id="questionContainer"></div>
 
         <div class="actions">
           <div class="small-note" id="answerNote">
-            Select one answer for each question before continuing.
+            Select one answer before continuing.
           </div>
 
-          <button class="btn btn-primary" type="submit" id="submitBatchButton" disabled>
+          <button class="btn btn-primary" type="submit" id="nextQuestionButton" disabled>
             Continue
           </button>
         </div>
@@ -554,17 +595,22 @@
     const QUESTIONS_PER_BATCH = 18;
     const TOTAL_QUESTIONS = TOTAL_BATCHES * QUESTIONS_PER_BATCH;
 
+    const FLAG_QUESTION_URL = "/vocab-test/flag-question/";
+
     let currentBatch = 1;
-    let currentQuestions = [];
-    let currentAnswers = {};
+    let currentBatchQuestions = [];
+    let currentQuestionIndex = 0;
+    let selectedAnswerForCurrentQuestion = null;
+    let currentBatchAnswers = [];
     let allAnswers = [];
+    let flaggedQuestionIds = new Set();
 
     const testCard = document.getElementById("testCard");
     const resultCard = document.getElementById("resultCard");
     const loadingState = document.getElementById("loadingState");
     const diagnosticForm = document.getElementById("diagnosticForm");
-    const questionList = document.getElementById("questionList");
-    const submitBatchButton = document.getElementById("submitBatchButton");
+    const questionContainer = document.getElementById("questionContainer");
+    const nextQuestionButton = document.getElementById("nextQuestionButton");
     const errorMessage = document.getElementById("errorMessage");
     const progressFill = document.getElementById("progressFill");
     const progressCount = document.getElementById("progressCount");
@@ -609,7 +655,7 @@
     }
 
     function getAnsweredCount() {
-      return allAnswers.length + Object.keys(currentAnswers).length;
+      return allAnswers.length + currentBatchAnswers.length + (selectedAnswerForCurrentQuestion ? 1 : 0);
     }
 
     function updateProgress() {
@@ -633,21 +679,20 @@
       }
     }
 
-    function updateSubmitButton() {
-      const answeredCurrentBatch = Object.keys(currentAnswers).length;
-      submitBatchButton.disabled = answeredCurrentBatch !== currentQuestions.length;
+    function updateNextButton() {
+      nextQuestionButton.disabled = !selectedAnswerForCurrentQuestion;
 
-      if (currentBatch === TOTAL_BATCHES) {
-        submitBatchButton.textContent = "Finish diagnostic";
-      } else {
-        submitBatchButton.textContent = "Continue";
-      }
+      const isFinalQuestion =
+        currentBatch === TOTAL_BATCHES &&
+        currentQuestionIndex === currentBatchQuestions.length - 1;
+
+      nextQuestionButton.textContent = isFinalQuestion ? "Finish diagnostic" : "Continue";
 
       updateProgress();
     }
 
-    async function postDiagnostic(payload) {
-      const response = await fetch("/vocab-test/", {
+    async function postJson(url, payload) {
+      const response = await fetch(url, {
         method: "POST",
         headers: {
           "Content-Type": "application/json",
@@ -671,18 +716,26 @@
       return data;
     }
 
+    async function postDiagnostic(payload) {
+      return postJson("/vocab-test/", payload);
+    }
+
+    async function postFlagQuestion(payload) {
+      return postJson(FLAG_QUESTION_URL, payload);
+    }
+
     function normalizeOptions(options) {
       /*
         Backend can return options as either:
-        ["house", "dog", "book", "street"]
+        ["casa", "perro", "libro", "calle"]
 
         or:
         [
-          {"text": "house"},
-          {"text": "dog"}
+          {"text": "casa"},
+          {"text": "perro"}
         ]
 
-        The frontend only submits the selected text.
+        The frontend submits the selected option text.
       */
       return options.map((option) => {
         if (typeof option === "string") {
@@ -693,69 +746,131 @@
       });
     }
 
-    function renderQuestions(questions) {
-      currentQuestions = questions;
-      currentAnswers = {};
-      questionList.innerHTML = "";
+    function getCurrentQuestion() {
+      return currentBatchQuestions[currentQuestionIndex];
+    }
 
-      questions.forEach((question, index) => {
-        const globalQuestionNumber = allAnswers.length + index + 1;
-        const normalizedOptions = normalizeOptions(question.options || []);
+    function renderCurrentQuestion() {
+      clearError();
 
-        const questionCard = document.createElement("div");
-        questionCard.className = "question-card";
+      const question = getCurrentQuestion();
 
-        const optionsHtml = normalizedOptions.map((optionText, optionIndex) => {
-          const inputId = `question_${question.question_id}_option_${optionIndex}`;
+      if (!question) {
+        showError("Unable to load the current question.");
+        return;
+      }
 
-          return `
-            <label class="option" for="${escapeHtml(inputId)}">
-              <input
-                id="${escapeHtml(inputId)}"
-                type="radio"
-                name="question_${escapeHtml(question.question_id)}"
-                value="${escapeHtml(optionText)}"
-                data-question-id="${escapeHtml(question.question_id)}"
-                data-option-text="${escapeHtml(optionText)}"
-              >
-              <span>${escapeHtml(optionText)}</span>
-            </label>
-          `;
-        }).join("");
+      selectedAnswerForCurrentQuestion = null;
 
-        questionCard.innerHTML = `
+      const globalQuestionNumber = allAnswers.length + currentBatchAnswers.length + 1;
+      const normalizedOptions = normalizeOptions(question.options || []);
+
+      const isAlreadyFlagged = flaggedQuestionIds.has(Number(question.question_id));
+
+      const optionsHtml = normalizedOptions.map((optionText, optionIndex) => {
+        const inputId = `question_${question.question_id}_option_${optionIndex}`;
+
+        return `
+          <label class="option" for="${escapeHtml(inputId)}">
+            <input
+              id="${escapeHtml(inputId)}"
+              type="radio"
+              name="question_${escapeHtml(question.question_id)}"
+              value="${escapeHtml(optionText)}"
+              data-question-id="${escapeHtml(question.question_id)}"
+              data-option-text="${escapeHtml(optionText)}"
+            >
+            <span>${escapeHtml(optionText)}</span>
+          </label>
+        `;
+      }).join("");
+
+      questionContainer.innerHTML = `
+        <div class="question-card">
           <div class="question-topline">
             <div>
               <div class="question-number">Question ${globalQuestionNumber}</div>
               <p class="question-text">${escapeHtml(question.question)}</p>
             </div>
+
+            <button
+              class="flag-button ${isAlreadyFlagged ? "is-flagged" : ""}"
+              type="button"
+              id="flagQuestionButton"
+              ${isAlreadyFlagged ? "disabled" : ""}
+            >
+              ${isAlreadyFlagged ? "Flagged for review" : "Flag question"}
+            </button>
           </div>
 
           <div class="options">
             ${optionsHtml}
           </div>
-        `;
 
-        questionList.appendChild(questionCard);
-      });
+          <div class="flag-status" id="flagStatus">
+            ${isAlreadyFlagged ? "Thanks. We’ll review this question." : ""}
+          </div>
+        </div>
+      `;
 
-      questionList.querySelectorAll("input[type='radio']").forEach((input) => {
+      questionContainer.querySelectorAll("input[type='radio']").forEach((input) => {
         input.addEventListener("change", (event) => {
           const questionId = Number(event.target.dataset.questionId);
           const selectedOptionText = event.target.dataset.optionText;
 
-          currentAnswers[questionId] = {
+          selectedAnswerForCurrentQuestion = {
             question_id: questionId,
             selected_option: selectedOptionText
           };
 
-          updateSubmitButton();
+          updateNextButton();
         });
       });
 
-      loadingState.classList.remove("is-visible");
-      diagnosticForm.style.display = "block";
-      updateSubmitButton();
+      const flagButton = document.getElementById("flagQuestionButton");
+
+      if (flagButton && !isAlreadyFlagged) {
+        flagButton.addEventListener("click", async () => {
+          await flagCurrentQuestion();
+        });
+      }
+
+      updateNextButton();
+    }
+
+    async function flagCurrentQuestion() {
+      const question = getCurrentQuestion();
+
+      if (!question) {
+        return;
+      }
+
+      const flagButton = document.getElementById("flagQuestionButton");
+      const flagStatus = document.getElementById("flagStatus");
+
+      flagButton.disabled = true;
+      flagButton.textContent = "Flagging...";
+
+      try {
+        await postFlagQuestion({
+          question_id: Number(question.question_id),
+          question: question.question,
+          options: normalizeOptions(question.options || []),
+          selected_option: selectedAnswerForCurrentQuestion ? selectedAnswerForCurrentQuestion.selected_option : null,
+          diagnostic_batch: currentBatch,
+          question_number: allAnswers.length + currentBatchAnswers.length + 1,
+          reason: "user_flagged"
+        });
+
+        flaggedQuestionIds.add(Number(question.question_id));
+        flagButton.classList.add("is-flagged");
+        flagButton.textContent = "Flagged for review";
+        flagStatus.textContent = "Thanks. We’ll review this question.";
+      } catch (error) {
+        flagButton.disabled = false;
+        flagButton.textContent = "Flag question";
+        flagStatus.textContent = error.message || "Could not flag this question. Please try again.";
+      }
     }
 
     async function loadQuestionsForCurrentBatch() {
@@ -779,33 +894,23 @@
         throw new Error(`Expected ${QUESTIONS_PER_BATCH} questions, but received ${data.questions.length}.`);
       }
 
-      renderQuestions(data.questions);
+      currentBatchQuestions = data.questions;
+      currentQuestionIndex = 0;
+      currentBatchAnswers = [];
+
+      loadingState.classList.remove("is-visible");
+      diagnosticForm.style.display = "block";
+
+      renderCurrentQuestion();
     }
 
-    async function submitCurrentBatch() {
-      clearError();
-
-      const batchAnswers = Object.values(currentAnswers);
-
-      if (batchAnswers.length !== currentQuestions.length) {
-        showError("Please answer every question before continuing.");
-        return;
-      }
-
-      submitBatchButton.disabled = true;
-
-      if (currentBatch === TOTAL_BATCHES) {
-        submitBatchButton.textContent = "Calculating score...";
-      } else {
-        submitBatchButton.textContent = "Loading more questions...";
-      }
-
-      const allAnswersAfterThisBatch = allAnswers.concat(batchAnswers);
+    async function submitCurrentBatchAndLoadNext() {
+      const allAnswersAfterThisBatch = allAnswers.concat(currentBatchAnswers);
 
       const payload = {
         action: currentBatch === TOTAL_BATCHES ? "complete_diagnostic" : "submit_batch",
         batch: currentBatch,
-        answers: batchAnswers,
+        answers: currentBatchAnswers,
         all_answers: allAnswersAfterThisBatch,
         questions_per_batch: QUESTIONS_PER_BATCH,
         total_questions: TOTAL_QUESTIONS
@@ -815,24 +920,51 @@
 
       allAnswers = allAnswersAfterThisBatch;
 
-      if (currentBatch < TOTAL_BATCHES) {
-        currentBatch += 1;
-
-        if (data.status === "questions" && Array.isArray(data.questions)) {
-          renderQuestions(data.questions);
-          return;
+      if (currentBatch === TOTAL_BATCHES) {
+        if (data.status !== "complete") {
+          throw new Error("The server did not return a completed diagnostic.");
         }
 
-        await loadQuestionsForCurrentBatch();
-        return;
-      }
-
-      if (data.status === "complete") {
         showResult(data.score);
         return;
       }
 
-      throw new Error("The server returned an unexpected response.");
+      currentBatch += 1;
+
+      if (data.status === "questions" && Array.isArray(data.questions)) {
+        currentBatchQuestions = data.questions;
+        currentQuestionIndex = 0;
+        currentBatchAnswers = [];
+
+        renderCurrentQuestion();
+        return;
+      }
+
+      await loadQuestionsForCurrentBatch();
+    }
+
+    async function continueToNextQuestion() {
+      clearError();
+
+      if (!selectedAnswerForCurrentQuestion) {
+        showError("Please select an answer before continuing.");
+        return;
+      }
+
+      currentBatchAnswers.push(selectedAnswerForCurrentQuestion);
+
+      const isEndOfCurrentBatch = currentQuestionIndex >= currentBatchQuestions.length - 1;
+
+      if (!isEndOfCurrentBatch) {
+        currentQuestionIndex += 1;
+        renderCurrentQuestion();
+        return;
+      }
+
+      nextQuestionButton.disabled = true;
+      nextQuestionButton.textContent = currentBatch === TOTAL_BATCHES ? "Calculating score..." : "Loading next question...";
+
+      await submitCurrentBatchAndLoadNext();
     }
 
     function estimateWordsKnown(score) {
@@ -872,10 +1004,10 @@
       event.preventDefault();
 
       try {
-        await submitCurrentBatch();
+        await continueToNextQuestion();
       } catch (error) {
-        submitBatchButton.disabled = false;
-        updateSubmitButton();
+        nextQuestionButton.disabled = false;
+        updateNextButton();
         showError(error.message || "Something went wrong. Please try again.");
       }
     });

@@ -421,6 +421,19 @@ def vocab_test(request):
     vocab_score = row[0]
 
     if request.method == "POST":
+        # action=get_questions
+        # → return {"status": "questions", "questions": [...]}
+        # action=submit_batch
+        # → receive 18 answers plus all_answers
+        # → calculate next sampling logic
+        # → return next 18 questions
+
+        # action=complete_diagnostic
+        # → receive final 18 answers plus all_answers
+        # → calculate final score
+        # → update registered_user.vocab_score
+        # → return {"status": "complete", "score": score}
+        
         questions = []
 
         level_ranges = {
