@@ -433,7 +433,7 @@ def vocab_test(request):
         # → calculate final score
         # → update registered_user.vocab_score
         # → return {"status": "complete", "score": score}
-        
+
         questions = []
 
         level_ranges = {
@@ -517,6 +517,62 @@ def vocab_test(request):
         return render(request, "vocab_test.html")
 
     return redirect("/subscribe/")
+
+def flag_question(request):
+    if request.method != "POST":
+        return JsonResponse(
+            {"status": "error", "message": "Invalid request method."},
+            status=400
+        )
+
+    if not request.user.is_authenticated:
+        return JsonResponse(
+            {"status": "error", "message": "User not authenticated."},
+            status=401
+        )
+
+    try:
+        data = json.loads(request.body.decode("utf-8"))
+    except json.JSONDecodeError:
+        return JsonResponse(
+            {"status": "error", "message": "Invalid JSON."},
+            status=400
+        )
+
+    question_id = data.get("question_id")
+    language = data.get("language", "es")
+
+    if not question_id:
+        return JsonResponse(
+            {"status": "error", "message": "Missing question_id."},
+            status=400
+        )
+
+    with connection.cursor() as cursor:
+        cursor.execute(
+            """
+            INSERT INTO flagged_questions (
+                user_id,
+                question_id,
+                language,
+                flagged_at
+            )
+            VALUES (%s, %s, %s, %s)
+            ON CONFLICT (user_id, question_id, language)
+            DO UPDATE SET flagged_at = EXCLUDED.flagged_at
+            """,
+            [
+                request.user.id,
+                question_id,
+                language,
+                timezone.now()
+            ]
+        )
+
+    return JsonResponse({
+        "status": "ok",
+        "message": "Question flagged for review."
+    })
 
 def subscribe(request):
     if not request.user.is_authenticated:

@@ -24,5 +24,6 @@ urlpatterns = [
     path('register/', views.register, name='register'),
     path('create-checkout-session/', views.create_checkout_session, name='create-checkout-session'),
     path('vocab-test/', views.vocab_test, name='vocab-test'),
-    path('subscribe/', views.subscribe, name='subscribe')
+    path('subscribe/', views.subscribe, name='subscribe'),
+    path('flag-question/', views.flag_question, name='flag-question'),
 ]
