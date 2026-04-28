@@ -316,18 +316,6 @@
       box-shadow: none;
     }
 
-    .btn-secondary {
-      background: white;
-      color: var(--vita-blue);
-      border: 1px solid rgba(31, 94, 255, 0.22);
-      box-shadow: 0 8px 20px rgba(20, 27, 52, 0.05);
-    }
-
-    .btn-secondary:hover {
-      background: #fbfcff;
-      border-color: rgba(31, 94, 255, 0.35);
-    }
-
     .small-note {
       color: var(--text-muted);
       font-size: 0.88rem;
@@ -498,11 +486,11 @@
     <section class="test-card" id="testCard" aria-label="Vocabulary Diagnostic Questions">
       <div class="progress-row">
         <div>
-          <div class="progress-label" id="roundLabel">Round 1 of 4</div>
-          <div class="small-note">Each round has 12 questions.</div>
+          <div class="progress-label" id="progressLabel">Diagnostic in progress</div>
+          <div class="small-note" id="remainingNote">You have 72 questions remaining.</div>
         </div>
 
-        <div class="progress-count" id="progressCount">0/48 questions</div>
+        <div class="progress-count" id="progressCount">0/72 answered</div>
       </div>
 
       <div class="progress-bar" aria-hidden="true">
@@ -521,8 +509,8 @@
             Select one answer for each question before continuing.
           </div>
 
-          <button class="btn btn-primary" type="submit" id="submitRoundButton" disabled>
-            Submit round
+          <button class="btn btn-primary" type="submit" id="submitBatchButton" disabled>
+            Continue
           </button>
         </div>
 
@@ -538,7 +526,7 @@
         </div>
       </div>
 
-      <h2>Your first vocabulary estimate is ready</h2>
+      <h2>Your vocabulary estimate is ready</h2>
 
       <p id="scoreSummary">
         Vitamova has estimated your current vocabulary level.
@@ -562,25 +550,26 @@
   </main>
 
   <script>
-    const TOTAL_ROUNDS = 4;
-    const QUESTIONS_PER_ROUND = 12;
-    const TOTAL_QUESTIONS = TOTAL_ROUNDS * QUESTIONS_PER_ROUND;
+    const TOTAL_BATCHES = 4;
+    const QUESTIONS_PER_BATCH = 18;
+    const TOTAL_QUESTIONS = TOTAL_BATCHES * QUESTIONS_PER_BATCH;
 
-    let currentRound = 1;
+    let currentBatch = 1;
     let currentQuestions = [];
     let currentAnswers = {};
-    let completedAnswers = [];
+    let allAnswers = [];
 
     const testCard = document.getElementById("testCard");
     const resultCard = document.getElementById("resultCard");
     const loadingState = document.getElementById("loadingState");
     const diagnosticForm = document.getElementById("diagnosticForm");
     const questionList = document.getElementById("questionList");
-    const submitRoundButton = document.getElementById("submitRoundButton");
+    const submitBatchButton = document.getElementById("submitBatchButton");
     const errorMessage = document.getElementById("errorMessage");
     const progressFill = document.getElementById("progressFill");
     const progressCount = document.getElementById("progressCount");
-    const roundLabel = document.getElementById("roundLabel");
+    const progressLabel = document.getElementById("progressLabel");
+    const remainingNote = document.getElementById("remainingNote");
     const scoreRing = document.getElementById("scoreRing");
     const scoreValue = document.getElementById("scoreValue");
     const scoreSummary = document.getElementById("scoreSummary");
@@ -610,22 +599,6 @@
       errorMessage.classList.remove("is-visible");
     }
 
-    function updateProgress() {
-      const completedCount = completedAnswers.length;
-      const selectedThisRound = Object.keys(currentAnswers).length;
-      const displayedProgress = Math.min(completedCount + selectedThisRound, TOTAL_QUESTIONS);
-      const percent = (displayedProgress / TOTAL_QUESTIONS) * 100;
-
-      progressFill.style.width = `${percent}%`;
-      progressCount.textContent = `${displayedProgress}/${TOTAL_QUESTIONS} questions`;
-      roundLabel.textContent = `Round ${currentRound} of ${TOTAL_ROUNDS}`;
-    }
-
-    function updateSubmitButton() {
-      submitRoundButton.disabled = Object.keys(currentAnswers).length !== currentQuestions.length;
-      updateProgress();
-    }
-
     function escapeHtml(value) {
       return String(value)
         .replaceAll("&", "&amp;")
@@ -635,64 +608,42 @@
         .replaceAll("'", "&#039;");
     }
 
-    function renderQuestions(questions) {
-      currentQuestions = questions;
-      currentAnswers = {};
-      questionList.innerHTML = "";
+    function getAnsweredCount() {
+      return allAnswers.length + Object.keys(currentAnswers).length;
+    }
 
-      questions.forEach((question, index) => {
-        const globalQuestionNumber = completedAnswers.length + index + 1;
+    function updateProgress() {
+      const answeredCount = Math.min(getAnsweredCount(), TOTAL_QUESTIONS);
+      const remainingCount = Math.max(TOTAL_QUESTIONS - answeredCount, 0);
+      const percent = (answeredCount / TOTAL_QUESTIONS) * 100;
 
-        const questionCard = document.createElement("div");
-        questionCard.className = "question-card";
+      progressFill.style.width = `${percent}%`;
+      progressCount.textContent = `${answeredCount}/${TOTAL_QUESTIONS} answered`;
 
-        const optionsHtml = question.options.map((option) => {
-          return `
-            <label class="option">
-              <input
-                type="radio"
-                name="question_${escapeHtml(question.question_id)}"
-                value="${escapeHtml(option.option_id)}"
-                data-question-id="${escapeHtml(question.question_id)}"
-              >
-              <span>${escapeHtml(option.text)}</span>
-            </label>
-          `;
-        }).join("");
+      if (remainingCount === 1) {
+        remainingNote.textContent = "You have 1 question remaining.";
+      } else {
+        remainingNote.textContent = `You have ${remainingCount} questions remaining.`;
+      }
 
-        questionCard.innerHTML = `
-          <div class="question-topline">
-            <div>
-              <div class="question-number">Question ${globalQuestionNumber}</div>
-              <p class="question-text">${escapeHtml(question.question)}</p>
-            </div>
-          </div>
+      if (remainingCount <= QUESTIONS_PER_BATCH && currentBatch === TOTAL_BATCHES) {
+        progressLabel.textContent = "Final questions";
+      } else {
+        progressLabel.textContent = "Diagnostic in progress";
+      }
+    }
 
-          <div class="options">
-            ${optionsHtml}
-          </div>
-        `;
+    function updateSubmitButton() {
+      const answeredCurrentBatch = Object.keys(currentAnswers).length;
+      submitBatchButton.disabled = answeredCurrentBatch !== currentQuestions.length;
 
-        questionList.appendChild(questionCard);
-      });
+      if (currentBatch === TOTAL_BATCHES) {
+        submitBatchButton.textContent = "Finish diagnostic";
+      } else {
+        submitBatchButton.textContent = "Continue";
+      }
 
-      questionList.querySelectorAll("input[type='radio']").forEach((input) => {
-        input.addEventListener("change", (event) => {
-          const questionId = event.target.dataset.questionId;
-          const optionId = event.target.value;
-
-          currentAnswers[questionId] = {
-            question_id: Number(questionId),
-            selected_option_id: optionId
-          };
-
-          updateSubmitButton();
-        });
-      });
-
-      loadingState.classList.remove("is-visible");
-      diagnosticForm.style.display = "block";
-      updateSubmitButton();
+      updateProgress();
     }
 
     async function postDiagnostic(payload) {
@@ -720,54 +671,159 @@
       return data;
     }
 
-    async function loadRound(roundNumber) {
+    function normalizeOptions(options) {
+      /*
+        Backend can return options as either:
+        ["house", "dog", "book", "street"]
+
+        or:
+        [
+          {"text": "house"},
+          {"text": "dog"}
+        ]
+
+        The frontend only submits the selected text.
+      */
+      return options.map((option) => {
+        if (typeof option === "string") {
+          return option;
+        }
+
+        return option.text;
+      });
+    }
+
+    function renderQuestions(questions) {
+      currentQuestions = questions;
+      currentAnswers = {};
+      questionList.innerHTML = "";
+
+      questions.forEach((question, index) => {
+        const globalQuestionNumber = allAnswers.length + index + 1;
+        const normalizedOptions = normalizeOptions(question.options || []);
+
+        const questionCard = document.createElement("div");
+        questionCard.className = "question-card";
+
+        const optionsHtml = normalizedOptions.map((optionText, optionIndex) => {
+          const inputId = `question_${question.question_id}_option_${optionIndex}`;
+
+          return `
+            <label class="option" for="${escapeHtml(inputId)}">
+              <input
+                id="${escapeHtml(inputId)}"
+                type="radio"
+                name="question_${escapeHtml(question.question_id)}"
+                value="${escapeHtml(optionText)}"
+                data-question-id="${escapeHtml(question.question_id)}"
+                data-option-text="${escapeHtml(optionText)}"
+              >
+              <span>${escapeHtml(optionText)}</span>
+            </label>
+          `;
+        }).join("");
+
+        questionCard.innerHTML = `
+          <div class="question-topline">
+            <div>
+              <div class="question-number">Question ${globalQuestionNumber}</div>
+              <p class="question-text">${escapeHtml(question.question)}</p>
+            </div>
+          </div>
+
+          <div class="options">
+            ${optionsHtml}
+          </div>
+        `;
+
+        questionList.appendChild(questionCard);
+      });
+
+      questionList.querySelectorAll("input[type='radio']").forEach((input) => {
+        input.addEventListener("change", (event) => {
+          const questionId = Number(event.target.dataset.questionId);
+          const selectedOptionText = event.target.dataset.optionText;
+
+          currentAnswers[questionId] = {
+            question_id: questionId,
+            selected_option: selectedOptionText
+          };
+
+          updateSubmitButton();
+        });
+      });
+
+      loadingState.classList.remove("is-visible");
+      diagnosticForm.style.display = "block";
+      updateSubmitButton();
+    }
+
+    async function loadQuestionsForCurrentBatch() {
       clearError();
       loadingState.classList.add("is-visible");
       diagnosticForm.style.display = "none";
 
       const data = await postDiagnostic({
         action: "get_questions",
-        round: roundNumber,
-        previous_answers: completedAnswers
+        batch: currentBatch,
+        questions_per_batch: QUESTIONS_PER_BATCH,
+        total_questions: TOTAL_QUESTIONS,
+        previous_answers: allAnswers
       });
 
       if (data.status !== "questions" || !Array.isArray(data.questions)) {
         throw new Error("The server did not return questions.");
       }
 
-      if (data.questions.length !== QUESTIONS_PER_ROUND) {
-        throw new Error(`Expected ${QUESTIONS_PER_ROUND} questions, but received ${data.questions.length}.`);
+      if (data.questions.length !== QUESTIONS_PER_BATCH) {
+        throw new Error(`Expected ${QUESTIONS_PER_BATCH} questions, but received ${data.questions.length}.`);
       }
 
       renderQuestions(data.questions);
     }
 
-    async function submitCurrentRound() {
+    async function submitCurrentBatch() {
       clearError();
 
-      const roundAnswers = Object.values(currentAnswers);
+      const batchAnswers = Object.values(currentAnswers);
 
-      if (roundAnswers.length !== currentQuestions.length) {
+      if (batchAnswers.length !== currentQuestions.length) {
         showError("Please answer every question before continuing.");
         return;
       }
 
-      submitRoundButton.disabled = true;
-      submitRoundButton.textContent = currentRound === TOTAL_ROUNDS ? "Calculating score..." : "Loading next round...";
+      submitBatchButton.disabled = true;
 
-      const data = await postDiagnostic({
-        action: "submit_round",
-        round: currentRound,
-        answers: roundAnswers,
-        previous_answers: completedAnswers
-      });
+      if (currentBatch === TOTAL_BATCHES) {
+        submitBatchButton.textContent = "Calculating score...";
+      } else {
+        submitBatchButton.textContent = "Loading more questions...";
+      }
 
-      completedAnswers = completedAnswers.concat(roundAnswers);
+      const allAnswersAfterThisBatch = allAnswers.concat(batchAnswers);
 
-      if (data.status === "questions") {
-        currentRound += 1;
-        submitRoundButton.textContent = "Submit round";
-        renderQuestions(data.questions);
+      const payload = {
+        action: currentBatch === TOTAL_BATCHES ? "complete_diagnostic" : "submit_batch",
+        batch: currentBatch,
+        answers: batchAnswers,
+        all_answers: allAnswersAfterThisBatch,
+        questions_per_batch: QUESTIONS_PER_BATCH,
+        total_questions: TOTAL_QUESTIONS
+      };
+
+      const data = await postDiagnostic(payload);
+
+      allAnswers = allAnswersAfterThisBatch;
+
+      if (currentBatch < TOTAL_BATCHES) {
+        currentBatch += 1;
+
+        if (data.status === "questions" && Array.isArray(data.questions)) {
+          renderQuestions(data.questions);
+          return;
+        }
+
+        await loadQuestionsForCurrentBatch();
         return;
       }
 
@@ -780,26 +836,20 @@
     }
 
     function estimateWordsKnown(score) {
-      /*
-        Frontend display estimate.
-
-        Since the backend score is out of 6,000, this keeps the message simple:
-        - Score 0 means the learner is just getting started.
-        - Score 6,000 means the diagnostic estimates roughly 6,000 common words known.
-
-        You can make this more sophisticated later if your backend score does not map
-        directly to estimated word count.
-      */
       const safeScore = Math.max(0, Math.min(6000, Number(score) || 0));
-
-      const lower = Math.max(0, Math.round((safeScore * 0.85) / 100) * 100);
-      const upper = Math.min(6000, Math.round((safeScore * 1.15) / 100) * 100);
 
       if (safeScore < 300) {
         return "You are likely at the beginning of your measured vocabulary range.";
       }
 
-      return `You likely know roughly ${lower.toLocaleString()} to ${upper.toLocaleString()} high-frequency Spanish words.`;
+      const lower = Math.max(0, Math.floor(safeScore / 1000) * 1000);
+      const upper = Math.min(6000, lower + 1000);
+
+      if (safeScore >= 5950) {
+        return "You are likely beyond the top measured range of this diagnostic.";
+      }
+
+      return `Your current frontier is roughly the ${lower.toLocaleString()} to ${upper.toLocaleString()} word range.`;
     }
 
     function showResult(score) {
@@ -813,7 +863,7 @@
       scoreValue.textContent = safeScore.toLocaleString();
 
       scoreSummary.textContent = `Your estimated vocabulary score is ${safeScore.toLocaleString()} out of 6,000.`;
-      wordRange.innerHTML = `Estimated vocabulary known: <span>${estimateWordsKnown(safeScore)}</span>`;
+      wordRange.innerHTML = `Estimated vocabulary range: <span>${estimateWordsKnown(safeScore)}</span>`;
 
       window.onbeforeunload = null;
     }
@@ -822,10 +872,10 @@
       event.preventDefault();
 
       try {
-        await submitCurrentRound();
+        await submitCurrentBatch();
       } catch (error) {
-        submitRoundButton.disabled = false;
-        submitRoundButton.textContent = "Submit round";
+        submitBatchButton.disabled = false;
+        updateSubmitButton();
         showError(error.message || "Something went wrong. Please try again.");
       }
     });
@@ -836,7 +886,8 @@
 
     document.addEventListener("DOMContentLoaded", async () => {
       try {
-        await loadRound(1);
+        updateProgress();
+        await loadQuestionsForCurrentBatch();
       } catch (error) {
         loadingState.classList.remove("is-visible");
         diagnosticForm.style.display = "block";
