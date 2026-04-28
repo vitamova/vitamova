@@ -656,16 +656,13 @@ Input lemmas:
         import traceback
         traceback.print_exc()
 
-        print("OpenAI error type:", type(e))
-        print("OpenAI error:", e)
-
-        if hasattr(e, "response"):
-            print("OpenAI response:", e.response)
-
-        if hasattr(e, "body"):
-            print("OpenAI error body:", e.body)
-
-        raise
+        return JsonResponse(
+            {
+                "error": str(e),
+                "error_type": type(e).__name__,
+            },
+            status=500
+        )
 
     parsed = json.loads(response.output_text)
     return parsed["results"]
