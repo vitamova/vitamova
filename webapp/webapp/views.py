@@ -2,9 +2,17 @@ from django.shortcuts import render, redirect
 from django.db import connection
 from django.views.decorators.http import require_POST
 from django.utils import timezone
+from django.http import JsonResponse
 import stripe
 from datetime import date
 from pathlib import Path
+import json
+import random
+
+from openai import OpenAI
+
+# Build paths inside the project like this: BASE_DIR / 'subdir'.
+BASE_DIR = Path(__file__).resolve().parent.parent
 
 VITAMOVA_PRICE_MAP = {
     "price_1TQtOmKOiNtX3Wewk310Ygu5": "Vitamova Monthly",
@@ -16,6 +24,10 @@ STRIPE_PUBLIC_KEY= "pk_live_51RIChJKOiNtX3WewnOeHxiL99XltNWm2TluZew2fn6fzcmuHJ3R
 stripe_key_path = Path.home() / 'data' / 'stripe_key.txt'
 with open(stripe_key_path, 'r') as f:
     stripe.api_key = f.read().strip()
+
+openai_key_path = Path.home() / 'data' / 'chatgpt_key.txt'
+with open(openai_key_path, 'r') as f:
+    OPENAI_KEY = f.read().strip()
 
 # Helper functions
 
@@ -156,6 +168,590 @@ def is_user_subscribed(user, check_stripe_if_stale=True):
         and subscription_expiration
         and subscription_expiration > today
     )
+
+
+DIAGNOSTIC_MODEL = "gpt-5-mini"
+
+QUESTIONS_PER_BATCH = 18
+TOTAL_BATCHES = 4
+TOTAL_QUESTIONS = QUESTIONS_PER_BATCH * TOTAL_BATCHES
+
+ENTRY_THRESHOLD = 0.40
+MASTERY_THRESHOLD = 0.80
+BAND_SIZE = 1000
+MAX_SCORE = 6000
+
+LEVEL_RANGES = {
+    1: (1, 1500),
+    2: (1501, 3000),
+    3: (3001, 6000),
+    4: (6001, 10000),
+    5: (10001, 15000),
+    6: (15001, None),
+}
+
+
+def get_level_for_rank(rank):
+    for level, (min_rank, max_rank) in LEVEL_RANGES.items():
+        if max_rank is None:
+            if rank >= min_rank:
+                return level
+        elif min_rank <= rank <= max_rank:
+            return level
+
+    return 6
+
+
+def normalize_answer(value):
+    if value is None:
+        return ""
+
+    return str(value).strip().casefold()
+
+
+def get_initial_level_counts():
+    return {
+        1: 3,
+        2: 3,
+        3: 3,
+        4: 3,
+        5: 3,
+        6: 3,
+    }
+
+
+def get_neighbor_counts(frontier, mode):
+    """
+    Returns 18 total questions.
+
+    mode:
+    - "expand": candidate frontier expansion
+    - "focus": score refinement
+    - "confirm": final confirmation
+    """
+
+    if frontier <= 1:
+        return {1: 9, 2: 9}
+
+    if frontier >= 6:
+        return {5: 9, 6: 9}
+
+    if mode == "expand":
+        return {
+            frontier - 1: 6,
+            frontier: 6,
+            frontier + 1: 6,
+        }
+
+    if mode == "focus":
+        return {
+            frontier - 1: 4,
+            frontier: 8,
+            frontier + 1: 6,
+        }
+
+    if mode == "confirm":
+        return {
+            frontier - 1: 2,
+            frontier: 8,
+            frontier + 1: 8,
+        }
+
+    return {
+        frontier - 1: 6,
+        frontier: 6,
+        frontier + 1: 6,
+    }
+
+
+def score_submitted_answers(all_answers):
+    """
+    all_answers format:
+    [
+        {
+            "question_id": 123,
+            "selected_option": "house"
+        }
+    ]
+
+    Returns:
+    {
+        1: {"correct": 2, "total": 3},
+        ...
+    }
+    """
+
+    results = {
+        level: {"correct": 0, "total": 0}
+        for level in range(1, 7)
+    }
+
+    if not all_answers:
+        return results
+
+    question_ids = []
+
+    for answer in all_answers:
+        question_id = answer.get("question_id")
+
+        if question_id is not None:
+            question_ids.append(int(question_id))
+
+    if not question_ids:
+        return results
+
+    with connection.cursor() as cursor:
+        cursor.execute(
+            """
+            SELECT id, lemma_rank, correct_answer
+            FROM spanish_vocab_test_bank
+            WHERE id = ANY(%s)
+            """,
+            [question_ids]
+        )
+        rows = cursor.fetchall()
+
+    question_lookup = {}
+
+    for question_id, lemma_rank, correct_answer in rows:
+        question_lookup[question_id] = {
+            "lemma_rank": lemma_rank,
+            "correct_answer": correct_answer,
+            "level": get_level_for_rank(lemma_rank),
+        }
+
+    for answer in all_answers:
+        question_id = answer.get("question_id")
+        selected_option = answer.get("selected_option")
+
+        if question_id is None:
+            continue
+
+        question_id = int(question_id)
+
+        if question_id not in question_lookup:
+            continue
+
+        question_data = question_lookup[question_id]
+        level = question_data["level"]
+
+        results[level]["total"] += 1
+
+        if normalize_answer(selected_option) == normalize_answer(question_data["correct_answer"]):
+            results[level]["correct"] += 1
+
+    return results
+
+
+def get_accuracy_by_level(level_results):
+    accuracies = {}
+
+    for level in range(1, 7):
+        correct = level_results[level]["correct"]
+        total = level_results[level]["total"]
+
+        if total == 0:
+            accuracies[level] = 0.0
+        else:
+            accuracies[level] = correct / total
+
+    return accuracies
+
+
+def find_candidate_frontier_after_initial_scan(level_results):
+    """
+    After the first broad scan, find the first range where the user missed anything.
+    If they missed nothing, assume top range.
+    """
+
+    for level in range(1, 7):
+        total = level_results[level]["total"]
+        correct = level_results[level]["correct"]
+
+        if total > 0 and correct < total:
+            return level
+
+    return 6
+
+
+def find_frontier(level_results):
+    """
+    Finds the first level below mastery.
+    """
+
+    accuracies = get_accuracy_by_level(level_results)
+
+    for level in range(1, 7):
+        if accuracies[level] < MASTERY_THRESHOLD:
+            return level
+
+    return 6
+
+
+def choose_level_counts_for_next_batch(all_answers, next_batch):
+    """
+    Batch 1:
+      3 questions from each range.
+
+    Batch 2:
+      Candidate frontier expansion.
+
+    Batch 3:
+      Focus around frontier.
+
+    Batch 4:
+      Confirm frontier and next range.
+    """
+
+    if next_batch == 1:
+        return get_initial_level_counts()
+
+    level_results = score_submitted_answers(all_answers)
+
+    if next_batch == 2:
+        candidate_frontier = find_candidate_frontier_after_initial_scan(level_results)
+        return get_neighbor_counts(candidate_frontier, "expand")
+
+    frontier = find_frontier(level_results)
+
+    if next_batch == 3:
+        return get_neighbor_counts(frontier, "focus")
+
+    return get_neighbor_counts(frontier, "confirm")
+
+
+def calculate_frontier_score(all_answers):
+    """
+    Frontier-gated score out of 6,000.
+
+    Logic:
+    - Each level is a 1,000-point band.
+    - ENTRY_THRESHOLD means the user is entering that band.
+    - MASTERY_THRESHOLD means they are near the top of that band.
+    - If the next band is below entry threshold, the user does not cross into it.
+    """
+
+    level_results = score_submitted_answers(all_answers)
+    accuracies = get_accuracy_by_level(level_results)
+
+    frontier = None
+
+    for level in range(1, 7):
+        if accuracies[level] < MASTERY_THRESHOLD:
+            frontier = level
+            break
+
+    if frontier is None:
+        return MAX_SCORE
+
+    frontier_accuracy = accuracies[frontier]
+
+    # If the user has not entered this range, cap them near the top of the previous band.
+    if frontier_accuracy < ENTRY_THRESHOLD:
+        if frontier == 1:
+            return 0
+
+        return ((frontier - 1) * BAND_SIZE) - 50
+
+    band_min = (frontier - 1) * BAND_SIZE
+    band_max = frontier * BAND_SIZE
+
+    progress = (frontier_accuracy - ENTRY_THRESHOLD) / (MASTERY_THRESHOLD - ENTRY_THRESHOLD)
+    progress = max(0, min(1, progress))
+
+    score = round(band_min + (progress * BAND_SIZE))
+
+    # Avoid showing a perfect band score unless they actually cross into the next band.
+    if score >= band_max and frontier < 6:
+        score = band_max - 50
+
+    return max(0, min(MAX_SCORE, score))
+
+
+def fetch_existing_questions_for_level(level, count, used_question_ids):
+    min_rank, max_rank = LEVEL_RANGES[level]
+
+    used_question_ids = used_question_ids or []
+
+    if max_rank is None:
+        rank_clause = "lemma_rank >= %s"
+        params = [min_rank]
+    else:
+        rank_clause = "lemma_rank BETWEEN %s AND %s"
+        params = [min_rank, max_rank]
+
+    used_clause = ""
+
+    if used_question_ids:
+        used_clause = "AND id <> ALL(%s)"
+        params.append(used_question_ids)
+
+    params.append(count)
+
+    with connection.cursor() as cursor:
+        cursor.execute(
+            f"""
+            SELECT id, question, correct_answer, distractor_1, distractor_2, distractor_3
+            FROM spanish_vocab_test_bank
+            WHERE {rank_clause}
+              {used_clause}
+            ORDER BY RANDOM()
+            LIMIT %s
+            """,
+            params
+        )
+        return cursor.fetchall()
+
+
+def fetch_lemmas_for_question_generation(level, count):
+    min_rank, max_rank = LEVEL_RANGES[level]
+
+    if max_rank is None:
+        rank_clause = "sl.rank >= %s"
+        params = [min_rank, count]
+    else:
+        rank_clause = "sl.rank BETWEEN %s AND %s"
+        params = [min_rank, max_rank, count]
+
+    with connection.cursor() as cursor:
+        cursor.execute(
+            f"""
+            SELECT sl.rank, sl.lemma, sl.pos, sl.translation, sl.definition
+            FROM spanish_lemmas sl
+            WHERE {rank_clause}
+              AND NOT EXISTS (
+                  SELECT 1
+                  FROM spanish_vocab_test_bank q
+                  WHERE q.lemma_rank = sl.rank
+              )
+            ORDER BY RANDOM()
+            LIMIT %s
+            """,
+            params
+        )
+        rows = cursor.fetchall()
+
+    # If every lemma in this range already has a generated question,
+    # fall back to any lemma in the range.
+    if rows:
+        return rows
+
+    if max_rank is None:
+        params = [min_rank, count]
+    else:
+        params = [min_rank, max_rank, count]
+
+    with connection.cursor() as cursor:
+        cursor.execute(
+            f"""
+            SELECT sl.rank, sl.lemma, sl.pos, sl.translation, sl.definition
+            FROM spanish_lemmas sl
+            WHERE {rank_clause}
+            ORDER BY RANDOM()
+            LIMIT %s
+            """,
+            params
+        )
+        return cursor.fetchall()
+
+
+def generate_questions_with_openai(lemma_rows):
+    #Create the client
+    OPENAI_CLIENT = OpenAI(api_key=OPENAI_KEY)
+    """
+    lemma_rows:
+    [
+        (rank, lemma, pos, translation, definition)
+    ]
+
+    Returns:
+    [
+        {
+            "lemma_rank": 123,
+            "question": "...",
+            "correct_answer": "...",
+            "distractor_1": "...",
+            "distractor_2": "...",
+            "distractor_3": "..."
+        }
+    ]
+    """
+
+    if not lemma_rows:
+        return []
+
+    input_items = []
+
+    for rank, lemma, pos, translation, definition in lemma_rows:
+        input_items.append({
+            "lemma_rank": rank,
+            "lemma": lemma,
+            "part_of_speech": pos,
+            "translation": translation,
+            "definition_es": definition,
+        })
+
+    prompt = f"""
+You are creating multiple-choice Spanish vocabulary diagnostic questions.
+
+For each Spanish lemma, create one question.
+
+Question style:
+- Ask for the best English meaning of the Spanish lemma.
+- Keep the question short.
+- Use the lemma and part of speech to disambiguate meaning.
+- The correct_answer must be the best concise English answer.
+- The distractors must be plausible but clearly wrong.
+- Avoid making distractors that are just spelling variants or near-identical synonyms.
+- Avoid making every distractor an obvious joke answer.
+- If the lemma is a cognate, make the distractors strong enough that the question is still meaningful.
+- Return only valid JSON.
+
+Input lemmas:
+{json.dumps(input_items, ensure_ascii=False)}
+"""
+
+    response = OPENAI_CLIENT.responses.create(
+        model=DIAGNOSTIC_MODEL,
+        input=prompt,
+        text={
+            "format": {
+                "type": "json_schema",
+                "name": "vocab_diagnostic_questions",
+                "schema": {
+                    "type": "object",
+                    "properties": {
+                        "results": {
+                            "type": "array",
+                            "items": {
+                                "type": "object",
+                                "properties": {
+                                    "lemma_rank": {"type": "integer"},
+                                    "question": {"type": "string"},
+                                    "correct_answer": {"type": "string"},
+                                    "distractor_1": {"type": "string"},
+                                    "distractor_2": {"type": "string"},
+                                    "distractor_3": {"type": "string"}
+                                },
+                                "required": [
+                                    "lemma_rank",
+                                    "question",
+                                    "correct_answer",
+                                    "distractor_1",
+                                    "distractor_2",
+                                    "distractor_3"
+                                ],
+                                "additionalProperties": False
+                            }
+                        }
+                    },
+                    "required": ["results"],
+                    "additionalProperties": False
+                }
+            }
+        }
+    )
+
+    parsed = json.loads(response.output_text)
+    return parsed["results"]
+
+
+def insert_generated_questions(generated_questions):
+    inserted_rows = []
+
+    with connection.cursor() as cursor:
+        for item in generated_questions:
+            cursor.execute(
+                """
+                INSERT INTO spanish_vocab_test_bank (
+                    lemma_rank,
+                    question,
+                    correct_answer,
+                    distractor_1,
+                    distractor_2,
+                    distractor_3
+                )
+                VALUES (%s, %s, %s, %s, %s, %s)
+                RETURNING id, question, correct_answer, distractor_1, distractor_2, distractor_3
+                """,
+                [
+                    item["lemma_rank"],
+                    item["question"],
+                    item["correct_answer"],
+                    item["distractor_1"],
+                    item["distractor_2"],
+                    item["distractor_3"],
+                ]
+            )
+
+            inserted_rows.append(cursor.fetchone())
+
+    return inserted_rows
+
+
+def format_question_for_frontend(row):
+    question_id, question, correct_answer, distractor_1, distractor_2, distractor_3 = row
+
+    options = [
+        correct_answer,
+        distractor_1,
+        distractor_2,
+        distractor_3,
+    ]
+
+    random.shuffle(options)
+
+    return {
+        "question_id": question_id,
+        "question": question,
+        "options": options,
+    }
+
+
+def get_or_create_questions_for_counts(level_counts, used_question_ids):
+    """
+    level_counts example:
+    {
+        1: 3,
+        2: 3,
+        ...
+    }
+
+    Returns frontend-ready questions.
+    """
+
+    selected_rows = []
+
+    for level, needed_count in level_counts.items():
+        existing_rows = fetch_existing_questions_for_level(
+            level=level,
+            count=needed_count,
+            used_question_ids=used_question_ids
+        )
+
+        selected_rows.extend(existing_rows)
+
+        remaining_count = needed_count - len(existing_rows)
+
+        if remaining_count <= 0:
+            continue
+
+        lemma_rows = fetch_lemmas_for_question_generation(
+            level=level,
+            count=remaining_count
+        )
+
+        generated_questions = generate_questions_with_openai(lemma_rows)
+        inserted_rows = insert_generated_questions(generated_questions)
+
+        selected_rows.extend(inserted_rows)
+
+    random.shuffle(selected_rows)
+
+    return [
+        format_question_for_frontend(row)
+        for row in selected_rows
+    ]
 
 # Views
     
@@ -416,17 +1012,148 @@ def vocab_test(request):
     vocab_score = row[0]
 
     if request.method == "POST":
-        # TODO:
-        # Handle vocab diagnostic XHR requests here.
-        #
-        # Expected actions from the frontend:
-        # - action = "get_questions"
-        # - action = "submit_round"
-        #
-        # This should eventually return JsonResponse objects with either:
-        # - the next 12 diagnostic questions
-        # - or the final vocab score after round 4
-        pass
+        try:
+            payload = json.loads(request.body.decode("utf-8"))
+        except json.JSONDecodeError:
+            return JsonResponse(
+                {"error": "Invalid JSON request."},
+                status=400
+            )
+
+        action = payload.get("action")
+
+        previous_answers = payload.get("previous_answers", [])
+        all_answers = payload.get("all_answers", [])
+
+        # The frontend sends previous_answers when asking for questions,
+        # and all_answers when submitting a batch.
+        answer_history = all_answers or previous_answers or []
+
+        used_question_ids = []
+
+        for answer in answer_history:
+            question_id = answer.get("question_id")
+
+            if question_id is not None:
+                used_question_ids.append(int(question_id))
+
+        try:
+            if action == "get_questions":
+                batch = int(payload.get("batch", 1))
+
+                level_counts = choose_level_counts_for_next_batch(
+                    all_answers=answer_history,
+                    next_batch=batch
+                )
+
+                questions = get_or_create_questions_for_counts(
+                    level_counts=level_counts,
+                    used_question_ids=used_question_ids
+                )
+
+                if len(questions) != QUESTIONS_PER_BATCH:
+                    return JsonResponse(
+                        {
+                            "error": f"Expected {QUESTIONS_PER_BATCH} questions, but generated {len(questions)}."
+                        },
+                        status=500
+                    )
+
+                return JsonResponse({
+                    "status": "questions",
+                    "questions": questions
+                })
+
+            if action in ["submit_batch", "submit_round"]:
+                batch = int(payload.get("batch", payload.get("round", 1)))
+
+                # This action receives the current batch's answers and all_answers.
+                # The frontend already combines previous answers + current batch into all_answers.
+                if not answer_history:
+                    return JsonResponse(
+                        {"error": "No answers were submitted."},
+                        status=400
+                    )
+
+                next_batch = batch + 1
+
+                if next_batch > TOTAL_BATCHES:
+                    score = calculate_frontier_score(answer_history)
+
+                    with connection.cursor() as cursor:
+                        cursor.execute(
+                            """
+                            UPDATE registered_user
+                            SET vocab_score = %s
+                            WHERE user_id = %s
+                            """,
+                            [score, request.user.id]
+                        )
+
+                    return JsonResponse({
+                        "status": "complete",
+                        "score": score
+                    })
+
+                level_counts = choose_level_counts_for_next_batch(
+                    all_answers=answer_history,
+                    next_batch=next_batch
+                )
+
+                questions = get_or_create_questions_for_counts(
+                    level_counts=level_counts,
+                    used_question_ids=used_question_ids
+                )
+
+                if len(questions) != QUESTIONS_PER_BATCH:
+                    return JsonResponse(
+                        {
+                            "error": f"Expected {QUESTIONS_PER_BATCH} questions, but generated {len(questions)}."
+                        },
+                        status=500
+                    )
+
+                return JsonResponse({
+                    "status": "questions",
+                    "questions": questions
+                })
+
+            if action == "complete_diagnostic":
+                if not answer_history:
+                    return JsonResponse(
+                        {"error": "No answers were submitted."},
+                        status=400
+                    )
+
+                score = calculate_frontier_score(answer_history)
+
+                with connection.cursor() as cursor:
+                    cursor.execute(
+                        """
+                        UPDATE registered_user
+                        SET vocab_score = %s
+                        WHERE user_id = %s
+                        """,
+                        [score, request.user.id]
+                    )
+
+                return JsonResponse({
+                    "status": "complete",
+                    "score": score
+                })
+
+            return JsonResponse(
+                {"error": "Unsupported diagnostic action."},
+                status=400
+            )
+
+        except Exception as e:
+            print(f"Error handling vocab diagnostic POST: {e}")
+
+            return JsonResponse(
+                {"error": "Unable to process the diagnostic request."},
+                status=500
+            )
 
     # Users with no vocab score can always take the free diagnostic,
     # regardless of subscription status.
