@@ -594,18 +594,37 @@ def generate_questions_with_openai(lemma_rows):
     prompt = f"""
 You are creating multiple-choice Spanish vocabulary diagnostic questions.
 
-For each Spanish lemma, create one question.
+For each Spanish lemma, create one fill-in-the-blank question entirely in Spanish.
 
 Question style:
-- Ask for the best English meaning of the Spanish lemma.
-- Keep the question short.
+- The question must be a natural Spanish sentence with one blank.
+- The blank should test whether the learner understands how to use the target lemma in context.
 - Use the lemma and part of speech to disambiguate meaning.
-- The correct_answer must be the best concise English answer.
-- The distractors must be plausible but clearly wrong.
-- Avoid making distractors that are just spelling variants or near-identical synonyms.
-- Avoid making every distractor an obvious joke answer.
-- If the lemma is a cognate, make the distractors strong enough that the question is still meaningful.
+- The correct_answer must be the target Spanish lemma, or the most natural inflected form of it if the sentence requires inflection.
+- The distractors must also be Spanish words or short Spanish phrases.
+- Distractors should be plausible in the sentence structure but clearly wrong in meaning.
+- Avoid distractors that are just spelling variants, gender/number variants, or near-identical synonyms of the correct answer.
+- Avoid making distractors that are obviously impossible because of grammar alone.
+- Keep the sentence short and clear.
+- Prefer everyday, natural contexts.
+- Do not include English anywhere in the question or answer options.
 - Return only valid JSON.
+
+Output requirements:
+- Return a JSON object with one key: "results".
+- "results" must be an array.
+- Each object inside "results" must include:
+  - lemma_rank
+  - question
+  - correct_answer
+  - distractor_1
+  - distractor_2
+  - distractor_3
+
+Example style:
+Question: "No puedo salir porque tengo que _____ para el examen."
+Correct answer: "estudiar"
+Distractors: "cocinar", "romper", "vender"
 
 Input lemmas:
 {json.dumps(input_items, ensure_ascii=False)}
