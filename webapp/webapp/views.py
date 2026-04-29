@@ -399,84 +399,52 @@ def register(request):
         })
 
 
-def vocab_test(request):
-    if not request.user.is_authenticated:
-        return redirect("login")
-
-    if not is_registered_user(request.user):
-        return redirect("/register/")
-
-    with connection.cursor() as cursor:
-        cursor.execute(
-            """
-            SELECT vocab_score
-            FROM registered_user
-            WHERE user_id = %s
-            LIMIT 1
-            """,
-            [request.user.id]
+if request.method == "POST":
+    try:
+        data = json.loads(request.body.decode("utf-8"))
+    except json.JSONDecodeError:
+        return JsonResponse(
+            {"status": "error", "message": "Invalid JSON."},
+            status=400
         )
-        row = cursor.fetchone()
 
-    vocab_score = row[0]
+    action = data.get("action")
+    batch = str(data.get("batch", "1"))
+    all_answers = data.get("all_answers", [])
 
-    if request.method == "POST":
-        # action=get_questions
-        # → return {"status": "questions", "questions": [...]}
-        # action=submit_batch
-        # → receive 18 answers plus all_answers
-        # → calculate next sampling logic
-        # → return next 18 questions
+    questions = []
 
-        # action=complete_diagnostic
-        # → receive final 18 answers plus all_answers
-        # → calculate final score
-        # → update registered_user.vocab_score
-        # → return {"status": "complete", "score": score}
+    level_ranges = {
+        1: (1, 1500),
+        2: (1501, 3000),
+        3: (3001, 6000),
+        4: (6001, 10000),
+        5: (10001, 15000),
+        6: (15001, None),
+    }
 
-        questions = []
+    if action == "complete_diagnostic":
+        # TODO: calculate final score here
+        return JsonResponse({
+            "status": "complete",
+            "score": 0
+        })
 
-        level_ranges = {
-            1: (1, 1500),
-            2: (1501, 3000),
-            3: (3001, 6000),
-            4: (6001, 10000),
-            5: (10001, 15000),
-            6: (15001, None),
+    if batch == "1":
+        fetch_counts = {
+            1: 3,
+            2: 3,
+            3: 3,
+            4: 3,
+            5: 3,
+            6: 3,
         }
 
-        # In json data batch indicates which batch of 18 questions we're on, starting with 1 for the first batch.
-        # Let's write the algorithm to set number of questions from each level
-        # First, for batch 1, it's just 3 per batch
-        if request.POST.get("batch") == "1":
-            fetch_counts = {
-                1: 3,
-                2: 3,
-                3: 3,
-                4: 3,
-                5: 3,
-                6: 3,
-            }
-        elif request.POST.get("batch") in ["2", "3", "4"]:
-            # Now let's determine how many answered correctly at each level
-            all_answers = json.loads(request.POST.get("all_answers", "{}"))
-            # All answers format is 
-            #[
-            #{
-            # "question_id": 123,
-            # "selected_option": "estudiar"
-            # },
-            #  {
-            # "question_id": 456,
-            # "selected_option": "comprar"
-            # },
-            # {
-            # "question_id": 789,
-            # "selected_option": "varias"
-            #}
-            #]
-            level_correct_counts = {1: 0, 2: 0, 3: 0, 4: 0, 5: 0, 6: 0}
-            level_total_counts = {1: 0, 2: 0, 3: 0, 4: 0, 5: 0, 6: 0}
+    elif batch in ["2", "3", "4"]:
+        level_correct_counts = {1: 0, 2: 0, 3: 0, 4: 0, 5: 0, 6: 0}
+        level_total_counts = {1: 0, 2: 0, 3: 0, 4: 0, 5: 0, 6: 0}
+
+        with connection.cursor() as cursor:
             for answer in all_answers:
                 question_id = answer.get("question_id")
                 selected_option = answer.get("selected_option")
@@ -500,8 +468,8 @@ def vocab_test(request):
                 correct_answer = row[0]
                 lemma_rank = row[1]
 
-                # Determine level based on lemma_rank
                 level = None
+
                 for lvl, (min_rank, max_rank) in level_ranges.items():
                     if max_rank is None:
                         if lemma_rank >= min_rank:
@@ -514,131 +482,126 @@ def vocab_test(request):
                 if not level:
                     continue
 
-                if selected_option == correct_answer:
+                if selected_option.strip().casefold() == correct_answer.strip().casefold():
                     level_correct_counts[level] += 1
+
                 level_total_counts[level] += 1
-            # The frontier level should be the first level where the user has more than 40% and less than 80% correct. If no such level exists, default to level 3.
-            # Set frontier level to 1 by default
+
+        frontier_level = 1
+
+        if level_total_counts[1] > 0 and level_correct_counts[1] / level_total_counts[1] < 0.4:
             frontier_level = 1
-            # Check if the first level is less than 40%
-            if level_total_counts[1] > 0 and level_correct_counts[1] / level_total_counts[1] < 0.4:
-                frontier_level = 1
+        else:
+            for lvl in range(1, 7):
+                total = level_total_counts[lvl]
+                correct = level_correct_counts[lvl]
+
+                if total > 0:
+                    accuracy = correct / total
+
+                    if 0.4 <= accuracy < 0.8:
+                        frontier_level = lvl
+                        break
+
+        if frontier_level == 1:
+            fetch_counts = {
+                1: 12,
+                2: 6,
+                3: 0,
+                4: 0,
+                5: 0,
+                6: 0,
+            }
+        elif frontier_level == 6:
+            fetch_counts = {
+                1: 0,
+                2: 0,
+                3: 0,
+                4: 0,
+                5: 6,
+                6: 12,
+            }
+        else:
+            fetch_counts = {
+                1: 0,
+                2: 0,
+                3: 0,
+                4: 0,
+                5: 0,
+                6: 0,
+            }
+            fetch_counts[frontier_level] = 10
+            fetch_counts[frontier_level - 1] = 4
+            fetch_counts[frontier_level + 1] = 4
+
+    else:
+        return JsonResponse(
+            {"status": "error", "message": "Invalid batch."},
+            status=400
+        )
+
+    with connection.cursor() as cursor:
+        for level, (min_rank, max_rank) in level_ranges.items():
+            count = fetch_counts.get(level, 0)
+
+            if count <= 0:
+                continue
+
+            if max_rank is None:
+                cursor.execute(
+                    """
+                    SELECT id,
+                           question,
+                           correct_answer,
+                           distractor_1,
+                           distractor_2,
+                           distractor_3
+                    FROM spanish_vocab_test_bank
+                    WHERE lemma_rank >= %s
+                    ORDER BY RANDOM()
+                    LIMIT %s
+                    """,
+                    [min_rank, count]
+                )
             else:
-                for lvl in range(1, 7):
-                    total = level_total_counts[lvl]
-                    correct = level_correct_counts[lvl]
-                    if total > 0:
-                        accuracy = correct / total
-                        if 0.4 < accuracy < 0.8:
-                            frontier_level = lvl
-                            break
-            # Based on the frontier level, set fetch counts
-            # If it's level 1, we'll do 12 from level 1 and 6 from level 2
-            # If it's level 6, we'll do 12 from level 6 and 6 from level 5
-            # Otherwise, we'll do 10 from the frontier level, 4 from the level below, and 4 from the level above
-            if frontier_level == 1:
-                fetch_counts = {
-                    1: 12,
-                    2: 6,
-                    3: 0,
-                    4: 0,
-                    5: 0,
-                    6: 0,
-                }
-            elif frontier_level == 6:
-                fetch_counts = {
-                    1: 0,
-                    2: 0,
-                    3: 0,
-                    4: 0,
-                    5: 6,
-                    6: 12,
-                }
-            else:
-                fetch_counts = {
-                    1: 0,
-                    2: 0,
-                    3: 0,
-                    4: 0,
-                    5: 0,
-                    6: 0,
-                }
-                fetch_counts[frontier_level] = 10
-                fetch_counts[frontier_level - 1] = 4
-                fetch_counts[frontier_level + 1] = 4
+                cursor.execute(
+                    """
+                    SELECT id,
+                           question,
+                           correct_answer,
+                           distractor_1,
+                           distractor_2,
+                           distractor_3
+                    FROM spanish_vocab_test_bank
+                    WHERE lemma_rank BETWEEN %s AND %s
+                    ORDER BY RANDOM()
+                    LIMIT %s
+                    """,
+                    [min_rank, max_rank, count]
+                )
 
-        with connection.cursor() as cursor:
-            for level, (min_rank, max_rank) in level_ranges.items():
-                if max_rank is None:
-                    cursor.execute(
-                        """
-                        SELECT id,
-                            question,
-                            correct_answer,
-                            distractor_1,
-                            distractor_2,
-                            distractor_3
-                        FROM spanish_vocab_test_bank
-                        WHERE lemma_rank >= %s
-                        ORDER BY RANDOM()
-                        LIMIT %s
-                        """,
-                        [min_rank, fetch_counts.get(level, 0)]
-                    )
-                else:
-                    cursor.execute(
-                        """
-                        SELECT id,
-                            question,
-                            correct_answer,
-                            distractor_1,
-                            distractor_2,
-                            distractor_3
-                        FROM spanish_vocab_test_bank
-                        WHERE lemma_rank BETWEEN %s AND %s
-                        ORDER BY RANDOM()
-                        LIMIT %s
-                        """,
-                        [min_rank, max_rank, fetch_counts.get(level, 0)]
-                    )
+            rows = cursor.fetchall()
 
-                rows = cursor.fetchall()
+            for row in rows:
+                options = [
+                    row[2],
+                    row[3],
+                    row[4],
+                    row[5],
+                ]
 
-                for row in rows:
-                    question_id = row[0]
-                    question_text = row[1]
-                    correct_answer = row[2]
-                    distractor_1 = row[3]
-                    distractor_2 = row[4]
-                    distractor_3 = row[5]
+                random.shuffle(options)
 
-                    options = [
-                        correct_answer,
-                        distractor_1,
-                        distractor_2,
-                        distractor_3,
-                    ]
+                questions.append({
+                    "question_id": row[0],
+                    "question": row[1],
+                    "options": options,
+                })
 
-                    questions.append({
-                        "question_id": question_id,
-                        "question": question_text,
-                        "options": options,
-                    })
-
-        return JsonResponse({
-            "status": "questions",
-            "questions": questions
-        })
-
-    # Users with no vocab score can always take the free diagnostic,
-    # regardless of subscription status.
-    if vocab_score == -1:
-        return render(request, "vocab_test_diagnostic.html")
-
-    if is_user_subscribed(request.user):
-        return render(request, "vocab_test.html")
-
-    return redirect("/subscribe/")
+    return JsonResponse({
+        "status": "questions",
+        "questions": questions
+    })
 
 def flag_question(request):
     if request.method != "POST":
