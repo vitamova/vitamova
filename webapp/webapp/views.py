@@ -535,10 +535,10 @@ def register(request):
                 fetch_counts[frontier_level + 1] = 4
 
         else:
-        return JsonResponse(
-            {"status": "error", "message": "Invalid batch."},
-            status=400
-        )
+            return JsonResponse(
+                {"status": "error", "message": "Invalid batch."},
+                status=400
+            )
 
     with connection.cursor() as cursor:
         for level, (min_rank, max_rank) in level_ranges.items():
