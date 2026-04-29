@@ -399,142 +399,142 @@ def register(request):
         })
 
 
-if request.method == "POST":
-    try:
-        data = json.loads(request.body.decode("utf-8"))
-    except json.JSONDecodeError:
-        return JsonResponse(
-            {"status": "error", "message": "Invalid JSON."},
-            status=400
-        )
+    if request.method == "POST":
+        try:
+            data = json.loads(request.body.decode("utf-8"))
+        except json.JSONDecodeError:
+            return JsonResponse(
+                {"status": "error", "message": "Invalid JSON."},
+                status=400
+            )
 
-    action = data.get("action")
-    batch = str(data.get("batch", "1"))
-    all_answers = data.get("all_answers", [])
+        action = data.get("action")
+        batch = str(data.get("batch", "1"))
+        all_answers = data.get("all_answers", [])
 
-    questions = []
+        questions = []
 
-    level_ranges = {
-        1: (1, 1500),
-        2: (1501, 3000),
-        3: (3001, 6000),
-        4: (6001, 10000),
-        5: (10001, 15000),
-        6: (15001, None),
-    }
-
-    if action == "complete_diagnostic":
-        # TODO: calculate final score here
-        return JsonResponse({
-            "status": "complete",
-            "score": 0
-        })
-
-    if batch == "1":
-        fetch_counts = {
-            1: 3,
-            2: 3,
-            3: 3,
-            4: 3,
-            5: 3,
-            6: 3,
+        level_ranges = {
+            1: (1, 1500),
+            2: (1501, 3000),
+            3: (3001, 6000),
+            4: (6001, 10000),
+            5: (10001, 15000),
+            6: (15001, None),
         }
 
-    elif batch in ["2", "3", "4"]:
-        level_correct_counts = {1: 0, 2: 0, 3: 0, 4: 0, 5: 0, 6: 0}
-        level_total_counts = {1: 0, 2: 0, 3: 0, 4: 0, 5: 0, 6: 0}
+        if action == "complete_diagnostic":
+            # TODO: calculate final score here
+            return JsonResponse({
+                "status": "complete",
+                "score": 0
+            })
 
-        with connection.cursor() as cursor:
-            for answer in all_answers:
-                question_id = answer.get("question_id")
-                selected_option = answer.get("selected_option")
+        if batch == "1":
+            fetch_counts = {
+                1: 3,
+                2: 3,
+                3: 3,
+                4: 3,
+                5: 3,
+                6: 3,
+            }
 
-                if not question_id or not selected_option:
-                    continue
+        elif batch in ["2", "3", "4"]:
+            level_correct_counts = {1: 0, 2: 0, 3: 0, 4: 0, 5: 0, 6: 0}
+            level_total_counts = {1: 0, 2: 0, 3: 0, 4: 0, 5: 0, 6: 0}
 
-                cursor.execute(
-                    """
-                    SELECT correct_answer, lemma_rank
-                    FROM spanish_vocab_test_bank
-                    WHERE id = %s
-                    """,
-                    [question_id]
-                )
-                row = cursor.fetchone()
+            with connection.cursor() as cursor:
+                for answer in all_answers:
+                    question_id = answer.get("question_id")
+                    selected_option = answer.get("selected_option")
 
-                if not row:
-                    continue
+                    if not question_id or not selected_option:
+                        continue
 
-                correct_answer = row[0]
-                lemma_rank = row[1]
+                    cursor.execute(
+                        """
+                        SELECT correct_answer, lemma_rank
+                        FROM spanish_vocab_test_bank
+                        WHERE id = %s
+                        """,
+                        [question_id]
+                    )
+                    row = cursor.fetchone()
 
-                level = None
+                    if not row:
+                        continue
 
-                for lvl, (min_rank, max_rank) in level_ranges.items():
-                    if max_rank is None:
-                        if lemma_rank >= min_rank:
+                    correct_answer = row[0]
+                    lemma_rank = row[1]
+
+                    level = None
+
+                    for lvl, (min_rank, max_rank) in level_ranges.items():
+                        if max_rank is None:
+                            if lemma_rank >= min_rank:
+                                level = lvl
+                                break
+                        elif min_rank <= lemma_rank <= max_rank:
                             level = lvl
                             break
-                    elif min_rank <= lemma_rank <= max_rank:
-                        level = lvl
-                        break
 
-                if not level:
-                    continue
+                    if not level:
+                        continue
 
-                if selected_option.strip().casefold() == correct_answer.strip().casefold():
-                    level_correct_counts[level] += 1
+                    if selected_option.strip().casefold() == correct_answer.strip().casefold():
+                        level_correct_counts[level] += 1
 
-                level_total_counts[level] += 1
+                    level_total_counts[level] += 1
 
-        frontier_level = 1
-
-        if level_total_counts[1] > 0 and level_correct_counts[1] / level_total_counts[1] < 0.4:
             frontier_level = 1
+
+            if level_total_counts[1] > 0 and level_correct_counts[1] / level_total_counts[1] < 0.4:
+                frontier_level = 1
+            else:
+                for lvl in range(1, 7):
+                    total = level_total_counts[lvl]
+                    correct = level_correct_counts[lvl]
+
+                    if total > 0:
+                        accuracy = correct / total
+
+                        if 0.4 <= accuracy < 0.8:
+                            frontier_level = lvl
+                            break
+
+            if frontier_level == 1:
+                fetch_counts = {
+                    1: 12,
+                    2: 6,
+                    3: 0,
+                    4: 0,
+                    5: 0,
+                    6: 0,
+                }
+            elif frontier_level == 6:
+                fetch_counts = {
+                    1: 0,
+                    2: 0,
+                    3: 0,
+                    4: 0,
+                    5: 6,
+                    6: 12,
+                }
+            else:
+                fetch_counts = {
+                    1: 0,
+                    2: 0,
+                    3: 0,
+                    4: 0,
+                    5: 0,
+                    6: 0,
+                }
+                fetch_counts[frontier_level] = 10
+                fetch_counts[frontier_level - 1] = 4
+                fetch_counts[frontier_level + 1] = 4
+
         else:
-            for lvl in range(1, 7):
-                total = level_total_counts[lvl]
-                correct = level_correct_counts[lvl]
-
-                if total > 0:
-                    accuracy = correct / total
-
-                    if 0.4 <= accuracy < 0.8:
-                        frontier_level = lvl
-                        break
-
-        if frontier_level == 1:
-            fetch_counts = {
-                1: 12,
-                2: 6,
-                3: 0,
-                4: 0,
-                5: 0,
-                6: 0,
-            }
-        elif frontier_level == 6:
-            fetch_counts = {
-                1: 0,
-                2: 0,
-                3: 0,
-                4: 0,
-                5: 6,
-                6: 12,
-            }
-        else:
-            fetch_counts = {
-                1: 0,
-                2: 0,
-                3: 0,
-                4: 0,
-                5: 0,
-                6: 0,
-            }
-            fetch_counts[frontier_level] = 10
-            fetch_counts[frontier_level - 1] = 4
-            fetch_counts[frontier_level + 1] = 4
-
-    else:
         return JsonResponse(
             {"status": "error", "message": "Invalid batch."},
             status=400
