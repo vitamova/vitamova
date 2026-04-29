@@ -399,6 +399,27 @@ def register(request):
         })
 
 
+def vocab_test(request):
+    if not request.user.is_authenticated:
+        return redirect("login")
+
+    if not is_registered_user(request.user):
+        return redirect("/register/")
+
+    with connection.cursor() as cursor:
+        cursor.execute(
+            """
+            SELECT vocab_score
+            FROM registered_user
+            WHERE user_id = %s
+            LIMIT 1
+            """,
+            [request.user.id]
+        )
+        row = cursor.fetchone()
+
+    vocab_score = row[0]
+
     if request.method == "POST":
         try:
             data = json.loads(request.body.decode("utf-8"))
@@ -540,68 +561,78 @@ def register(request):
                 status=400
             )
 
-    with connection.cursor() as cursor:
-        for level, (min_rank, max_rank) in level_ranges.items():
-            count = fetch_counts.get(level, 0)
+        with connection.cursor() as cursor:
+            for level, (min_rank, max_rank) in level_ranges.items():
+                count = fetch_counts.get(level, 0)
 
-            if count <= 0:
-                continue
+                if count <= 0:
+                    continue
 
-            if max_rank is None:
-                cursor.execute(
-                    """
-                    SELECT id,
-                           question,
-                           correct_answer,
-                           distractor_1,
-                           distractor_2,
-                           distractor_3
-                    FROM spanish_vocab_test_bank
-                    WHERE lemma_rank >= %s
-                    ORDER BY RANDOM()
-                    LIMIT %s
-                    """,
-                    [min_rank, count]
-                )
-            else:
-                cursor.execute(
-                    """
-                    SELECT id,
-                           question,
-                           correct_answer,
-                           distractor_1,
-                           distractor_2,
-                           distractor_3
-                    FROM spanish_vocab_test_bank
-                    WHERE lemma_rank BETWEEN %s AND %s
-                    ORDER BY RANDOM()
-                    LIMIT %s
-                    """,
-                    [min_rank, max_rank, count]
-                )
+                if max_rank is None:
+                    cursor.execute(
+                        """
+                        SELECT id,
+                            question,
+                            correct_answer,
+                            distractor_1,
+                            distractor_2,
+                            distractor_3
+                        FROM spanish_vocab_test_bank
+                        WHERE lemma_rank >= %s
+                        ORDER BY RANDOM()
+                        LIMIT %s
+                        """,
+                        [min_rank, count]
+                    )
+                else:
+                    cursor.execute(
+                        """
+                        SELECT id,
+                            question,
+                            correct_answer,
+                            distractor_1,
+                            distractor_2,
+                            distractor_3
+                        FROM spanish_vocab_test_bank
+                        WHERE lemma_rank BETWEEN %s AND %s
+                        ORDER BY RANDOM()
+                        LIMIT %s
+                        """,
+                        [min_rank, max_rank, count]
+                    )
 
-            rows = cursor.fetchall()
+                rows = cursor.fetchall()
 
-            for row in rows:
-                options = [
-                    row[2],
-                    row[3],
-                    row[4],
-                    row[5],
-                ]
+                for row in rows:
+                    options = [
+                        row[2],
+                        row[3],
+                        row[4],
+                        row[5],
+                    ]
 
-                random.shuffle(options)
+                    random.shuffle(options)
 
-                questions.append({
-                    "question_id": row[0],
-                    "question": row[1],
-                    "options": options,
-                })
+                    questions.append({
+                        "question_id": row[0],
+                        "question": row[1],
+                        "options": options,
+                    })
 
-    return JsonResponse({
-        "status": "questions",
-        "questions": questions
-    })
+        return JsonResponse({
+            "status": "questions",
+            "questions": questions
+        })
+
+    # Users with no vocab score can always take the free diagnostic,
+    # regardless of subscription status.
+    if vocab_score == -1:
+        return render(request, "vocab_test_diagnostic.html")
+
+    if is_user_subscribed(request.user):
+        return render(request, "vocab_test.html")
+
+    return redirect("/subscribe/")
 
 def flag_question(request):
     if request.method != "POST":
