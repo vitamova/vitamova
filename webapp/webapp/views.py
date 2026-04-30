@@ -741,68 +741,68 @@ def vocab_test(request):
                     status=400
                 )
 
-            with connection.cursor() as cursor:
-                for level, (min_rank, max_rank) in level_ranges.items():
-                    count = fetch_counts.get(level, 0)
+        with connection.cursor() as cursor:
+            for level, (min_rank, max_rank) in level_ranges.items():
+                count = fetch_counts.get(level, 0)
 
-                    if count <= 0:
-                        continue
+                if count <= 0:
+                    continue
 
-                    if max_rank is None:
-                        cursor.execute(
-                            """
-                            SELECT id,
-                                question,
-                                correct_answer,
-                                distractor_1,
-                                distractor_2,
-                                distractor_3
-                            FROM spanish_vocab_test_bank
-                            WHERE lemma_rank >= %s
-                            ORDER BY RANDOM()
-                            LIMIT %s
-                            """,
-                            [min_rank, count]
-                        )
-                    else:
-                        cursor.execute(
-                            """
-                            SELECT id,
-                                question,
-                                correct_answer,
-                                distractor_1,
-                                distractor_2,
-                                distractor_3
-                            FROM spanish_vocab_test_bank
-                            WHERE lemma_rank BETWEEN %s AND %s
-                            ORDER BY RANDOM()
-                            LIMIT %s
-                            """,
-                            [min_rank, max_rank, count]
-                        )
+                if max_rank is None:
+                    cursor.execute(
+                        """
+                        SELECT id,
+                            question,
+                            correct_answer,
+                            distractor_1,
+                            distractor_2,
+                            distractor_3
+                        FROM spanish_vocab_test_bank
+                        WHERE lemma_rank >= %s
+                        ORDER BY RANDOM()
+                        LIMIT %s
+                        """,
+                        [min_rank, count]
+                    )
+                else:
+                    cursor.execute(
+                        """
+                        SELECT id,
+                            question,
+                            correct_answer,
+                            distractor_1,
+                            distractor_2,
+                            distractor_3
+                        FROM spanish_vocab_test_bank
+                        WHERE lemma_rank BETWEEN %s AND %s
+                        ORDER BY RANDOM()
+                        LIMIT %s
+                        """,
+                        [min_rank, max_rank, count]
+                    )
 
-                    rows = cursor.fetchall()
+                rows = cursor.fetchall()
 
-                    for row in rows:
-                        options = [
-                            row[2],
-                            row[3],
-                            row[4],
-                            row[5],
-                        ]
+                for row in rows:
+                    options = [
+                        row[2],
+                        row[3],
+                        row[4],
+                        row[5],
+                    ]
 
-                        random.shuffle(options)
+                    random.shuffle(options)
 
-                        questions.append({
-                            "question_id": row[0],
-                            "question": row[1],
-                            "options": options,
-                        })
+                    questions.append({
+                        "question_id": row[0],
+                        "question": row[1],
+                        "options": options,
+                    })
 
-            return JsonResponse({
-                "status": "questions",
-                "questions": questions
-            })
+        return JsonResponse({
+            "status": "questions",
+            "questions": questions
+        })
 
     # Users with no vocab score can always take the free diagnostic,
     # regardless of subscription status.
