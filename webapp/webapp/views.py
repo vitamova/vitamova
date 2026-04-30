@@ -501,28 +501,216 @@ def vocab_test(request):
 
                     level_total_counts[level] += 1
 
-            frontier_level = 1
-
-            if level_total_counts[1] > 0 and level_correct_counts[1] / level_total_counts[1] < 0.4:
                 frontier_level = 1
+
+            for lvl in range(1, 7):
+                total = level_total_counts[lvl]
+                correct = level_correct_counts[lvl]
+
+                # If this level has not been tested yet, do not use it as the frontier.
+                if total == 0:
+                    continue
+
+                accuracy = correct / total
+
+                # The first level below 80% becomes the frontier.
+                # This guarantees that all earlier tested levels were 80% or higher,
+                # because otherwise the loop would have stopped earlier.
+                if accuracy < 0.8:
+                    frontier_level = lvl
+                    break
             else:
+                # If every tested level was 80% or higher, focus on the highest level.
+                frontier_level = 6
+
+            # If this is the last submission
+            if action == "complete_diagnostic":
+                level_correct_counts = {1: 0, 2: 0, 3: 0, 4: 0, 5: 0, 6: 0}
+                level_total_counts = {1: 0, 2: 0, 3: 0, 4: 0, 5: 0, 6: 0}
+
+                level_weighted_correct = {1: 0.0, 2: 0.0, 3: 0.0, 4: 0.0, 5: 0.0, 6: 0.0}
+                level_weighted_total = {1: 0.0, 2: 0.0, 3: 0.0, 4: 0.0, 5: 0.0, 6: 0.0}
+
+                above_frontier_weighted_correct = 0.0
+                above_frontier_weighted_total = 0.0
+
+                with connection.cursor() as cursor:
+                    for answer in all_answers:
+                        question_id = answer.get("question_id")
+                        selected_option = answer.get("selected_option")
+
+                        if not question_id or selected_option is None:
+                            continue
+
+                        cursor.execute(
+                            """
+                            SELECT correct_answer, lemma_rank
+                            FROM spanish_vocab_test_bank
+                            WHERE id = %s
+                            """,
+                            [question_id]
+                        )
+                        row = cursor.fetchone()
+
+                        if not row:
+                            continue
+
+                        correct_answer = row[0]
+                        lemma_rank = row[1]
+
+                        level = None
+                        min_rank_for_level = None
+                        max_rank_for_level = None
+
+                        for lvl, (min_rank, max_rank) in level_ranges.items():
+                            if max_rank is None:
+                                if lemma_rank >= min_rank:
+                                    level = lvl
+                                    min_rank_for_level = min_rank
+                                    max_rank_for_level = min_rank + 5000
+                                    break
+                            elif min_rank <= lemma_rank <= max_rank:
+                                level = lvl
+                                min_rank_for_level = min_rank
+                                max_rank_for_level = max_rank
+                                break
+
+                        if not level:
+                            continue
+
+                        is_correct = (
+                            str(selected_option).strip().casefold()
+                            == str(correct_answer).strip().casefold()
+                        )
+
+                        level_total_counts[level] += 1
+
+                        if is_correct:
+                            level_correct_counts[level] += 1
+
+                        # Rank weight within the level.
+                        # Easier/earlier words in the level are worth about 1.0.
+                        # Harder/later words in the level are worth up to about 2.0.
+                        level_span = max_rank_for_level - min_rank_for_level
+
+                        if level_span <= 0:
+                            rank_position = 0.0
+                        else:
+                            rank_position = (lemma_rank - min_rank_for_level) / level_span
+                            rank_position = max(0.0, min(1.0, rank_position))
+
+                        rank_weight = 1.0 + rank_position
+
+                        level_weighted_total[level] += rank_weight
+
+                        if is_correct:
+                            level_weighted_correct[level] += rank_weight
+
+                # Find the first level below 80%.
+                # All previous tested levels must be 80%+ because the loop stops at the first miss of that threshold.
+                frontier_level = 1
+
                 for lvl in range(1, 7):
                     total = level_total_counts[lvl]
                     correct = level_correct_counts[lvl]
 
-                    if total > 0:
-                        accuracy = correct / total
+                    if total == 0:
+                        continue
 
-                        if 0.4 <= accuracy < 0.8:
-                            frontier_level = lvl
-                            break
+                    accuracy = correct / total
 
-            # If this is the last submission
-            if action == "complete_diagnostic":
-                # TODO: calculate final score here
+                    if accuracy < 0.8:
+                        frontier_level = lvl
+                        break
+                else:
+                    frontier_level = 6
+
+                # Base score is 1,000 points for every fully mastered level below the frontier.
+                base_score = 1000 * (frontier_level - 1)
+
+                # Raw bonus is based on rank-weighted accuracy inside the frontier level.
+                # 40% = bottom of the band, 80% = top of the band.
+                frontier_weighted_total = level_weighted_total[frontier_level]
+                frontier_weighted_correct = level_weighted_correct[frontier_level]
+
+                if frontier_weighted_total > 0:
+                    frontier_weighted_accuracy = frontier_weighted_correct / frontier_weighted_total
+                else:
+                    frontier_weighted_accuracy = 0.0
+
+                entry_threshold = 0.40
+                mastery_threshold = 0.80
+
+                raw_bonus_progress = (
+                    (frontier_weighted_accuracy - entry_threshold)
+                    / (mastery_threshold - entry_threshold)
+                )
+                raw_bonus_progress = max(0.0, min(1.0, raw_bonus_progress))
+
+                raw_bonus = round(999 * raw_bonus_progress)
+
+                # Now calculate the confidence multiplier from ALL levels above the frontier.
+                # Correct answers farther above the frontier count more.
+                # Harder lemma ranks inside each upper level also count more.
+                for lvl in range(frontier_level + 1, 7):
+                    level_distance = lvl - frontier_level
+
+                    # Level distance makes higher levels worth more.
+                    # frontier + 1 = 1.0x
+                    # frontier + 2 = 1.5x
+                    # frontier + 3 = 2.0x
+                    # etc.
+                    distance_weight = 1.0 + (0.5 * (level_distance - 1))
+
+                    above_frontier_weighted_correct += (
+                        level_weighted_correct[lvl] * distance_weight
+                    )
+                    above_frontier_weighted_total += (
+                        level_weighted_total[lvl] * distance_weight
+                    )
+
+                if above_frontier_weighted_total > 0:
+                    above_frontier_accuracy = (
+                        above_frontier_weighted_correct / above_frontier_weighted_total
+                    )
+                else:
+                    above_frontier_accuracy = 0.0
+
+                # Confidence is limited if we barely sampled above the frontier.
+                # 12 weighted attempts is treated as enough evidence for full confidence.
+                sample_confidence = min(1.0, above_frontier_weighted_total / 12.0)
+
+                # Proof score combines correctness and sample size.
+                above_frontier_proof = above_frontier_accuracy * sample_confidence
+
+                # Multiplier ranges from 0.70 to 1.00.
+                # No higher-level proof still allows 70% of the raw bonus.
+                # Strong higher-level proof allows the full raw bonus.
+                confidence_multiplier = 0.70 + (0.30 * above_frontier_proof)
+
+                bonus = round(raw_bonus * confidence_multiplier)
+
+                score = base_score + bonus
+                score = max(0, min(6000, score))
+
+                with connection.cursor() as cursor:
+                    cursor.execute(
+                        """
+                        UPDATE registered_user
+                        SET vocab_score = %s
+                        WHERE user_id = %s
+                        """,
+                        [score, request.user.id]
+                    )
+
                 return JsonResponse({
                     "status": "complete",
-                    "score": frontier_level*1000
+                    "score": score,
+                    "frontier_level": frontier_level,
+                    "base_score": base_score,
+                    "raw_bonus": raw_bonus,
+                    "confidence_multiplier": round(confidence_multiplier, 3),
+                    "bonus": bonus
                 })
             
             elif action == "submit_batch":
