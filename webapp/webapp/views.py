@@ -693,16 +693,6 @@ def vocab_test(request):
                 score = base_score + bonus
                 score = max(0, min(6000, score))
 
-                with connection.cursor() as cursor:
-                    cursor.execute(
-                        """
-                        UPDATE registered_user
-                        SET vocab_score = %s
-                        WHERE user_id = %s
-                        """,
-                        [score, request.user.id]
-                    )
-
                 return JsonResponse({
                     "status": "complete",
                     "score": score,
