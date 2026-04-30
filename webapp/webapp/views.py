@@ -444,13 +444,6 @@ def vocab_test(request):
             6: (15001, None),
         }
 
-        if action == "complete_diagnostic":
-            # TODO: calculate final score here
-            return JsonResponse({
-                "status": "complete",
-                "score": 0
-            })
-
         if batch == "1":
             fetch_counts = {
                 1: 3,
@@ -524,105 +517,114 @@ def vocab_test(request):
                             frontier_level = lvl
                             break
 
-            if frontier_level == 1:
-                fetch_counts = {
-                    1: 12,
-                    2: 6,
-                    3: 0,
-                    4: 0,
-                    5: 0,
-                    6: 0,
-                }
-            elif frontier_level == 6:
-                fetch_counts = {
-                    1: 0,
-                    2: 0,
-                    3: 0,
-                    4: 0,
-                    5: 6,
-                    6: 12,
-                }
-            else:
-                fetch_counts = {
-                    1: 0,
-                    2: 0,
-                    3: 0,
-                    4: 0,
-                    5: 0,
-                    6: 0,
-                }
-                fetch_counts[frontier_level] = 10
-                fetch_counts[frontier_level - 1] = 4
-                fetch_counts[frontier_level + 1] = 4
-
-        else:
-            return JsonResponse(
-                {"status": "error", "message": "Invalid batch."},
-                status=400
-            )
-
-        with connection.cursor() as cursor:
-            for level, (min_rank, max_rank) in level_ranges.items():
-                count = fetch_counts.get(level, 0)
-
-                if count <= 0:
-                    continue
-
-                if max_rank is None:
-                    cursor.execute(
-                        """
-                        SELECT id,
-                            question,
-                            correct_answer,
-                            distractor_1,
-                            distractor_2,
-                            distractor_3
-                        FROM spanish_vocab_test_bank
-                        WHERE lemma_rank >= %s
-                        ORDER BY RANDOM()
-                        LIMIT %s
-                        """,
-                        [min_rank, count]
-                    )
+            # If this is the last submission
+            if action == "complete_diagnostic":
+                # TODO: calculate final score here
+                return JsonResponse({
+                    "status": "complete",
+                    "score": frontier_level*1000
+                })
+            
+            elif action == "submit_batch":
+                if frontier_level == 1:
+                    fetch_counts = {
+                        1: 12,
+                        2: 6,
+                        3: 0,
+                        4: 0,
+                        5: 0,
+                        6: 0,
+                    }
+                elif frontier_level == 6:
+                    fetch_counts = {
+                        1: 0,
+                        2: 0,
+                        3: 0,
+                        4: 0,
+                        5: 6,
+                        6: 12,
+                    }
                 else:
-                    cursor.execute(
-                        """
-                        SELECT id,
-                            question,
-                            correct_answer,
-                            distractor_1,
-                            distractor_2,
-                            distractor_3
-                        FROM spanish_vocab_test_bank
-                        WHERE lemma_rank BETWEEN %s AND %s
-                        ORDER BY RANDOM()
-                        LIMIT %s
-                        """,
-                        [min_rank, max_rank, count]
-                    )
+                    fetch_counts = {
+                        1: 0,
+                        2: 0,
+                        3: 0,
+                        4: 0,
+                        5: 0,
+                        6: 0,
+                    }
+                    fetch_counts[frontier_level] = 10
+                    fetch_counts[frontier_level - 1] = 4
+                    fetch_counts[frontier_level + 1] = 4
 
-                rows = cursor.fetchall()
+            else:
+                return JsonResponse(
+                    {"status": "error", "message": "Invalid batch."},
+                    status=400
+                )
 
-                for row in rows:
-                    options = [
-                        row[2],
-                        row[3],
-                        row[4],
-                        row[5],
-                    ]
+            with connection.cursor() as cursor:
+                for level, (min_rank, max_rank) in level_ranges.items():
+                    count = fetch_counts.get(level, 0)
 
-                    random.shuffle(options)
+                    if count <= 0:
+                        continue
 
-                    questions.append({
-                        "question_id": row[0],
-                        "question": row[1],
-                        "options": options,
-                    })
+                    if max_rank is None:
+                        cursor.execute(
+                            """
+                            SELECT id,
+                                question,
+                                correct_answer,
+                                distractor_1,
+                                distractor_2,
+                                distractor_3
+                            FROM spanish_vocab_test_bank
+                            WHERE lemma_rank >= %s
+                            ORDER BY RANDOM()
+                            LIMIT %s
+                            """,
+                            [min_rank, count]
+                        )
+                    else:
+                        cursor.execute(
+                            """
+                            SELECT id,
+                                question,
+                                correct_answer,
+                                distractor_1,
+                                distractor_2,
+                                distractor_3
+                            FROM spanish_vocab_test_bank
+                            WHERE lemma_rank BETWEEN %s AND %s
+                            ORDER BY RANDOM()
+                            LIMIT %s
+                            """,
+                            [min_rank, max_rank, count]
+                        )
 
-        return JsonResponse({
-            "status": "questions",
-            "questions": questions
-        })
+                    rows = cursor.fetchall()
+
+                    for row in rows:
+                        options = [
+                            row[2],
+                            row[3],
+                            row[4],
+                            row[5],
+                        ]
+
+                        random.shuffle(options)
+
+                        questions.append({
+                            "question_id": row[0],
+                            "question": row[1],
+                            "options": options,
+                        })
+
+            return JsonResponse({
+                "status": "questions",
+                "questions": questions
+            })
 
     # Users with no vocab score can always take the free diagnostic,
     # regardless of subscription status.
