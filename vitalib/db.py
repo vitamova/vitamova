@@ -1,4 +1,3 @@
-from django.db import connection as django_connection
 import psycopg2
 import os
 import datetime
@@ -20,6 +19,9 @@ def source_profile(file_path):
 
 # Use the function to source the profile
 source_profile(os.path.expanduser("~/.profile"))
+# DB password is in ˜/data/db_password.txt
+with open(os.path.expanduser("~/data/db_pw.txt"), "r") as f:
+    DB_PASSWORD = f.read().strip()
 
 # Database connection
 class connection:
@@ -27,9 +29,9 @@ class connection:
     def open():
         conn = psycopg2.connect(
             dbname="vitamova",
-            user="vitamova",
-            password=os.environ.get('db_password'),
-            host="db.evenstarsec.local",
+            user="webapp",
+            password=DB_PASSWORD,
+            host="vitamova-db.cluster-cartvcorpihi.us-east-1.rds.amazonaws.com",
             port="5432"
         )
         return conn
@@ -230,7 +232,7 @@ class Test:
     }
     class get:
         def __init__(self, conn, username, language):
-            self.conn = django_connection
+            self.conn = conn
             self.username = username
             self.language = language
         def questions(self, fetch_counts):
