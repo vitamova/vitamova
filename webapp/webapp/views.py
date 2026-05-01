@@ -491,7 +491,7 @@ def vocab_test(request):
                 elif frontier == 6:
                     fetch_counts[6] = 35
                     fetch_counts[5] = 15
-                questions = vitalib.Test.get_questions(connection, request.user.username, "es").questions(fetch_counts)
+                questions = vitalib.Test(connection, request.user.username, "es").get_questions(fetch_counts)
                 return JsonResponse({
                     "status": "questions",
                     "questions": questions,
