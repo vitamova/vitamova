@@ -74,16 +74,16 @@ SOCIALACCOUNT_PROVIDERS = {
     }    
 }
 
+
+ACCOUNT_UNIQUE_EMAIL = True
+
 # Make social signup automatic when possible
 SOCIALACCOUNT_AUTO_SIGNUP = True
 
 # Usually for Google you want:
-ACCOUNT_EMAIL_REQUIRED = True
+ACCOUNT_LOGIN_METHODS = {"email"}
+ACCOUNT_SIGNUP_FIELDS = ["email*", "password1*", "password2*"]
 ACCOUNT_UNIQUE_EMAIL = True
-
-# If you are okay not having a separate username:
-# (recommended if you just want email as ID)
-ACCOUNT_USERNAME_REQUIRED = False
 
 USE_X_FORWARDED_HOST = True
 ACCOUNT_DEFAULT_HTTP_PROTOCOL = "https"
