@@ -820,7 +820,21 @@ def vocab_test(request):
         return render(request, "vocab_test_diagnostic.html")
 
     if is_user_subscribed(request.user):
-        return render(request, "vocab_test_retest.html")
+        # Get user score
+        with connection.cursor() as cursor:
+            cursor.execute(
+                """
+                SELECT vocab_score
+                FROM registered_user
+                WHERE user_id = %s
+                LIMIT 1
+                """,
+                [request.user.id]
+            )
+            row = cursor.fetchone()
+        return render(request, "vocab_test_retest.html", {
+            "current_score": row[0] if row else None
+        })
 
     return redirect("/subscribe/")
 
