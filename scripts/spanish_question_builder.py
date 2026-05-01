@@ -174,6 +174,16 @@ Question design rules:
 - Prefer everyday contexts, but make the clue strong enough to remove ambiguity.
 - The correct_answer must be the target Spanish lemma, or the most natural inflected form if the sentence requires inflection.
 
+Inflection and form variety:
+- When the target lemma is a verb, adjective, noun, pronoun, determiner, or other word type with multiple natural forms, use the form that best fits the sentence.
+- Do not always use the dictionary form of the lemma.
+- For verbs, prefer natural conjugated forms when appropriate. For example, the lemma "ser" should sometimes appear as "es", "soy", "son", "era", "fue", etc., depending on the sentence.
+- For nouns and adjectives, use natural gender and number forms when appropriate. For example, a lemma may appear in singular, plural, masculine, or feminine form if the sentence calls for it.
+- For very common lemmas, especially verbs, avoid overusing the infinitive form unless the sentence naturally requires an infinitive.
+- The correct_answer should be the exact form that belongs in the blank, not necessarily the lemma itself.
+- The question should still test knowledge of the target lemma, even when the answer is an inflected form.
+- Distractors should match the general grammatical shape of the correct answer when possible, but they must be wrong in meaning. For example, if the correct answer is a conjugated verb, the distractors should often also be conjugated verbs.
+
 Before finalizing each item, mentally test all four options in the blank:
 1. Put the correct answer into the blank.
 2. Put distractor_1 into the blank.
@@ -203,6 +213,18 @@ Question: "El _____ tendrá varias fases, fechas límite y un equipo dedicado."
 Correct answer: "proyecto"
 Distractors: "contrato", "evento", "curso"
 Why good: "varias fases" and "fechas límite" point most clearly to proyecto.
+
+Good example with an inflected verb:
+Question: "Mi hermana _____ médica y trabaja en un hospital."
+Correct answer: "es"
+Distractors: "tiene", "hace", "va"
+Why good: The target lemma is "ser", but the natural form in this sentence is "es", not "ser".
+
+Bad example with an overused dictionary form:
+Question: "Mi hermana quiere _____ médica en el futuro."
+Correct answer: "ser"
+Distractors: "tener", "hacer", "ir"
+Why weaker: This is grammatically fine, but overusing infinitives makes the questions less natural and less varied. Use conjugated forms when they fit naturally.
 
 Output requirements:
 - Return only valid JSON.
