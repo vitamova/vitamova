@@ -23,6 +23,13 @@ source_profile(os.path.expanduser("~/.profile"))
 with open(os.path.expanduser("~/data/db_pw.txt"), "r") as f:
     DB_PASSWORD = f.read().strip()
 
+# Map language codes to their full names to use for table names
+LANGUAGE_MAP = {
+    "es": "spanish",
+    "ru": "russian",
+    # Add more languages here as needed
+}
+
 # Database connection
 class connection:
     @staticmethod
@@ -256,12 +263,12 @@ class Test:
                                 distractor_1,
                                 distractor_2,
                                 distractor_3
-                            FROM spanish_vocab_test_bank
+                            FROM %s_vocab_test_bank
                             WHERE lemma_rank >= %s
                             ORDER BY RANDOM()
                             LIMIT %s
                             """,
-                            [min_rank, count]
+                            [LANGUAGE_MAP[self.language], min_rank, count]
                         )
 
                     else:
@@ -273,12 +280,12 @@ class Test:
                                 distractor_1,
                                 distractor_2,
                                 distractor_3
-                            FROM spanish_vocab_test_bank
+                            FROM %s_vocab_test_bank
                             WHERE lemma_rank BETWEEN %s AND %s
                             ORDER BY RANDOM()
                             LIMIT %s
                             """,
-                            [min_rank, max_rank, count]
+                            [LANGUAGE_MAP[self.language], min_rank, max_rank, count]
                         )
 
                     rows = cursor.fetchall()
