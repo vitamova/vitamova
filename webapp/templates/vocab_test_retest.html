@@ -552,13 +552,12 @@
       <div class="title-card-content">
         <h1>Vocabulary Retest</h1>
         <p>
-          This retest focuses on your current vocabulary frontier. If your score improves, we will use the new estimate.
+          This retest focuses on your current vocabulary level. If your score improves, we will use the new estimate.
           If today is not your best day, your current score will usually stay protected.
         </p>
 
         <div class="score-pill-row">
           <div class="score-pill">Current score: {{ current_score }}</div>
-          <div class="score-pill">Current frontier: Tier {{ current_frontier }}</div>
         </div>
       </div>
     </section>
@@ -654,7 +653,7 @@
     const TOTAL_QUESTIONS = 50;
     const RETEST_URL = "/vocab-retest/";
     const CURRENT_SCORE = Number("{{ current_score|default:0 }}");
-    const CURRENT_FRONTIER = Number("{{ current_frontier|default:1 }}");
+    const CURRENT_FRONTIER = Math.max(1, Math.min(6, Math.floor(CURRENT_SCORE / 1000) + 1));
     const LANGUAGE = "{{ language|default:'es' }}";
 
     let questions = [];
