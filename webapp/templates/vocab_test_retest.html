@@ -1,0 +1,1026 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <link rel="icon" href="/static/icon.png">
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+
+  <title>Vitamova | Vocabulary Retest</title>
+
+  <style>
+    :root {
+      --vita-yellow: #ffd54a;
+      --vita-yellow-dark: #f4bf20;
+      --vita-blue: #1f5eff;
+      --vita-blue-dark: #1748c6;
+      --bg-soft: #f7f9ff;
+      --text-dark: #1a1f36;
+      --text-muted: #667085;
+      --card: #ffffff;
+      --border: #e6eaf2;
+      --shadow: 0 18px 45px rgba(24, 42, 100, 0.12);
+      --danger: #b42318;
+      --danger-soft: #fff3f0;
+      --success: #12b76a;
+      --success-soft: #ecfdf3;
+      --warning: #f79009;
+      --warning-soft: #fff8e6;
+    }
+
+    * {
+      box-sizing: border-box;
+    }
+
+    body {
+      margin: 0;
+      font-family: Inter, ui-sans-serif, system-ui, -apple-system, Segoe UI, Roboto, Helvetica, Arial, sans-serif;
+      color: var(--text-dark);
+      background:
+        radial-gradient(circle at 10% 10%, rgba(255, 213, 74, 0.25), transparent 40%),
+        radial-gradient(circle at 90% 20%, rgba(31, 94, 255, 0.20), transparent 42%),
+        linear-gradient(180deg, #fdfefe 0%, var(--bg-soft) 100%);
+      min-height: 100vh;
+      padding: 24px;
+    }
+
+    .page {
+      width: 100%;
+      max-width: 900px;
+      min-height: calc(100vh - 48px);
+      margin: 0 auto;
+      display: grid;
+      gap: 22px;
+      align-content: center;
+    }
+
+    .brand {
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      gap: 10px;
+      font-weight: 800;
+      font-size: 1.15rem;
+      letter-spacing: 0.2px;
+      color: var(--text-dark);
+    }
+
+    .brand-badge {
+      width: 42px;
+      height: 42px;
+      border-radius: 12px;
+      overflow: hidden;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      box-shadow: 0 8px 20px rgba(20, 27, 52, 0.08);
+      background: white;
+    }
+
+    .brand-icon {
+      width: 100%;
+      height: 100%;
+      object-fit: cover;
+      display: block;
+    }
+
+    .title-card {
+      background: linear-gradient(160deg, var(--vita-blue) 0%, #3d7dff 55%, #6aa0ff 100%);
+      color: white;
+      border-radius: 28px;
+      padding: 30px 28px;
+      position: relative;
+      overflow: hidden;
+      box-shadow: var(--shadow);
+      text-align: center;
+    }
+
+    .title-card::before,
+    .title-card::after {
+      content: "";
+      position: absolute;
+      border-radius: 999px;
+      filter: blur(2px);
+      opacity: 0.9;
+    }
+
+    .title-card::before {
+      width: 240px;
+      height: 240px;
+      background: rgba(255, 213, 74, 0.35);
+      top: -90px;
+      right: -50px;
+    }
+
+    .title-card::after {
+      width: 180px;
+      height: 180px;
+      background: rgba(255, 255, 255, 0.15);
+      bottom: -55px;
+      left: -35px;
+    }
+
+    .title-card-content {
+      position: relative;
+      z-index: 1;
+      max-width: 720px;
+      margin: 0 auto;
+    }
+
+    .title-card h1 {
+      margin: 0 0 12px;
+      font-size: clamp(1.9rem, 4vw, 3rem);
+      line-height: 1.05;
+      letter-spacing: -0.04em;
+    }
+
+    .title-card p {
+      margin: 0 auto;
+      color: rgba(255, 255, 255, 0.92);
+      max-width: 64ch;
+      line-height: 1.55;
+      font-size: 1.02rem;
+    }
+
+    .score-pill-row {
+      display: flex;
+      justify-content: center;
+      flex-wrap: wrap;
+      gap: 10px;
+      margin-top: 18px;
+    }
+
+    .score-pill {
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      gap: 6px;
+      border: 1px solid rgba(255, 255, 255, 0.22);
+      background: rgba(255, 255, 255, 0.12);
+      color: white;
+      padding: 9px 13px;
+      border-radius: 999px;
+      font-size: 0.9rem;
+      font-weight: 800;
+      backdrop-filter: blur(4px);
+    }
+
+    .test-card,
+    .result-card {
+      background: var(--card);
+      border: 1px solid var(--border);
+      border-radius: 28px;
+      box-shadow: var(--shadow);
+      padding: 28px;
+    }
+
+    .progress-row {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 14px;
+      margin-bottom: 18px;
+    }
+
+    .progress-label {
+      color: var(--text-muted);
+      font-size: 0.92rem;
+      font-weight: 800;
+    }
+
+    .progress-count {
+      color: var(--vita-blue);
+      font-size: 0.92rem;
+      font-weight: 900;
+      white-space: nowrap;
+    }
+
+    .progress-bar {
+      width: 100%;
+      height: 12px;
+      background: #edf1f8;
+      border-radius: 999px;
+      overflow: hidden;
+      margin-bottom: 24px;
+    }
+
+    .progress-fill {
+      height: 100%;
+      width: 0%;
+      background: linear-gradient(90deg, var(--vita-blue), #6aa0ff);
+      border-radius: 999px;
+      transition: width 0.25s ease;
+    }
+
+    .question-card {
+      border: 1px solid var(--border);
+      border-radius: 22px;
+      background: #fbfcff;
+      padding: 22px;
+    }
+
+    .question-number {
+      color: var(--vita-blue);
+      font-size: 0.82rem;
+      font-weight: 900;
+      text-transform: uppercase;
+      letter-spacing: 0.04em;
+      white-space: nowrap;
+      margin-bottom: 8px;
+    }
+
+    .question-text {
+      margin: 0;
+      font-size: clamp(1.18rem, 2.4vw, 1.55rem);
+      line-height: 1.42;
+      font-weight: 850;
+      color: var(--text-dark);
+    }
+
+    .options {
+      display: grid;
+      gap: 10px;
+      margin-top: 18px;
+    }
+
+    .option {
+      display: flex;
+      align-items: flex-start;
+      gap: 10px;
+      border: 1px solid var(--border);
+      border-radius: 14px;
+      background: white;
+      padding: 13px;
+      cursor: pointer;
+      transition: border-color 0.15s ease, box-shadow 0.15s ease, background-color 0.15s ease;
+    }
+
+    .option:hover {
+      border-color: rgba(31, 94, 255, 0.28);
+      box-shadow: 0 8px 20px rgba(20, 27, 52, 0.06);
+    }
+
+    .option input {
+      margin-top: 3px;
+      accent-color: var(--vita-blue);
+      flex-shrink: 0;
+    }
+
+    .option span {
+      color: var(--text-dark);
+      line-height: 1.35;
+      font-weight: 700;
+    }
+
+    .actions {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 12px;
+      margin-top: 24px;
+    }
+
+    .btn {
+      border: none;
+      border-radius: 14px;
+      padding: 14px 16px;
+      font-size: 0.98rem;
+      font-weight: 850;
+      cursor: pointer;
+      transition: transform 0.04s ease, box-shadow 0.15s ease, background-color 0.15s ease, border-color 0.15s ease;
+      text-decoration: none;
+      text-align: center;
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+    }
+
+    .btn:active {
+      transform: translateY(1px);
+    }
+
+    .btn-primary {
+      background: var(--vita-blue);
+      color: white;
+      box-shadow: 0 8px 20px rgba(31, 94, 255, 0.18);
+    }
+
+    .btn-primary:hover {
+      background: var(--vita-blue-dark);
+    }
+
+    .btn-primary:disabled {
+      opacity: 0.55;
+      cursor: not-allowed;
+      box-shadow: none;
+    }
+
+    .btn-secondary {
+      background: white;
+      color: var(--vita-blue);
+      border: 1px solid rgba(31, 94, 255, 0.24);
+    }
+
+    .btn-secondary:hover {
+      background: #fbfcff;
+      border-color: rgba(31, 94, 255, 0.42);
+    }
+
+    .btn-warning {
+      background: var(--warning-soft);
+      color: #b54708;
+      border: 1px solid rgba(247, 144, 9, 0.35);
+    }
+
+    .btn-warning:hover {
+      background: #fff2cc;
+    }
+
+    .small-note {
+      color: var(--text-muted);
+      font-size: 0.88rem;
+      line-height: 1.45;
+    }
+
+    .error {
+      display: none;
+      margin-top: 16px;
+      color: var(--danger);
+      background: var(--danger-soft);
+      border: 1px solid #ffd6cc;
+      border-radius: 14px;
+      padding: 12px 14px;
+      font-size: 0.9rem;
+      line-height: 1.4;
+      font-weight: 700;
+    }
+
+    .error.is-visible {
+      display: block;
+    }
+
+    .loading {
+      display: none;
+      text-align: center;
+      padding: 30px 10px;
+      color: var(--text-muted);
+      font-weight: 800;
+    }
+
+    .loading.is-visible {
+      display: block;
+    }
+
+    .result-card {
+      display: none;
+      text-align: center;
+    }
+
+    .result-card.is-visible {
+      display: block;
+    }
+
+    .score-ring {
+      width: 170px;
+      height: 170px;
+      border-radius: 999px;
+      margin: 0 auto 22px;
+      background:
+        radial-gradient(circle at center, white 56%, transparent 57%),
+        conic-gradient(var(--vita-blue) var(--score-percent), #edf1f8 0);
+      display: grid;
+      place-items: center;
+      box-shadow: 0 14px 34px rgba(31, 94, 255, 0.16);
+    }
+
+    .score-inner {
+      display: grid;
+      gap: 2px;
+    }
+
+    .score-value {
+      font-size: 2.25rem;
+      line-height: 1;
+      font-weight: 900;
+      letter-spacing: -0.05em;
+      color: var(--text-dark);
+    }
+
+    .score-label {
+      color: var(--text-muted);
+      font-size: 0.82rem;
+      font-weight: 850;
+    }
+
+    .result-card h2 {
+      margin: 0;
+      font-size: clamp(1.6rem, 3vw, 2.25rem);
+      letter-spacing: -0.035em;
+    }
+
+    .result-card p {
+      margin: 12px auto 0;
+      color: var(--text-muted);
+      line-height: 1.55;
+      max-width: 66ch;
+    }
+
+    .score-comparison {
+      margin: 22px auto 0;
+      display: grid;
+      grid-template-columns: repeat(2, 1fr);
+      gap: 12px;
+      max-width: 560px;
+    }
+
+    .score-box {
+      border: 1px solid var(--border);
+      background: #fbfcff;
+      border-radius: 18px;
+      padding: 16px;
+    }
+
+    .score-box-label {
+      color: var(--text-muted);
+      font-size: 0.82rem;
+      font-weight: 850;
+      text-transform: uppercase;
+      letter-spacing: 0.04em;
+    }
+
+    .score-box-value {
+      margin-top: 6px;
+      font-size: 1.75rem;
+      font-weight: 900;
+      letter-spacing: -0.04em;
+      color: var(--text-dark);
+    }
+
+    .score-box-value.highlight {
+      color: var(--vita-blue);
+    }
+
+    .choice-panel {
+      display: none;
+      margin: 24px auto 0;
+      max-width: 680px;
+      border: 1px solid rgba(247, 144, 9, 0.35);
+      background: var(--warning-soft);
+      border-radius: 20px;
+      padding: 18px;
+      text-align: left;
+    }
+
+    .choice-panel.is-visible {
+      display: block;
+    }
+
+    .choice-panel h3 {
+      margin: 0;
+      color: #93370d;
+      font-size: 1.15rem;
+      letter-spacing: -0.02em;
+    }
+
+    .choice-panel p {
+      margin: 10px 0 0;
+      color: #7a2e0e;
+      font-size: 0.94rem;
+    }
+
+    .choice-actions {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 10px;
+      margin-top: 16px;
+    }
+
+    .result-actions {
+      margin-top: 26px;
+      display: flex;
+      justify-content: center;
+      gap: 10px;
+      flex-wrap: wrap;
+    }
+
+    @media (max-width: 640px) {
+      body {
+        padding: 18px;
+      }
+
+      .page {
+        min-height: calc(100vh - 36px);
+      }
+
+      .title-card,
+      .test-card,
+      .result-card {
+        padding: 24px 20px;
+      }
+
+      .progress-row,
+      .actions {
+        align-items: flex-start;
+        flex-direction: column;
+      }
+
+      .btn {
+        width: 100%;
+      }
+
+      .score-comparison {
+        grid-template-columns: 1fr;
+      }
+
+      .choice-actions,
+      .result-actions {
+        display: grid;
+      }
+    }
+  </style>
+</head>
+
+<body>
+  <main class="page">
+    <div class="brand">
+      <div class="brand-badge">
+        <img src="/static/icon.png" alt="Vitamova icon" class="brand-icon">
+      </div>
+      <span>Vitamova</span>
+    </div>
+
+    <section class="title-card" aria-label="Vocabulary Retest Intro">
+      <div class="title-card-content">
+        <h1>Vocabulary Retest</h1>
+        <p>
+          This retest focuses on your current vocabulary frontier. If your score improves, we will use the new estimate.
+          If today is not your best day, your current score will usually stay protected.
+        </p>
+
+        <div class="score-pill-row">
+          <div class="score-pill">Current score: {{ current_score }}</div>
+          <div class="score-pill">Current frontier: Tier {{ current_frontier }}</div>
+        </div>
+      </div>
+    </section>
+
+    <section class="test-card" id="testCard" aria-label="Vocabulary Retest Question">
+      <div class="progress-row">
+        <div>
+          <div class="progress-label" id="progressLabel">Retest in progress</div>
+          <div class="small-note" id="remainingNote">You have 50 questions remaining.</div>
+        </div>
+
+        <div class="progress-count" id="progressCount">0/50 answered</div>
+      </div>
+
+      <div class="progress-bar" aria-hidden="true">
+        <div class="progress-fill" id="progressFill"></div>
+      </div>
+
+      <div class="loading is-visible" id="loadingState">
+        Loading your retest...
+      </div>
+
+      <form id="retestForm" style="display: none;">
+        <div id="questionContainer"></div>
+
+        <div class="actions">
+          <div class="small-note" id="answerNote">
+            Select one answer before continuing.
+          </div>
+
+          <button class="btn btn-primary" type="submit" id="nextQuestionButton" disabled>
+            Continue
+          </button>
+        </div>
+
+        <div class="error" id="errorMessage"></div>
+      </form>
+    </section>
+
+    <section class="result-card" id="resultCard" aria-label="Vocabulary Retest Result">
+      <div class="score-ring" id="scoreRing" style="--score-percent: 0%;">
+        <div class="score-inner">
+          <div class="score-value" id="scoreValue">0</div>
+          <div class="score-label">new estimate</div>
+        </div>
+      </div>
+
+      <h2 id="resultTitle">Retest complete</h2>
+
+      <p id="resultMessage">
+        Your retest has been scored.
+      </p>
+
+      <div class="score-comparison">
+        <div class="score-box">
+          <div class="score-box-label">Current score</div>
+          <div class="score-box-value" id="currentScoreBox">{{ current_score }}</div>
+        </div>
+
+        <div class="score-box">
+          <div class="score-box-label">Retest estimate</div>
+          <div class="score-box-value highlight" id="newScoreBox">0</div>
+        </div>
+      </div>
+
+      <div class="choice-panel" id="downgradeChoicePanel">
+        <h3>Your retest suggests a lower placement may fit better right now</h3>
+        <p>
+          Accurate placement helps Vitamova choose words that are challenging without being frustrating.
+          You can keep your current score, or use this new estimate to make your practice easier and more targeted.
+        </p>
+
+        <div class="choice-actions">
+          <button class="btn btn-secondary" type="button" id="keepCurrentButton">
+            Keep my current score
+          </button>
+
+          <button class="btn btn-warning" type="button" id="acceptNewScoreButton">
+            Use the new estimate
+          </button>
+        </div>
+      </div>
+
+      <div class="result-actions" id="normalResultActions">
+        <a class="btn btn-primary" href="/">
+          Return to home
+        </a>
+      </div>
+    </section>
+  </main>
+
+  <script>
+    const TOTAL_QUESTIONS = 50;
+    const RETEST_URL = "/vocab-retest/";
+    const CURRENT_SCORE = Number("{{ current_score|default:0 }}");
+    const CURRENT_FRONTIER = Number("{{ current_frontier|default:1 }}");
+    const LANGUAGE = "{{ language|default:'es' }}";
+
+    let questions = [];
+    let currentQuestionIndex = 0;
+    let selectedAnswerForCurrentQuestion = null;
+    let allAnswers = [];
+    let latestResult = null;
+
+    const testCard = document.getElementById("testCard");
+    const resultCard = document.getElementById("resultCard");
+    const loadingState = document.getElementById("loadingState");
+    const retestForm = document.getElementById("retestForm");
+    const questionContainer = document.getElementById("questionContainer");
+    const nextQuestionButton = document.getElementById("nextQuestionButton");
+    const errorMessage = document.getElementById("errorMessage");
+    const progressFill = document.getElementById("progressFill");
+    const progressCount = document.getElementById("progressCount");
+    const progressLabel = document.getElementById("progressLabel");
+    const remainingNote = document.getElementById("remainingNote");
+    const scoreRing = document.getElementById("scoreRing");
+    const scoreValue = document.getElementById("scoreValue");
+    const currentScoreBox = document.getElementById("currentScoreBox");
+    const newScoreBox = document.getElementById("newScoreBox");
+    const resultTitle = document.getElementById("resultTitle");
+    const resultMessage = document.getElementById("resultMessage");
+    const downgradeChoicePanel = document.getElementById("downgradeChoicePanel");
+    const normalResultActions = document.getElementById("normalResultActions");
+    const keepCurrentButton = document.getElementById("keepCurrentButton");
+    const acceptNewScoreButton = document.getElementById("acceptNewScoreButton");
+
+    function getCookie(name) {
+      const cookies = document.cookie ? document.cookie.split(";") : [];
+
+      for (let i = 0; i < cookies.length; i++) {
+        const cookie = cookies[i].trim();
+
+        if (cookie.substring(0, name.length + 1) === (name + "=")) {
+          return decodeURIComponent(cookie.substring(name.length + 1));
+        }
+      }
+
+      return null;
+    }
+
+    function showError(message) {
+      errorMessage.textContent = message;
+      errorMessage.classList.add("is-visible");
+    }
+
+    function clearError() {
+      errorMessage.textContent = "";
+      errorMessage.classList.remove("is-visible");
+    }
+
+    function escapeHtml(value) {
+      return String(value)
+        .replaceAll("&", "&amp;")
+        .replaceAll("<", "&lt;")
+        .replaceAll(">", "&gt;")
+        .replaceAll('"', "&quot;")
+        .replaceAll("'", "&#039;");
+    }
+
+    async function postJson(url, payload) {
+      const response = await fetch(url, {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+          "X-CSRFToken": getCookie("csrftoken")
+        },
+        body: JSON.stringify(payload)
+      });
+
+      let data = null;
+
+      try {
+        data = await response.json();
+      } catch (error) {
+        throw new Error("The server returned an invalid response.");
+      }
+
+      if (!response.ok) {
+        throw new Error(data.error || data.message || "Something went wrong.");
+      }
+
+      return data;
+    }
+
+    function normalizeOptions(options) {
+      return options.map((option) => {
+        if (typeof option === "string") {
+          return option;
+        }
+
+        return option.text;
+      });
+    }
+
+    function updateProgress() {
+      const answeredCount = allAnswers.length + (selectedAnswerForCurrentQuestion ? 1 : 0);
+      const safeAnsweredCount = Math.min(answeredCount, TOTAL_QUESTIONS);
+      const remainingCount = Math.max(TOTAL_QUESTIONS - safeAnsweredCount, 0);
+      const percent = (safeAnsweredCount / TOTAL_QUESTIONS) * 100;
+
+      progressFill.style.width = `${percent}%`;
+      progressCount.textContent = `${safeAnsweredCount}/${TOTAL_QUESTIONS} answered`;
+
+      if (remainingCount === 1) {
+        remainingNote.textContent = "You have 1 question remaining.";
+      } else {
+        remainingNote.textContent = `You have ${remainingCount} questions remaining.`;
+      }
+
+      progressLabel.textContent = remainingCount <= 10 ? "Final questions" : "Retest in progress";
+    }
+
+    function updateNextButton() {
+      nextQuestionButton.disabled = !selectedAnswerForCurrentQuestion;
+
+      const isFinalQuestion = currentQuestionIndex === questions.length - 1;
+      nextQuestionButton.textContent = isFinalQuestion ? "Finish retest" : "Continue";
+
+      updateProgress();
+    }
+
+    function getCurrentQuestion() {
+      return questions[currentQuestionIndex];
+    }
+
+    function renderCurrentQuestion() {
+      clearError();
+
+      const question = getCurrentQuestion();
+
+      if (!question) {
+        showError("Unable to load the current question.");
+        return;
+      }
+
+      selectedAnswerForCurrentQuestion = null;
+
+      const globalQuestionNumber = allAnswers.length + 1;
+      const normalizedOptions = normalizeOptions(question.options || []);
+
+      const optionsHtml = normalizedOptions.map((optionText, optionIndex) => {
+        const inputId = `question_${question.question_id}_option_${optionIndex}`;
+
+        return `
+          <label class="option" for="${escapeHtml(inputId)}">
+            <input
+              id="${escapeHtml(inputId)}"
+              type="radio"
+              name="question_${escapeHtml(question.question_id)}"
+              value="${escapeHtml(optionText)}"
+              data-question-id="${escapeHtml(question.question_id)}"
+              data-option-text="${escapeHtml(optionText)}"
+            >
+            <span>${escapeHtml(optionText)}</span>
+          </label>
+        `;
+      }).join("");
+
+      questionContainer.innerHTML = `
+        <div class="question-card">
+          <div class="question-number">Question ${globalQuestionNumber}</div>
+          <p class="question-text">${escapeHtml(question.question)}</p>
+
+          <div class="options">
+            ${optionsHtml}
+          </div>
+        </div>
+      `;
+
+      questionContainer.querySelectorAll("input[type='radio']").forEach((input) => {
+        input.addEventListener("change", (event) => {
+          const questionId = Number(event.target.dataset.questionId);
+          const selectedOptionText = event.target.dataset.optionText;
+
+          selectedAnswerForCurrentQuestion = {
+            question_id: questionId,
+            selected_option: selectedOptionText
+          };
+
+          updateNextButton();
+        });
+      });
+
+      updateNextButton();
+    }
+
+    async function loadRetestQuestions() {
+      clearError();
+      loadingState.classList.add("is-visible");
+      retestForm.style.display = "none";
+
+      const data = await postJson(RETEST_URL, {
+        action: "get_retest_questions",
+        current_score: CURRENT_SCORE,
+        current_frontier: CURRENT_FRONTIER,
+        total_questions: TOTAL_QUESTIONS,
+        language: LANGUAGE
+      });
+
+      if (data.status !== "questions" || !Array.isArray(data.questions)) {
+        throw new Error("The server did not return retest questions.");
+      }
+
+      if (data.questions.length !== TOTAL_QUESTIONS) {
+        throw new Error(`Expected ${TOTAL_QUESTIONS} questions, but received ${data.questions.length}.`);
+      }
+
+      questions = data.questions;
+      currentQuestionIndex = 0;
+      allAnswers = [];
+
+      loadingState.classList.remove("is-visible");
+      retestForm.style.display = "block";
+
+      renderCurrentQuestion();
+    }
+
+    async function finishRetest() {
+      nextQuestionButton.disabled = true;
+      nextQuestionButton.textContent = "Scoring retest...";
+
+      const data = await postJson(RETEST_URL, {
+        action: "complete_retest",
+        current_score: CURRENT_SCORE,
+        current_frontier: CURRENT_FRONTIER,
+        answers: allAnswers,
+        total_questions: TOTAL_QUESTIONS,
+        language: LANGUAGE
+      });
+
+      if (data.status !== "complete") {
+        throw new Error("The server did not return a completed retest.");
+      }
+
+      latestResult = data;
+      showResult(data);
+    }
+
+    async function continueToNextQuestion() {
+      clearError();
+
+      if (!selectedAnswerForCurrentQuestion) {
+        showError("Please select an answer before continuing.");
+        return;
+      }
+
+      allAnswers.push(selectedAnswerForCurrentQuestion);
+
+      const isFinalQuestion = currentQuestionIndex >= questions.length - 1;
+
+      if (!isFinalQuestion) {
+        currentQuestionIndex += 1;
+        renderCurrentQuestion();
+        return;
+      }
+
+      await finishRetest();
+    }
+
+    function showResult(data) {
+      const newScore = Math.max(0, Math.min(6000, Number(data.new_score) || 0));
+      const percent = (newScore / 6000) * 100;
+      const outcome = data.outcome || "kept_current";
+
+      testCard.style.display = "none";
+      resultCard.classList.add("is-visible");
+
+      scoreRing.style.setProperty("--score-percent", `${percent}%`);
+      scoreValue.textContent = newScore.toLocaleString();
+
+      currentScoreBox.textContent = CURRENT_SCORE.toLocaleString();
+      newScoreBox.textContent = newScore.toLocaleString();
+
+      if (outcome === "improved") {
+        resultTitle.textContent = "Nice work, your score improved";
+        resultMessage.textContent = `Your score increased from ${CURRENT_SCORE.toLocaleString()} to ${newScore.toLocaleString()}. Vitamova can now adjust your practice to match your new level.`;
+        downgradeChoicePanel.classList.remove("is-visible");
+        normalResultActions.style.display = "flex";
+      } else if (outcome === "downgrade_choice") {
+        resultTitle.textContent = "Your retest suggests a lower placement";
+        resultMessage.textContent = "You performed much lower than your current score estimate. You can choose whether to keep your current score or use the new estimate.";
+        downgradeChoicePanel.classList.add("is-visible");
+        normalResultActions.style.display = "none";
+      } else {
+        resultTitle.textContent = "Retest complete";
+        resultMessage.textContent = `Your retest estimate was ${newScore.toLocaleString()}. Since your current score is higher, Vitamova will keep your current score for now.`;
+        downgradeChoicePanel.classList.remove("is-visible");
+        normalResultActions.style.display = "flex";
+      }
+
+      window.onbeforeunload = null;
+    }
+
+    async function resolveRetestChoice(choice) {
+      if (!latestResult) {
+        return;
+      }
+
+      keepCurrentButton.disabled = true;
+      acceptNewScoreButton.disabled = true;
+
+      const data = await postJson(RETEST_URL, {
+        action: "resolve_retest_score",
+        choice: choice,
+        current_score: CURRENT_SCORE,
+        new_score: latestResult.new_score,
+        language: LANGUAGE
+      });
+
+      if (data.status !== "ok") {
+        throw new Error("Could not save your retest choice.");
+      }
+
+      window.location.href = "/";
+    }
+
+    retestForm.addEventListener("submit", async (event) => {
+      event.preventDefault();
+
+      try {
+        await continueToNextQuestion();
+      } catch (error) {
+        nextQuestionButton.disabled = false;
+        updateNextButton();
+        showError(error.message || "Something went wrong. Please try again.");
+      }
+    });
+
+    keepCurrentButton.addEventListener("click", async () => {
+      try {
+        await resolveRetestChoice("keep_current");
+      } catch (error) {
+        keepCurrentButton.disabled = false;
+        acceptNewScoreButton.disabled = false;
+        alert(error.message || "Could not save your choice.");
+      }
+    });
+
+    acceptNewScoreButton.addEventListener("click", async () => {
+      try {
+        await resolveRetestChoice("accept_new");
+      } catch (error) {
+        keepCurrentButton.disabled = false;
+        acceptNewScoreButton.disabled = false;
+        alert(error.message || "Could not save your choice.");
+      }
+    });
+
+    window.onbeforeunload = function () {
+      return "Your retest is still in progress. Are you sure you want to leave?";
+    };
+
+    document.addEventListener("DOMContentLoaded", async () => {
+      try {
+        updateProgress();
+        await loadRetestQuestions();
+      } catch (error) {
+        loadingState.classList.remove("is-visible");
+        retestForm.style.display = "block";
+        showError(error.message || "Unable to load your retest. Please refresh and try again.");
+      }
+    });
+  </script>
+</body>
+</html>

@@ -820,7 +820,7 @@ def vocab_test(request):
         return render(request, "vocab_test_diagnostic.html")
 
     if is_user_subscribed(request.user):
-        return render(request, "vocab_test.html")
+        return render(request, "vocab_test_retake.html")
 
     return redirect("/subscribe/")
 
