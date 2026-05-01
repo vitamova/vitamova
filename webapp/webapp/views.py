@@ -491,7 +491,7 @@ def vocab_test(request):
                 elif frontier == 6:
                     fetch_counts[6] = 35
                     fetch_counts[5] = 15
-                questions = vitalib.Test.get(connection, request.user.username, "es").questions(fetch_counts)
+                questions = vitalib.Test.get_questions(connection, request.user.username, "es").questions(fetch_counts)
                 return JsonResponse({
                     "status": "questions",
                     "questions": questions,
@@ -499,27 +499,39 @@ def vocab_test(request):
                 
 
             elif action == "complete_retest":
-                # TODO:
-                # Implement retest scoring here.
-                #
-                # Expected behavior:
-                # - Score the 50 submitted answers.
-                # - Calculate the new score.
-                # - If new score > current score:
-                #     - update registered_user.vocab_score
-                #     - return outcome="improved"
-                # - If new score is lower but not extremely worse:
-                #     - do not update score
-                #     - return outcome="kept_current"
-                # - If extremely worse:
-                #     - do not update score yet
-                #     - return outcome="downgrade_choice"
-                #
-                # Suggested extreme-worse rule:
-                # - new_score < current_score
-                # - frontier_accuracy < 0.35
-                # - below_frontier_accuracy < 0.70
-                pass
+                example_request = {
+                    "action": "complete_retest",
+                    "current_score": 2730,
+                    "current_frontier": 3,
+                    "answers": [
+                        {
+                        "question_id": 123,
+                        "selected_option": "varias"
+                        }
+                    ],
+                    "total_questions": 50,
+                    "language": "es"
+                    }
+                example_response = {
+                    "status": "complete",
+                    "outcome": "improved",
+                    "current_score": 2730,
+                    "new_score": 3120,
+                    "frontier_accuracy": 0.83,
+                    "below_frontier_accuracy": 0.90,
+                    "above_frontier_accuracy": 0.40
+                    }
+                score_result = vitalib.Test(connection, request.user.username, "es").score_result(data.get("answers", []))
+                outcome = "improved" if score_result["score"] > vocab_score else "declined" if score_result["score"] < vocab_score else "same"
+                return JsonResponse({
+                    "status": "complete",
+                    "outcome": outcome,
+                    "current_score": vocab_score,
+                    "new_score": score_result["score"],
+                    "frontier_accuracy": score_result["frontier_accuracy"],
+                    "below_frontier_accuracy": score_result["below_frontier_accuracy"],
+                    "above_frontier_accuracy": score_result["above_frontier_accuracy"],
+                })
 
             elif action == "resolve_retest_score":
                 # TODO:
