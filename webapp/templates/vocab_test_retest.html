@@ -460,24 +460,24 @@
     }
 
     .score-box-current {
-        background:
-            radial-gradient(circle at 90% 10%, rgba(255, 213, 74, 0.22), transparent 38%),
-            #fbfcff;
-        border-color: rgba(31, 94, 255, 0.22);
-        }
+    background:
+        radial-gradient(circle at 90% 10%, rgba(255, 213, 74, 0.22), transparent 38%),
+        #fbfcff;
+    border-color: rgba(31, 94, 255, 0.22);
+    }
 
-        .score-box-value-large {
-        font-size: clamp(2.25rem, 5vw, 3.25rem);
-        line-height: 1;
-        color: var(--vita-blue);
-        }
+    .score-box-value-large {
+    font-size: clamp(2.25rem, 5vw, 3.25rem);
+    line-height: 1;
+    color: var(--vita-blue);
+    }
 
-        .score-box-helper {
-        margin-top: 6px;
-        color: var(--text-muted);
-        font-size: 0.9rem;
-        font-weight: 800;
-        }
+    .score-box-helper {
+    margin-top: 6px;
+    color: var(--text-muted);
+    font-size: 0.9rem;
+    font-weight: 800;
+    }
 
     .choice-panel {
       display: none;
@@ -576,9 +576,13 @@
           If today is not your best day, your current score will usually stay protected.
         </p>
 
-        <div class="score-pill-row">
-          <div class="score-pill">Current score: {{ current_score }}</div>
+        <div class="score-box score-box-current">
+        <div class="score-box-label">Current vocabulary score</div>
+        <div class="score-box-value" id="currentScoreBox">
+            {{ current_score }}
         </div>
+        <div class="score-box-helper">out of 6,000</div>
+</div>
       </div>
     </section>
 
