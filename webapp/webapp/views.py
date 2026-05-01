@@ -522,7 +522,16 @@ def vocab_test(request):
                     "above_frontier_accuracy": 0.40
                     }
                 score_result = vitalib.Test(connection, request.user.username, "es").score_result(data.get("answers", []))
-                outcome = "improved" if score_result["score"] > vocab_score else "declined" if score_result["score"] < vocab_score else "same"
+                if score_result["score"] > vocab_score:
+                    outcome = "improved"
+                elif score_result["score"] <= vocab_score:
+                    # If frontier accuracy was less than 0.35 and below frontier acccuracy was less than 0.7
+                    # We outcome is downgrade_choice
+                    # Otherwise outcome is keep_current
+                    if score_result["frontier_accuracy"] < 0.35 and score_result["below_frontier_accuracy"] < 0.7:
+                        outcome = "downgrade_choice"
+                    else:
+                        outcome = "keep_current"
                 return JsonResponse({
                     "status": "complete",
                     "outcome": outcome,
