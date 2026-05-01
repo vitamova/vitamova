@@ -236,6 +236,7 @@ class Test:
             self.username = username
             self.language = language
         def questions(self, fetch_counts):
+            questions = []
             # ---------------------------------------------------------------------
             # Fetch diagnostic questions based on fetch_counts.
             # ---------------------------------------------------------------------
