@@ -275,11 +275,13 @@ class Test:
                     continue
 
                 cursor.execute(
-                    """
+                    sql.SQL("""
                     SELECT correct_answer, lemma_rank
-                    FROM spanish_vocab_test_bank
+                    FROM {}
                     WHERE id = %s
-                    """,
+                    """).format(
+                        sql.Identifier(f"{LANGUAGE_MAP[self.language]}_vocab_test_bank")
+                    ),
                     [question_id]
                 )
                 row = cursor.fetchone()
@@ -477,36 +479,39 @@ class Test:
 
                 if max_rank is None:
                     cursor.execute(
-                        """
+                        psycopg2.sql.SQL("""
                         SELECT id,
                             question,
                             correct_answer,
                             distractor_1,
                             distractor_2,
                             distractor_3
-                        FROM %s_vocab_test_bank
+                        FROM {}
                         WHERE lemma_rank >= %s
                         ORDER BY RANDOM()
                         LIMIT %s
-                        """,
-                        [LANGUAGE_MAP[self.language], min_rank, count]
+                        """).format(
+                            psycopg2.sql.Identifier(f"{LANGUAGE_MAP[self.language]}_vocab_test_bank")
+                        ), [min_rank, count]
                     )
+
 
                 else:
                     cursor.execute(
-                        """
+                        psycopg2.sql.SQL("""
                         SELECT id,
                             question,
                             correct_answer,
                             distractor_1,
                             distractor_2,
                             distractor_3
-                        FROM %s_vocab_test_bank
+                        FROM {}
                         WHERE lemma_rank BETWEEN %s AND %s
                         ORDER BY RANDOM()
                         LIMIT %s
-                        """,
-                        [LANGUAGE_MAP[self.language], min_rank, max_rank, count]
+                        """).format(
+                            psycopg2.sql.Identifier(f"{LANGUAGE_MAP[self.language]}_vocab_test_bank")
+                        ), [min_rank, max_rank, count]
                     )
 
                 rows = cursor.fetchall()
