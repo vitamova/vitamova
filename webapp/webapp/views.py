@@ -493,7 +493,7 @@ def vocab_test(request):
                     fetch_counts[5] = 15
                 questions = vitalib.Test.get(connection, request.user.username, "es").questions(fetch_counts)
                 return JsonResponse({
-                    "status": "ok",
+                    "status": "questions",
                     "questions": questions,
                 })
                 
