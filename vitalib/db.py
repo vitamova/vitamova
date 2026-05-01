@@ -275,7 +275,7 @@ class Test:
                     continue
 
                 cursor.execute(
-                    sql.SQL("""
+                    psycopg2.sql.SQL("""
                     SELECT correct_answer, lemma_rank
                     FROM {}
                     WHERE id = %s
