@@ -280,7 +280,7 @@ class Test:
                     FROM {}
                     WHERE id = %s
                     """).format(
-                        sql.Identifier(f"{LANGUAGE_MAP[self.language]}_vocab_test_bank")
+                        psycopg2.sql.Identifier(f"{LANGUAGE_MAP[self.language]}_vocab_test_bank")
                     ),
                     [question_id]
                 )
