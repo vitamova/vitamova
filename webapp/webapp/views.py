@@ -406,6 +406,7 @@ def vocab_test(request):
     if not is_registered_user(request.user):
         return redirect("/register/")
 
+    # Get the user's current vocab score once.
     with connection.cursor() as cursor:
         cursor.execute(
             """
@@ -444,6 +445,16 @@ def vocab_test(request):
             6: (15001, None),
         }
 
+        # Default count dictionaries used for scoring and placement.
+        level_correct_counts = {1: 0, 2: 0, 3: 0, 4: 0, 5: 0, 6: 0}
+        level_total_counts = {1: 0, 2: 0, 3: 0, 4: 0, 5: 0, 6: 0}
+
+        level_weighted_correct = {1: 0.0, 2: 0.0, 3: 0.0, 4: 0.0, 5: 0.0, 6: 0.0}
+        level_weighted_total = {1: 0.0, 2: 0.0, 3: 0.0, 4: 0.0, 5: 0.0, 6: 0.0}
+
+        frontier_level = 1
+
+        # Batch 1 is always a broad scan: 3 questions from each level.
         if batch == "1":
             fetch_counts = {
                 1: 3,
@@ -455,15 +466,14 @@ def vocab_test(request):
             }
 
         elif batch in ["2", "3", "4"]:
-            level_correct_counts = {1: 0, 2: 0, 3: 0, 4: 0, 5: 0, 6: 0}
-            level_total_counts = {1: 0, 2: 0, 3: 0, 4: 0, 5: 0, 6: 0}
-
+            # Score all submitted answers so far.
+            # This is used both for choosing the next batch and for calculating the final score.
             with connection.cursor() as cursor:
                 for answer in all_answers:
                     question_id = answer.get("question_id")
                     selected_option = answer.get("selected_option")
 
-                    if not question_id or not selected_option:
+                    if not question_id or selected_option is None:
                         continue
 
                     cursor.execute(
@@ -483,39 +493,70 @@ def vocab_test(request):
                     lemma_rank = row[1]
 
                     level = None
+                    min_rank_for_level = None
+                    max_rank_for_level = None
 
+                    # Determine the level from the lemma rank.
                     for lvl, (min_rank, max_rank) in level_ranges.items():
                         if max_rank is None:
                             if lemma_rank >= min_rank:
                                 level = lvl
+                                min_rank_for_level = min_rank
+
+                                # Level 6 has no natural upper bound in LEVEL_RANGES.
+                                # This synthetic upper bound is only used to calculate rank weighting.
+                                max_rank_for_level = min_rank + 5000
                                 break
+
                         elif min_rank <= lemma_rank <= max_rank:
                             level = lvl
+                            min_rank_for_level = min_rank
+                            max_rank_for_level = max_rank
                             break
 
                     if not level:
                         continue
 
-                    if selected_option.strip().casefold() == correct_answer.strip().casefold():
-                        level_correct_counts[level] += 1
+                    is_correct = (
+                        str(selected_option).strip().casefold()
+                        == str(correct_answer).strip().casefold()
+                    )
 
                     level_total_counts[level] += 1
 
-                frontier_level = 1
+                    if is_correct:
+                        level_correct_counts[level] += 1
 
+                    # Rank weight within the level.
+                    # Easier/earlier words in the level are worth about 1.0.
+                    # Harder/later words in the level are worth up to about 2.0.
+                    level_span = max_rank_for_level - min_rank_for_level
+
+                    if level_span <= 0:
+                        rank_position = 0.0
+                    else:
+                        rank_position = (lemma_rank - min_rank_for_level) / level_span
+                        rank_position = max(0.0, min(1.0, rank_position))
+
+                    rank_weight = 1.0 + rank_position
+
+                    level_weighted_total[level] += rank_weight
+
+                    if is_correct:
+                        level_weighted_correct[level] += rank_weight
+
+            # Find the first tested level below 80%.
+            # Because the loop stops at the first level below 80%,
+            # all earlier tested levels must have been 80% or higher.
             for lvl in range(1, 7):
                 total = level_total_counts[lvl]
                 correct = level_correct_counts[lvl]
 
-                # If this level has not been tested yet, do not use it as the frontier.
                 if total == 0:
                     continue
 
                 accuracy = correct / total
 
-                # The first level below 80% becomes the frontier.
-                # This guarantees that all earlier tested levels were 80% or higher,
-                # because otherwise the loop would have stopped earlier.
                 if accuracy < 0.8:
                     frontier_level = lvl
                     break
@@ -523,108 +564,7 @@ def vocab_test(request):
                 # If every tested level was 80% or higher, focus on the highest level.
                 frontier_level = 6
 
-            # If this is the last submission
             if action == "complete_diagnostic":
-                level_correct_counts = {1: 0, 2: 0, 3: 0, 4: 0, 5: 0, 6: 0}
-                level_total_counts = {1: 0, 2: 0, 3: 0, 4: 0, 5: 0, 6: 0}
-
-                level_weighted_correct = {1: 0.0, 2: 0.0, 3: 0.0, 4: 0.0, 5: 0.0, 6: 0.0}
-                level_weighted_total = {1: 0.0, 2: 0.0, 3: 0.0, 4: 0.0, 5: 0.0, 6: 0.0}
-
-                above_frontier_weighted_correct = 0.0
-                above_frontier_weighted_total = 0.0
-
-                with connection.cursor() as cursor:
-                    for answer in all_answers:
-                        question_id = answer.get("question_id")
-                        selected_option = answer.get("selected_option")
-
-                        if not question_id or selected_option is None:
-                            continue
-
-                        cursor.execute(
-                            """
-                            SELECT correct_answer, lemma_rank
-                            FROM spanish_vocab_test_bank
-                            WHERE id = %s
-                            """,
-                            [question_id]
-                        )
-                        row = cursor.fetchone()
-
-                        if not row:
-                            continue
-
-                        correct_answer = row[0]
-                        lemma_rank = row[1]
-
-                        level = None
-                        min_rank_for_level = None
-                        max_rank_for_level = None
-
-                        for lvl, (min_rank, max_rank) in level_ranges.items():
-                            if max_rank is None:
-                                if lemma_rank >= min_rank:
-                                    level = lvl
-                                    min_rank_for_level = min_rank
-                                    max_rank_for_level = min_rank + 5000
-                                    break
-                            elif min_rank <= lemma_rank <= max_rank:
-                                level = lvl
-                                min_rank_for_level = min_rank
-                                max_rank_for_level = max_rank
-                                break
-
-                        if not level:
-                            continue
-
-                        is_correct = (
-                            str(selected_option).strip().casefold()
-                            == str(correct_answer).strip().casefold()
-                        )
-
-                        level_total_counts[level] += 1
-
-                        if is_correct:
-                            level_correct_counts[level] += 1
-
-                        # Rank weight within the level.
-                        # Easier/earlier words in the level are worth about 1.0.
-                        # Harder/later words in the level are worth up to about 2.0.
-                        level_span = max_rank_for_level - min_rank_for_level
-
-                        if level_span <= 0:
-                            rank_position = 0.0
-                        else:
-                            rank_position = (lemma_rank - min_rank_for_level) / level_span
-                            rank_position = max(0.0, min(1.0, rank_position))
-
-                        rank_weight = 1.0 + rank_position
-
-                        level_weighted_total[level] += rank_weight
-
-                        if is_correct:
-                            level_weighted_correct[level] += rank_weight
-
-                # Find the first level below 80%.
-                # All previous tested levels must be 80%+ because the loop stops at the first miss of that threshold.
-                frontier_level = 1
-
-                for lvl in range(1, 7):
-                    total = level_total_counts[lvl]
-                    correct = level_correct_counts[lvl]
-
-                    if total == 0:
-                        continue
-
-                    accuracy = correct / total
-
-                    if accuracy < 0.8:
-                        frontier_level = lvl
-                        break
-                else:
-                    frontier_level = 6
-
                 # Base score is 1,000 points for every fully mastered level below the frontier.
                 base_score = 1000 * (frontier_level - 1)
 
@@ -649,7 +589,10 @@ def vocab_test(request):
 
                 raw_bonus = round(999 * raw_bonus_progress)
 
-                # Now calculate the confidence multiplier from ALL levels above the frontier.
+                above_frontier_weighted_correct = 0.0
+                above_frontier_weighted_total = 0.0
+
+                # Calculate the confidence multiplier from all levels above the frontier.
                 # Correct answers farther above the frontier count more.
                 # Harder lemma ranks inside each upper level also count more.
                 for lvl in range(frontier_level + 1, 7):
@@ -659,7 +602,6 @@ def vocab_test(request):
                     # frontier + 1 = 1.0x
                     # frontier + 2 = 1.5x
                     # frontier + 3 = 2.0x
-                    # etc.
                     distance_weight = 1.0 + (0.5 * (level_distance - 1))
 
                     above_frontier_weighted_correct += (
@@ -712,8 +654,9 @@ def vocab_test(request):
                     "confidence_multiplier": round(confidence_multiplier, 3),
                     "bonus": bonus
                 })
-            
+
             elif action == "submit_batch":
+                # Use the current frontier level to choose the next adaptive batch.
                 if frontier_level == 1:
                     fetch_counts = {
                         1: 12,
@@ -723,6 +666,7 @@ def vocab_test(request):
                         5: 0,
                         6: 0,
                     }
+
                 elif frontier_level == 6:
                     fetch_counts = {
                         1: 0,
@@ -732,6 +676,7 @@ def vocab_test(request):
                         5: 6,
                         6: 12,
                     }
+
                 else:
                     fetch_counts = {
                         1: 0,
@@ -751,6 +696,13 @@ def vocab_test(request):
                     status=400
                 )
 
+        else:
+            return JsonResponse(
+                {"status": "error", "message": "Invalid batch."},
+                status=400
+            )
+
+        # Fetch questions according to the selected distribution.
         with connection.cursor() as cursor:
             for level, (min_rank, max_rank) in level_ranges.items():
                 count = fetch_counts.get(level, 0)
@@ -762,11 +714,11 @@ def vocab_test(request):
                     cursor.execute(
                         """
                         SELECT id,
-                            question,
-                            correct_answer,
-                            distractor_1,
-                            distractor_2,
-                            distractor_3
+                               question,
+                               correct_answer,
+                               distractor_1,
+                               distractor_2,
+                               distractor_3
                         FROM spanish_vocab_test_bank
                         WHERE lemma_rank >= %s
                         ORDER BY RANDOM()
@@ -774,15 +726,16 @@ def vocab_test(request):
                         """,
                         [min_rank, count]
                     )
+
                 else:
                     cursor.execute(
                         """
                         SELECT id,
-                            question,
-                            correct_answer,
-                            distractor_1,
-                            distractor_2,
-                            distractor_3
+                               question,
+                               correct_answer,
+                               distractor_1,
+                               distractor_2,
+                               distractor_3
                         FROM spanish_vocab_test_bank
                         WHERE lemma_rank BETWEEN %s AND %s
                         ORDER BY RANDOM()
@@ -820,20 +773,8 @@ def vocab_test(request):
         return render(request, "vocab_test_diagnostic.html")
 
     if is_user_subscribed(request.user):
-        # Get user score
-        with connection.cursor() as cursor:
-            cursor.execute(
-                """
-                SELECT vocab_score
-                FROM registered_user
-                WHERE user_id = %s
-                LIMIT 1
-                """,
-                [request.user.id]
-            )
-            row = cursor.fetchone()
         return render(request, "vocab_test_retest.html", {
-            "current_score": row[0] if row else None
+            "current_score": vocab_score
         })
 
     return redirect("/subscribe/")
