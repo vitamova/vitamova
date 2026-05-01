@@ -1,6 +1,8 @@
+from django.db import connection as django_connection
 import psycopg2
 import os
 import datetime
+import random
 
 # Create environment variables
 def source_profile(file_path):
@@ -216,3 +218,81 @@ class vocabulary:
             tomorrow = str((datetime.datetime.now() + datetime.timedelta(days=1)).date())
             with self.conn.cursor() as cur:
                 cur.execute("UPDATE vocabulary SET level=0, next_review=%s WHERE username=%s AND word_id=%s", (tomorrow, self.username, word_id))
+
+class Test:
+    LEVEL_RANGES = {
+        1: (1, 1500),
+        2: (1501, 3000),
+        3: (3001, 6000),
+        4: (6001, 10000),
+        5: (10001, 15000),
+        6: (15001, None),
+    }
+    class get:
+        def __init__(self, conn, username, language):
+            self.conn = django_connection
+            self.username = username
+            self.language = language
+        def questions(self, fetch_counts):
+            # ---------------------------------------------------------------------
+            # Fetch diagnostic questions based on fetch_counts.
+            # ---------------------------------------------------------------------
+            with self.conn.cursor() as cursor:
+                for level, (min_rank, max_rank) in Test.LEVEL_RANGES.items():
+                    count = fetch_counts.get(level, 0)
+
+                    if count <= 0:
+                        continue
+
+                    if max_rank is None:
+                        cursor.execute(
+                            """
+                            SELECT id,
+                                question,
+                                correct_answer,
+                                distractor_1,
+                                distractor_2,
+                                distractor_3
+                            FROM spanish_vocab_test_bank
+                            WHERE lemma_rank >= %s
+                            ORDER BY RANDOM()
+                            LIMIT %s
+                            """,
+                            [min_rank, count]
+                        )
+
+                    else:
+                        cursor.execute(
+                            """
+                            SELECT id,
+                                question,
+                                correct_answer,
+                                distractor_1,
+                                distractor_2,
+                                distractor_3
+                            FROM spanish_vocab_test_bank
+                            WHERE lemma_rank BETWEEN %s AND %s
+                            ORDER BY RANDOM()
+                            LIMIT %s
+                            """,
+                            [min_rank, max_rank, count]
+                        )
+
+                    rows = cursor.fetchall()
+
+                    for row in rows:
+                        options = [
+                            row[2],
+                            row[3],
+                            row[4],
+                            row[5],
+                        ]
+
+                        random.shuffle(options)
+
+                        questions.append({
+                            "question_id": row[0],
+                            "question": row[1],
+                            "options": options,
+                        })    
+            return questions

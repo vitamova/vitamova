@@ -8,8 +8,8 @@ from datetime import date
 from pathlib import Path
 import json
 import random
-
 from openai import OpenAI
+import vitalib
 
 # Build paths inside the project like this: BASE_DIR / 'subdir'.
 BASE_DIR = Path(__file__).resolve().parent.parent
@@ -491,6 +491,11 @@ def vocab_test(request):
                 elif frontier == 6:
                     fetch_counts[6] = 35
                     fetch_counts[5] = 15
+            questions = vitalib.Test.get(connection, request.user.username, "es").questions(fetch_counts)
+            return JsonResponse({
+                "status": "ok",
+                "questions": questions,
+            })
                 
 
             elif action == "complete_retest":
