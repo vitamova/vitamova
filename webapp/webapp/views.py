@@ -420,7 +420,14 @@ def vocab_test(request):
         row = cursor.fetchone()
 
     vocab_score = row[0]
+    # If the score is not -1 calculate the frontier
+    if vocab_score != -1:
+        frontier = (vocab_score // 1000) + 1
+        frontier = max(1, min(6, frontier))
 
+    # -------------------------------------------------------------------------
+    # POST requests are used by the diagnostic/retest frontend XHR flows.
+    # -------------------------------------------------------------------------
     if request.method == "POST":
         try:
             data = json.loads(request.body.decode("utf-8"))
@@ -445,17 +452,125 @@ def vocab_test(request):
             6: (15001, None),
         }
 
-        # Default count dictionaries used for scoring and placement.
-        level_correct_counts = {1: 0, 2: 0, 3: 0, 4: 0, 5: 0, 6: 0}
-        level_total_counts = {1: 0, 2: 0, 3: 0, 4: 0, 5: 0, 6: 0}
+        # ---------------------------------------------------------------------
+        # RETEST ACTION PLACEHOLDERS
+        #
+        # These should probably stay near the top of the POST block because they
+        # are separate flows from the initial diagnostic.
+        # ---------------------------------------------------------------------
 
-        level_weighted_correct = {1: 0.0, 2: 0.0, 3: 0.0, 4: 0.0, 5: 0.0, 6: 0.0}
-        level_weighted_total = {1: 0.0, 2: 0.0, 3: 0.0, 4: 0.0, 5: 0.0, 6: 0.0}
+        retest_actions = [ "get_retest_questions", "complete_retest", "resolve_retest_score" ]
 
-        frontier_level = 1
+        if action in retest_actions:
+            #If the user's score is -1 return an error
+            if vocab_score == -1:
+                return JsonResponse(
+                    {"status": "error", "message": "No existing score found for retest."},
+                    status=400
+                )
 
-        # Batch 1 is always a broad scan: 3 questions from each level.
-        if batch == "1":
+            if action == "get_retest_questions":
+                fetch_counts = {
+                    1: 0,
+                    2: 0,
+                    3: 0,
+                    4: 0,
+                    5: 0,
+                    6: 0,
+                }
+                # If the frontier is 2, 3, 4, or 5, 30 questions from the frontier and 10 from the level below.
+                if frontier in [2, 3, 4, 5]:
+                    fetch_counts[frontier] = 30
+                    fetch_counts[frontier - 1] = 10
+                    fetch_counts[frontier + 1] = 10
+                # If the frontier is 1, 35 questions from level 1 and 15 from level 2.
+                elif frontier == 1:
+                    fetch_counts[1] = 35
+                    fetch_counts[2] = 15
+                # If the frontier is 6, 35 questions from level 6 and 15 from level 5.
+                elif frontier == 6:
+                    fetch_counts[6] = 35
+                    fetch_counts[5] = 15
+                
+
+            elif action == "complete_retest":
+                # TODO:
+                # Implement retest scoring here.
+                #
+                # Expected behavior:
+                # - Score the 50 submitted answers.
+                # - Calculate the new score.
+                # - If new score > current score:
+                #     - update registered_user.vocab_score
+                #     - return outcome="improved"
+                # - If new score is lower but not extremely worse:
+                #     - do not update score
+                #     - return outcome="kept_current"
+                # - If extremely worse:
+                #     - do not update score yet
+                #     - return outcome="downgrade_choice"
+                #
+                # Suggested extreme-worse rule:
+                # - new_score < current_score
+                # - frontier_accuracy < 0.35
+                # - below_frontier_accuracy < 0.70
+                pass
+
+            elif action == "resolve_retest_score":
+                # TODO:
+                # Implement retest score choice here.
+                #
+                # Expected behavior:
+                # - If choice == "keep_current":
+                #     - leave registered_user.vocab_score unchanged
+                # - If choice == "accept_new":
+                #     - update registered_user.vocab_score to new_score
+                # - Return:
+                #     {"status": "ok"}
+                pass
+
+            # ---------------------------------------------------------------------
+            # DIAGNOSTIC ACTIONS
+            #
+            # Existing supported actions:
+            # - get_questions
+            # - submit_batch
+            # - complete_diagnostic
+            # ---------------------------------------------------------------------
+
+        if action not in [
+            "get_questions",
+            "submit_batch",
+            "complete_diagnostic",
+            "get_retest_questions",
+            "complete_retest",
+            "resolve_retest_score",
+        ]:
+            return JsonResponse(
+                {"status": "error", "message": "Invalid action."},
+                status=400
+            )
+
+        # If a retest placeholder is reached, return a temporary error for now.
+        # Remove this once those actions are implemented above.
+        if action in [
+            "get_retest_questions",
+            "complete_retest",
+            "resolve_retest_score",
+        ]:
+            return JsonResponse(
+                {
+                    "status": "error",
+                    "message": f"{action} is not implemented yet."
+                },
+                status=501
+            )
+
+        # ---------------------------------------------------------------------
+        # Diagnostic batch 1:
+        # Broad scan, 3 questions from each level.
+        # ---------------------------------------------------------------------
+        if action == "get_questions" and batch == "1":
             fetch_counts = {
                 1: 3,
                 2: 3,
@@ -465,9 +580,34 @@ def vocab_test(request):
                 6: 3,
             }
 
-        elif batch in ["2", "3", "4"]:
+        # ---------------------------------------------------------------------
+        # Diagnostic batches 2-4:
+        # Score all previous answers and use the frontier level to select the
+        # next adaptive question distribution, or calculate the final score.
+        # ---------------------------------------------------------------------
+        elif action in ["submit_batch", "complete_diagnostic"] and batch in ["1", "2", "3", "4"]:
+            level_correct_counts = {1: 0, 2: 0, 3: 0, 4: 0, 5: 0, 6: 0}
+            level_total_counts = {1: 0, 2: 0, 3: 0, 4: 0, 5: 0, 6: 0}
+
+            level_weighted_correct = {
+                1: 0.0,
+                2: 0.0,
+                3: 0.0,
+                4: 0.0,
+                5: 0.0,
+                6: 0.0,
+            }
+
+            level_weighted_total = {
+                1: 0.0,
+                2: 0.0,
+                3: 0.0,
+                4: 0.0,
+                5: 0.0,
+                6: 0.0,
+            }
+
             # Score all submitted answers so far.
-            # This is used both for choosing the next batch and for calculating the final score.
             with connection.cursor() as cursor:
                 for answer in all_answers:
                     question_id = answer.get("question_id")
@@ -496,15 +636,15 @@ def vocab_test(request):
                     min_rank_for_level = None
                     max_rank_for_level = None
 
-                    # Determine the level from the lemma rank.
+                    # Determine level from lemma_rank.
                     for lvl, (min_rank, max_rank) in level_ranges.items():
                         if max_rank is None:
                             if lemma_rank >= min_rank:
                                 level = lvl
                                 min_rank_for_level = min_rank
 
-                                # Level 6 has no natural upper bound in LEVEL_RANGES.
-                                # This synthetic upper bound is only used to calculate rank weighting.
+                                # Level 6 has no natural upper bound in level_ranges.
+                                # This synthetic bound is only for rank weighting.
                                 max_rank_for_level = min_rank + 5000
                                 break
 
@@ -528,8 +668,8 @@ def vocab_test(request):
                         level_correct_counts[level] += 1
 
                     # Rank weight within the level.
-                    # Easier/earlier words in the level are worth about 1.0.
-                    # Harder/later words in the level are worth up to about 2.0.
+                    # Earlier/easier words are around 1.0.
+                    # Later/harder words are up to around 2.0.
                     level_span = max_rank_for_level - min_rank_for_level
 
                     if level_span <= 0:
@@ -546,8 +686,9 @@ def vocab_test(request):
                         level_weighted_correct[level] += rank_weight
 
             # Find the first tested level below 80%.
-            # Because the loop stops at the first level below 80%,
-            # all earlier tested levels must have been 80% or higher.
+            # Since the loop stops there, all earlier tested levels were 80%+.
+            frontier_level = 1
+
             for lvl in range(1, 7):
                 total = level_total_counts[lvl]
                 correct = level_correct_counts[lvl]
@@ -561,20 +702,22 @@ def vocab_test(request):
                     frontier_level = lvl
                     break
             else:
-                # If every tested level was 80% or higher, focus on the highest level.
                 frontier_level = 6
 
+            # -----------------------------------------------------------------
+            # Final diagnostic submission:
+            # Calculate score and update vocab_score.
+            # -----------------------------------------------------------------
             if action == "complete_diagnostic":
-                # Base score is 1,000 points for every fully mastered level below the frontier.
                 base_score = 1000 * (frontier_level - 1)
 
-                # Raw bonus is based on rank-weighted accuracy inside the frontier level.
-                # 40% = bottom of the band, 80% = top of the band.
                 frontier_weighted_total = level_weighted_total[frontier_level]
                 frontier_weighted_correct = level_weighted_correct[frontier_level]
 
                 if frontier_weighted_total > 0:
-                    frontier_weighted_accuracy = frontier_weighted_correct / frontier_weighted_total
+                    frontier_weighted_accuracy = (
+                        frontier_weighted_correct / frontier_weighted_total
+                    )
                 else:
                     frontier_weighted_accuracy = 0.0
 
@@ -592,13 +735,11 @@ def vocab_test(request):
                 above_frontier_weighted_correct = 0.0
                 above_frontier_weighted_total = 0.0
 
-                # Calculate the confidence multiplier from all levels above the frontier.
-                # Correct answers farther above the frontier count more.
-                # Harder lemma ranks inside each upper level also count more.
+                # Confidence multiplier from all levels above the frontier.
+                # Higher levels and harder ranks count more.
                 for lvl in range(frontier_level + 1, 7):
                     level_distance = lvl - frontier_level
 
-                    # Level distance makes higher levels worth more.
                     # frontier + 1 = 1.0x
                     # frontier + 2 = 1.5x
                     # frontier + 3 = 2.0x
@@ -613,21 +754,19 @@ def vocab_test(request):
 
                 if above_frontier_weighted_total > 0:
                     above_frontier_accuracy = (
-                        above_frontier_weighted_correct / above_frontier_weighted_total
+                        above_frontier_weighted_correct
+                        / above_frontier_weighted_total
                     )
                 else:
                     above_frontier_accuracy = 0.0
 
-                # Confidence is limited if we barely sampled above the frontier.
-                # 12 weighted attempts is treated as enough evidence for full confidence.
+                # Sample confidence prevents tiny above-frontier samples from
+                # over-influencing the multiplier.
                 sample_confidence = min(1.0, above_frontier_weighted_total / 12.0)
 
-                # Proof score combines correctness and sample size.
                 above_frontier_proof = above_frontier_accuracy * sample_confidence
 
-                # Multiplier ranges from 0.70 to 1.00.
-                # No higher-level proof still allows 70% of the raw bonus.
-                # Strong higher-level proof allows the full raw bonus.
+                # Multiplier range: 0.70 to 1.00.
                 confidence_multiplier = 0.70 + (0.30 * above_frontier_proof)
 
                 bonus = round(raw_bonus * confidence_multiplier)
@@ -655,8 +794,11 @@ def vocab_test(request):
                     "bonus": bonus
                 })
 
-            elif action == "submit_batch":
-                # Use the current frontier level to choose the next adaptive batch.
+            # -----------------------------------------------------------------
+            # Intermediate diagnostic submission:
+            # Use the frontier level to choose the next adaptive batch.
+            # -----------------------------------------------------------------
+            if action == "submit_batch":
                 if frontier_level == 1:
                     fetch_counts = {
                         1: 12,
@@ -690,19 +832,15 @@ def vocab_test(request):
                     fetch_counts[frontier_level - 1] = 4
                     fetch_counts[frontier_level + 1] = 4
 
-            else:
-                return JsonResponse(
-                    {"status": "error", "message": "Invalid batch."},
-                    status=400
-                )
-
         else:
             return JsonResponse(
-                {"status": "error", "message": "Invalid batch."},
+                {"status": "error", "message": "Invalid diagnostic request."},
                 status=400
             )
 
-        # Fetch questions according to the selected distribution.
+        # ---------------------------------------------------------------------
+        # Fetch diagnostic questions based on fetch_counts.
+        # ---------------------------------------------------------------------
         with connection.cursor() as cursor:
             for level, (min_rank, max_rank) in level_ranges.items():
                 count = fetch_counts.get(level, 0)
@@ -766,6 +904,10 @@ def vocab_test(request):
             "status": "questions",
             "questions": questions
         })
+
+    # -------------------------------------------------------------------------
+    # GET request page rendering
+    # -------------------------------------------------------------------------
 
     # Users with no vocab score can always take the free diagnostic,
     # regardless of subscription status.

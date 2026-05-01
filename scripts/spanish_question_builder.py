@@ -18,7 +18,7 @@ DB_USER = "webapp"
 # This is not live user traffic, so quality matters more than ultra-low cost.
 MODEL = "gpt-5.1"
 
-TOTAL_QUESTIONS_TARGET = 1000
+TOTAL_QUESTIONS_TARGET = 1500
 OPENAI_BATCH_SIZE = 5
 MAX_RETRIES = 4
 SLEEP_BETWEEN_OPENAI_CALLS = 0.5
