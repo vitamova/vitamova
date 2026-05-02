@@ -41,7 +41,7 @@ def fetch_lemmas_to_process(cursor, limit):
     cursor.execute(
         """
         SELECT rank, lemma, pos
-        FROM spanish_lemmas
+        FROM russian_lemmas
         WHERE translation IS NULL
            OR definition IS NULL
         ORDER BY rank ASC
@@ -64,14 +64,14 @@ def build_prompt(rows):
         })
 
     return f"""
-You are helping build a Spanish vocabulary-learning app.
+You are helping build a Russian vocabulary-learning app.
 
-For each Spanish lemma, provide:
+For each Russian lemma, provide:
 1. "translation": a concise English translation.
-2. "definition": a simple Spanish definition written in Spanish.
+2. "definition": a simple Russian definition written in Russian.
 
 Rules:
-- The definition must be in Spanish.
+- The definition must be in Russian.
 - The translation should be in English.
 - Use the part of speech to disambiguate the lemma.
 - For translation, prefer one clear best English translation.
@@ -139,7 +139,7 @@ def update_rows(cursor, results):
     for item in results:
         cursor.execute(
             """
-            UPDATE spanish_lemmas
+            UPDATE russian_lemmas
             SET translation = %s,
                 definition = %s
             WHERE rank = %s;
