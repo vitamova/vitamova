@@ -42,8 +42,8 @@ def fetch_lemmas_to_process(cursor, limit):
         """
         SELECT rank, lemma, pos
         FROM russian_lemmas
-        WHERE translation = ''
-           OR definition = ''
+        WHERE translation IS NULL
+           OR definition IS NULL
         ORDER BY rank ASC
         LIMIT %s;
         """,
