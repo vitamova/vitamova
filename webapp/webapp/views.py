@@ -564,6 +564,16 @@ def vocab_test(request):
                 # Use the db helper function to update the user's score in the database
                 elif choice == "accept_new":
                     vitalib.UserInfo.Update(connection, request.user.username).score(data.get("new_score"))
+                    updated_score = vitalib.UserInfo.Get(connection, request.user.username).score()
+                    if updated_score != data.get("new_score"):
+                        return JsonResponse({
+                            "status": "error",
+                            "message": "Failed to update score."
+                        }, status=500)
+                    else:
+                        return JsonResponse({
+                            "status": "ok"
+                        })
             # ---------------------------------------------------------------------
             # DIAGNOSTIC ACTIONS
             #

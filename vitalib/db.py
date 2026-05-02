@@ -59,6 +59,14 @@ class UserInfo:
         def score(self, new_score):
             with self.conn.cursor() as cur:
                 cur.execute("UPDATE users SET vocab_score=%s WHERE username=%s", (new_score, self.username))
+    class Get:
+        def __init__(self, conn, username):
+            self.conn = conn
+            self.username = username
+        def score(self):
+            with self.conn.cursor() as cur:
+                cur.execute("SELECT vocab_score FROM users WHERE username=%s", (self.username,))
+                return cur.fetchone()[0]
 
 class vocabulary:
     @staticmethod
