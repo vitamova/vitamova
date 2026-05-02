@@ -543,18 +543,27 @@ def vocab_test(request):
                 })
 
             elif action == "resolve_retest_score":
-                # TODO:
-                # Implement retest score choice here.
-                #
-                # Expected behavior:
-                # - If choice == "keep_current":
-                #     - leave registered_user.vocab_score unchanged
-                # - If choice == "accept_new":
-                #     - update registered_user.vocab_score to new_score
-                # - Return:
-                #     {"status": "ok"}
-                pass
-
+                example_request = {
+                    "action": "resolve_retest_score",
+                    "choice": "keep_current",
+                    "current_score": 2730,
+                    "new_score": 1720,
+                    "language": "es"
+                    }
+                example_response = {
+                    "status": "ok"
+                    }
+                # Choice options are keep_current or accept_new
+                choice = data.get("choice")
+                # Keep_current is easy - just return ok without changing anything
+                if choice == "keep_current":
+                    return JsonResponse({
+                        "status": "ok"
+                    })
+                # Accept_new means we want to update the user's score to the new score calculated in complete_retest
+                # Use the db helper function to update the user's score in the database
+                elif choice == "accept_new":
+                    vitalib.UserInfo.Update(connection, request.user.username).score(data.get("new_score"))
             # ---------------------------------------------------------------------
             # DIAGNOSTIC ACTIONS
             #

@@ -51,58 +51,14 @@ class connection:
         conn.close()
 
 #Retrieve user information
-class user_info:
-    class add:
+class UserInfo:
+    class Update:
         def __init__(self, conn, username):
-            self.username = username
             self.conn = conn
-        def new(self, language):
-            #Add the user to the user_info table
-            #Make the last_article_read yesterday
-            yesterday = str((datetime.datetime.now() - datetime.timedelta(days=1)).date())
-            #Make the points 0
-            with self.conn.cursor() as cur:
-                cur.execute("INSERT INTO user_info (username, language, last_article_read, points) VALUES (%s, %s, %s, 0)", (self.username, language, yesterday))
-    class get:
-        def __init__(self, conn, username):
             self.username = username
-            self.conn = conn
-
-        def language(self):
+        def score(self, new_score):
             with self.conn.cursor() as cur:
-                cur.execute("SELECT language FROM user_info WHERE username=%s", (self.username,))
-                return cur.fetchone()[0]
-
-        def last_article_read(self):
-            with self.conn.cursor() as cur:
-                cur.execute("SELECT last_article_read FROM user_info WHERE username=%s", (self.username,))
-                return cur.fetchone()[0]
-
-        def points(self):
-            with self.conn.cursor() as cur:
-                cur.execute("SELECT points FROM user_info WHERE username=%s", (self.username,))
-                return cur.fetchone()[0]
-    class update:
-        def __init__(self, conn, username):
-            self.username = username
-            self.conn = conn
-        
-        def points(self, add_points):
-            #Add add_points to the current points
-            with self.conn.cursor() as cur:
-                cur.execute("SELECT points FROM user_info WHERE username=%s", (self.username,))
-                points = cur.fetchone()[0]
-            points += add_points
-            with self.conn.cursor() as cur:
-                cur.execute("UPDATE user_info SET points=%s WHERE username=%s", (points, self.username))
-            #return the new points
-            return points
-        def language(self, language):
-            with self.conn.cursor() as cur:
-                cur.execute("UPDATE user_info SET language=%s WHERE username=%s", (language, self.username))
-        def last_article_read(self, date):
-            with self.conn.cursor() as cur:
-                cur.execute("UPDATE user_info SET last_article_read=%s WHERE username=%s", (date, self.username))
+                cur.execute("UPDATE users SET vocab_score=%s WHERE username=%s", (new_score, self.username))
 
 class vocabulary:
     @staticmethod
