@@ -53,19 +53,19 @@ class connection:
 #Retrieve user information
 class UserInfo:
     class Update:
-        def __init__(self, conn, username):
+        def __init__(self, conn, user_id):
             self.conn = conn
-            self.username = username
+            self.user_id = user_id
         def score(self, new_score):
             with self.conn.cursor() as cur:
-                cur.execute("UPDATE registered_user SET vocab_score=%s WHERE username=%s", (new_score, self.username))
+                cur.execute("UPDATE registered_user SET vocab_score=%s WHERE user_id=%s", (new_score, self.user_id))
     class Get:
-        def __init__(self, conn, username):
+        def __init__(self, conn, user_id):
             self.conn = conn
-            self.username = username
+            self.user_id = user_id
         def score(self):
             with self.conn.cursor() as cur:
-                cur.execute("SELECT vocab_score FROM registered_user WHERE username=%s", (self.username,))
+                cur.execute("SELECT vocab_score FROM registered_user WHERE user_id=%s", (self.user_id,))
                 return cur.fetchone()[0]
 
 class vocabulary:

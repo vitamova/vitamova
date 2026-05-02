@@ -563,8 +563,8 @@ def vocab_test(request):
                 # Accept_new means we want to update the user's score to the new score calculated in complete_retest
                 # Use the db helper function to update the user's score in the database
                 elif choice == "accept_new":
-                    vitalib.UserInfo.Update(connection, request.user.username).score(data.get("new_score"))
-                    updated_score = vitalib.UserInfo.Get(connection, request.user.username).score()
+                    vitalib.UserInfo.Update(connection, request.user.id).score(data.get("new_score"))
+                    updated_score = vitalib.UserInfo.Get(connection, request.user.id).score()
                     if updated_score != data.get("new_score"):
                         return JsonResponse({
                             "status": "error",
