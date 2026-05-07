@@ -151,6 +151,29 @@ class UserInfo:
         def __init__(self, conn, user_id):
             self.conn = conn
             self.user_id = user_id
+        def data(self, *columns):
+            if not columns:
+                columns = tuple(UserInfo.ALLOWED_COLUMNS)
+
+            invalid_columns = set(columns) - UserInfo.ALLOWED_COLUMNS
+            if invalid_columns:
+                raise ValueError(f"Invalid column name(s): {', '.join(invalid_columns)}")
+
+            column_list = ", ".join(columns)
+
+            with self.conn.cursor() as cur:
+                query = f"""
+                    SELECT {column_list}
+                    FROM registered_user
+                    WHERE user_id = %s
+                """
+                cur.execute(query, (self.user_id,))
+                row = cur.fetchone()
+
+            if not row:
+                return None
+
+            return dict(zip(columns, row))
         def score(self):
             with self.conn.cursor() as cur:
                 cur.execute("SELECT vocab_score FROM registered_user WHERE user_id=%s", (self.user_id,))
