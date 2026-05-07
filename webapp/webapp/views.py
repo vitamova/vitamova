@@ -225,13 +225,13 @@ def home(request):
         "vocab_score"
         )
 
-    subscribed, subscription_expiration, stripe_customer_id, vocab_score = registered_user.get(
-        "subscribed",
-        "subscription_expiration",
-        "stripe_customer_id",
-        "vocab_score"
+    subscribed, subscription_expiration, stripe_customer_id, vocab_score = (
+        registered_user.get("subscribed"),
+        registered_user.get("subscription_expiration"),
+        registered_user.get("stripe_customer_id"),
+        registered_user.get("vocab_score"),
     )
-
+    
     #See if language is specified as a query parameter
     target_language = request.GET.get("language")
 
