@@ -363,20 +363,20 @@ def register(request):
 @registered_logged_in_required
 def vocab_test(request):
 
-    # Get the user's current vocab score once.
-    with connection.cursor() as cursor:
-        cursor.execute(
-            """
-            SELECT vocab_score
-            FROM registered_user
-            WHERE user_id = %s
-            LIMIT 1
-            """,
-            [request.user.id]
-        )
-        row = cursor.fetchone()
+    if request.method == "POST":
+        try:
+            data = json.loads(request.body.decode("utf-8"))
+        except json.JSONDecodeError:
+            return JsonResponse(
+                {"status": "error", "message": "Invalid JSON."},
+                status=400
+            )
+        language = data.get("language", "es")
+    elif request.method == "GET":
+        language = request.GET.get("language", "es")
 
-    vocab_score = row[0]
+    vocab_score = vitalib.UserInfo.Get(connection, request.user.id).score(language)
+
     # If the score is not -1 calculate the frontier
     if vocab_score != -1:
         frontier = (vocab_score // 1000) + 1
@@ -386,13 +386,6 @@ def vocab_test(request):
     # POST requests are used by the diagnostic/retest frontend XHR flows.
     # -------------------------------------------------------------------------
     if request.method == "POST":
-        try:
-            data = json.loads(request.body.decode("utf-8"))
-        except json.JSONDecodeError:
-            return JsonResponse(
-                {"status": "error", "message": "Invalid JSON."},
-                status=400
-            )
 
         action = data.get("action")
         batch = str(data.get("batch", "1"))

@@ -1,6 +1,4 @@
 from urllib import request
-
-import psycopg2
 import os
 import datetime
 import random
@@ -31,24 +29,6 @@ LANGUAGE_MAP = {
     "ru": "Russian",
     # Add more languages here as needed
 }
-
-# Database connection
-class connection:
-    @staticmethod
-    def open():
-        conn = psycopg2.connect(
-            dbname="vitamova",
-            user="webapp",
-            password=DB_PASSWORD,
-            host="vitamova-db.cluster-cartvcorpihi.us-east-1.rds.amazonaws.com",
-            port="5432"
-        )
-        return conn
-    @staticmethod
-    def close(conn):
-        #Commit changes and close the connection
-        conn.commit()
-        conn.close()
 
 #Retrieve user information
 class UserInfo:

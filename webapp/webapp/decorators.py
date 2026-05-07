@@ -12,9 +12,6 @@ def registered_logged_in_required(view_func):
         if not vitalib.User.Registration(request.user.id, connection).is_valid():
             return redirect("/register/")
 
-        #if not is_user_subscribed(request.user):
-        #    return redirect("/subscribe/")
-
         return view_func(request, *args, **kwargs)
 
     return wrapper
