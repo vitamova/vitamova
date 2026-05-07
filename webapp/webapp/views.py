@@ -1008,7 +1008,7 @@ def review(request):
 
 def reading_practice(request):
     if not request.user.is_authenticated:
-        return redirect("login")
+        return redirect("/login/")
 
     if not is_registered_user(request.user):
         return redirect("/register/")
