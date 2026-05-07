@@ -351,7 +351,7 @@ def home(request):
     if vocab_score == -1:
         return render(request, "home_unsubscribed_noscore.html")
 
-    return render(request, "home_unsubscribed.html")
+    return redirect("/subscribe/")
 
 def login(request):
     if request.user.is_authenticated:
