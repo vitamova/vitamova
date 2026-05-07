@@ -970,6 +970,6 @@ def subscribe(request):
     return render(request, "subscribe.html", {
         "stripe_public_key": STRIPE_PUBLIC_KEY,
         "score": "100",
-        "language": "es",
+        "language": "Spanish",
         "first_name": "Wesley"
     })
