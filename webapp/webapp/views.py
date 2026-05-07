@@ -470,6 +470,7 @@ def vocab_test(request):
                     {"status": "error", "message": "No existing score found for retest."},
                     status=400
                 )
+            language = data.get("language", "es")
 
             if action == "get_retest_questions":
                 fetch_counts = {
@@ -493,7 +494,7 @@ def vocab_test(request):
                 elif frontier == 6:
                     fetch_counts[6] = 35
                     fetch_counts[5] = 15
-                questions = vitalib.Test(connection, request.user.username, "es").get_questions(fetch_counts)
+                questions = vitalib.Test(connection, request.user.username, language).get_questions(fetch_counts)
                 return JsonResponse({
                     "status": "questions",
                     "questions": questions,
@@ -523,7 +524,7 @@ def vocab_test(request):
                     "below_frontier_accuracy": 0.90,
                     "above_frontier_accuracy": 0.40
                     }
-                score_result = vitalib.Test(connection, request.user.username, "es").score_result(data.get("answers", []))
+                score_result = vitalib.Test(connection, request.user.username, language).score_result(data.get("answers", []))
                 if score_result["score"] > vocab_score:
                     outcome = "improved"
                 elif score_result["score"] <= vocab_score:
@@ -565,7 +566,7 @@ def vocab_test(request):
                 # Accept_new means we want to update the user's score to the new score calculated in complete_retest
                 # Use the db helper function to update the user's score in the database
                 elif choice == "accept_new":
-                    vitalib.UserInfo.Update(connection, request.user.id).score(data.get("new_score"))
+                    vitalib.UserInfo.Update(connection, request.user.id).score(language, data.get("new_score"))
                     updated_score = vitalib.UserInfo.Get(connection, request.user.id).score()
                     if updated_score != data.get("new_score"):
                         return JsonResponse({
@@ -596,21 +597,6 @@ def vocab_test(request):
             return JsonResponse(
                 {"status": "error", "message": "Invalid action."},
                 status=400
-            )
-
-        # If a retest placeholder is reached, return a temporary error for now.
-        # Remove this once those actions are implemented above.
-        if action in [
-            "get_retest_questions",
-            "complete_retest",
-            "resolve_retest_score",
-        ]:
-            return JsonResponse(
-                {
-                    "status": "error",
-                    "message": f"{action} is not implemented yet."
-                },
-                status=501
             )
 
         # ---------------------------------------------------------------------

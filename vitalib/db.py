@@ -60,6 +60,7 @@ class UserInfo:
         "subscription_expiration",
         "stripe_customer_id",
         "second_target_language",
+        "second_vocab_score"
     }
     class Create:
         def __init__(self, conn, user_id):
@@ -94,9 +95,6 @@ class UserInfo:
         def __init__(self, conn, user_id):
             self.conn = conn
             self.user_id = user_id
-        def score(self, new_score):
-            with self.conn.cursor() as cur:
-                cur.execute("UPDATE registered_user SET vocab_score=%s WHERE user_id=%s", (new_score, self.user_id))
         def data(self, **fields):
             if not fields:
                 return
@@ -118,6 +116,37 @@ class UserInfo:
                 cur.execute(query, values)
 
             self.conn.commit()
+        def score(self, language, new_score):
+            language = language.strip().lower()
+
+            with self.conn.cursor() as cur:
+                cur.execute(
+                    """
+                    SELECT target_language, second_target_language
+                    FROM registered_user
+                    WHERE user_id = %s
+                    """,
+                    (self.user_id,)
+                )
+
+                row = cur.fetchone()
+
+            if not row:
+                raise ValueError(f"No registered_user found for user_id {self.user_id}")
+
+            target_language, second_target_language = row
+
+            if target_language and language == target_language.strip().lower():
+                self.data(vocab_score=new_score)
+                return
+
+            if second_target_language and language == second_target_language.strip().lower():
+                self.data(second_vocab_score=new_score)
+                return
+
+            raise ValueError(
+                f"Language '{language}' does not match any target language for user_id {self.user_id}"
+            )
     class Get:
         def __init__(self, conn, user_id):
             self.conn = conn
