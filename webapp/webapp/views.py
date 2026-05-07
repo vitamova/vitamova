@@ -966,12 +966,10 @@ def subscribe(request):
     
     # Get user's score and language
     user_data = vitalib.UserInfo.Get(connection, request.user.id).data()
-    vocab_score = user_data.get("vocab_score", -1)
-    language = user_data.get("target_language", "es")
 
     return render(request, "subscribe.html", {
         "stripe_public_key": STRIPE_PUBLIC_KEY,
-        "vocab_score": vocab_score,
-        "language": language,
+        "score": user_data.get("vocab_score", -1),
+        "language": user_data.get("target_language", "es"),
         "first_name": request.user.first_name
     })
