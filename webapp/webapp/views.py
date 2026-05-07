@@ -3,7 +3,7 @@ from django.db import connection
 from django.views.decorators.http import require_POST
 from django.utils import timezone
 from django.http import JsonResponse
-from .decorators import registered_subscribed_required
+from .decorators import registered_logged_in_required
 import stripe
 from datetime import date
 from pathlib import Path
@@ -47,21 +47,6 @@ SUPPORTED_NATIVE_LANGUAGES = [
 
 # Helper functions
 
-def is_registered_user(user):
-    if not user or not user.is_authenticated:
-        return False
-
-    with connection.cursor() as cursor:
-        cursor.execute(
-            """
-            SELECT 1
-            FROM registered_user
-            WHERE user_id = %s
-            LIMIT 1
-            """,
-            [user.id]
-        )
-        return cursor.fetchone() is not None
     
 def check_vitamova_subscription_in_stripe(user_email):
     subscribed = False
@@ -188,12 +173,8 @@ def is_user_subscribed(user, check_stripe_if_stale=True):
 # Views
     
 @require_POST
+@registered_logged_in_required
 def create_checkout_session(request):
-    if not request.user.is_authenticated:
-        return redirect("login")
-
-    if not is_registered_user(request.user):
-        return redirect("/register/")
 
     price_id = request.POST.get("price_id")
 
@@ -399,13 +380,8 @@ def register(request):
             "target_language_options": SUPPORTED_LANGUAGES
         })
 
-
+@registered_logged_in_required
 def vocab_test(request):
-    if not request.user.is_authenticated:
-        return redirect("login")
-
-    if not is_registered_user(request.user):
-        return redirect("/register/")
 
     # Get the user's current vocab score once.
     with connection.cursor() as cursor:
@@ -953,12 +929,8 @@ def flag_question(request):
         "message": "Question flagged for review."
     })
 
+@registered_logged_in_required
 def subscribe(request):
-    if not request.user.is_authenticated:
-        return redirect("login")
-
-    if not is_registered_user(request.user):
-        return redirect("/register/")
 
     if is_user_subscribed(request.user):
         return redirect("home")
@@ -973,13 +945,8 @@ def subscribe(request):
         "first_name": "Wesley"
     })
 
-@registered_subscribed_required
+@registered_logged_in_required
 def vocab_builder(request):
-    if not request.user.is_authenticated:
-        return redirect("login")
-
-    if not is_registered_user(request.user):
-        return redirect("/register/")
 
     if not is_user_subscribed(request.user):
         return redirect("/subscribe/")
@@ -990,10 +957,8 @@ def vocab_builder(request):
         "back_url": "/",
     })
 
-@registered_subscribed_required
+@registered_logged_in_required
 def review(request):
-    if not request.user.is_authenticated:
-        return redirect("login")
 
     if not is_user_subscribed(request.user):
         return redirect("/subscribe/")
@@ -1004,10 +969,8 @@ def review(request):
         "back_url": "/",
     })
 
-@registered_subscribed_required
+@registered_logged_in_required
 def reading_practice(request):
-    if not request.user.is_authenticated:
-        return redirect("/login/")
 
     if not is_user_subscribed(request.user):
         return redirect("/subscribe/")
