@@ -52,6 +52,44 @@ class connection:
 
 #Retrieve user information
 class UserInfo:
+    ALLOWED_COLUMNS = {
+        "native_language",
+        "target_language",
+        "vocab_score",
+        "subscribed",
+        "subscription_expiration",
+        "stripe_customer_id",
+        "second_target_language",
+    }
+    class Create:
+        def __init__(self, conn, user_id):
+            self.conn = conn
+            self.user_id = user_id
+
+        def data(self, **fields):
+            allowed_columns = UserInfo.ALLOWED_COLUMNS | {"user_id"}
+
+            fields["user_id"] = self.user_id
+
+            invalid_columns = set(fields.keys()) - allowed_columns
+            if invalid_columns:
+                raise ValueError(f"Invalid column name(s): {', '.join(invalid_columns)}")
+
+            columns = ", ".join(fields.keys())
+            placeholders = ", ".join(["%s"] * len(fields))
+            values = list(fields.values())
+
+            with self.conn.cursor() as cur:
+                query = f"""
+                    INSERT INTO registered_user ({columns})
+                    VALUES ({placeholders})
+                    RETURNING id
+                """
+                cur.execute(query, values)
+                new_registered_user_id = cur.fetchone()[0]
+
+            self.conn.commit()
+            return new_registered_user_id
     class Update:
         def __init__(self, conn, user_id):
             self.conn = conn
@@ -59,6 +97,27 @@ class UserInfo:
         def score(self, new_score):
             with self.conn.cursor() as cur:
                 cur.execute("UPDATE registered_user SET vocab_score=%s WHERE user_id=%s", (new_score, self.user_id))
+        def data(self, **fields):
+            if not fields:
+                return
+
+            invalid_columns = set(fields.keys()) - UserInfo.ALLOWED_COLUMNS
+            if invalid_columns:
+                raise ValueError(f"Invalid column name(s): {', '.join(invalid_columns)}")
+
+            set_clause = ", ".join([f"{column} = %s" for column in fields.keys()])
+            values = list(fields.values())
+            values.append(self.user_id)
+
+            with self.conn.cursor() as cur:
+                query = f"""
+                    UPDATE registered_user
+                    SET {set_clause}
+                    WHERE user_id = %s
+                """
+                cur.execute(query, values)
+
+            self.conn.commit()
     class Get:
         def __init__(self, conn, user_id):
             self.conn = conn

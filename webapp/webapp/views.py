@@ -366,6 +366,7 @@ def register(request):
     if request.method == 'POST':
         native_language = request.POST.get('native_language')
         target_language = request.POST.get('target_language')
+        second_target_language = request.POST.get('second_target_language')
         agree_terms = request.POST.get('agree_terms')
 
         if not agree_terms:
@@ -380,37 +381,15 @@ def register(request):
         subscription_expiration = stripe_status["subscription_expiration"]
         stripe_customer_id = stripe_status["stripe_customer_id"]
 
-        with connection.cursor() as cursor:
-            cursor.execute(
-                """
-                INSERT INTO registered_user (
-                    user_id,
-                    native_language,
-                    target_language,
-                    vocab_score,
-                    subscribed,
-                    subscription_expiration,
-                    stripe_customer_id
-                )
-                VALUES (%s, %s, %s, %s, %s, %s, %s)
-                ON CONFLICT (user_id)
-                DO UPDATE SET
-                    native_language = EXCLUDED.native_language,
-                    target_language = EXCLUDED.target_language,
-                    subscribed = EXCLUDED.subscribed,
-                    subscription_expiration = EXCLUDED.subscription_expiration,
-                    stripe_customer_id = EXCLUDED.stripe_customer_id
-                """,
-                [
-                    request.user.id,
-                    native_language,
-                    target_language,
-                    -1,
-                    subscribed,
-                    subscription_expiration,
-                    stripe_customer_id,
-                ]
-            )
+        # vitalib.Test(connection, request.user.username, "es").score_result(data.get("answers", []))
+        vitalib.UserInfo.Create(connection, request.user.id).data(
+            native_language=native_language,
+            target_language=target_language,
+            second_target_language=second_target_language,
+            subscribed=subscribed,
+            subscription_expiration=subscription_expiration,
+            stripe_customer_id=stripe_customer_id,
+        )
 
         return redirect('home')
 
