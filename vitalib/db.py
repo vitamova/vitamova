@@ -27,8 +27,8 @@ with open(os.path.expanduser("~/data/db_pw.txt"), "r") as f:
 
 # Map language codes to their full names to use for table names
 LANGUAGE_MAP = {
-    "es": "spanish",
-    "ru": "russian",
+    "es": "Spanish",
+    "ru": "Russian",
     # Add more languages here as needed
 }
 
