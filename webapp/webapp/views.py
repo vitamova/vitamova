@@ -845,7 +845,8 @@ def vocab_test(request):
 
     if is_user_subscribed(request.user):
         return render(request, "vocab_test_retest.html", {
-            "current_score": vocab_score
+            "current_score": vocab_score,
+            "language": language
         })
 
     return redirect("/subscribe/")
