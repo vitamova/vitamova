@@ -215,30 +215,22 @@ def create_checkout_session(request):
         print(f"Error creating Stripe checkout session: {e}")
         return redirect("/subscribe/")
 
-
+@registered_logged_in_required
 def home(request):
-    if not request.user.is_authenticated:
-        return redirect("login")
 
-    with connection.cursor() as cursor:
-        cursor.execute(
-            """
-            SELECT subscribed, subscription_expiration, stripe_customer_id, vocab_score
-            FROM registered_user
-            WHERE user_id = %s
-            LIMIT 1
-            """,
-            [request.user.id]
+    registered_user = vitalib.UserInfo.Get(connection, request.user.id).data(
+        "subscribed",
+        "subscription_expiration",
+        "stripe_customer_id",
+        "vocab_score"
         )
-        registered_user = cursor.fetchone()
 
-    if not registered_user:
-        return redirect("/register/")
-
-    subscribed = registered_user[0]
-    subscription_expiration = registered_user[1]
-    stripe_customer_id = registered_user[2]
-    vocab_score = registered_user[3]
+    subscribed, subscription_expiration, stripe_customer_id, vocab_score = registered_user.get(
+        "subscribed",
+        "subscription_expiration",
+        "stripe_customer_id",
+        "vocab_score"
+    )
 
     #See if language is specified as a query parameter
     target_language = request.GET.get("language")
