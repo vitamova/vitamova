@@ -83,7 +83,7 @@
       background: linear-gradient(160deg, var(--vita-blue) 0%, #3d7dff 55%, #6aa0ff 100%);
       color: white;
       border-radius: 28px;
-      padding: 36px 28px;
+      padding: 40px 28px;
       position: relative;
       overflow: hidden;
       box-shadow: var(--shadow);
@@ -118,12 +118,12 @@
     .title-card-content {
       position: relative;
       z-index: 1;
-      max-width: 690px;
+      max-width: 720px;
       margin: 0 auto;
     }
 
     .title-card h1 {
-      margin: 0 0 14px;
+      margin: 0 0 18px;
       font-size: clamp(2rem, 4vw, 3.25rem);
       line-height: 1.05;
       letter-spacing: -0.04em;
@@ -137,69 +137,46 @@
       font-size: 1.05rem;
     }
 
-    .score-kicker {
+    .score-highlight {
       display: inline-flex;
       align-items: center;
       justify-content: center;
-      margin-bottom: 14px;
-      padding: 8px 14px;
-      border-radius: 999px;
-      background: rgba(255, 213, 74, 0.22);
-      border: 1px solid rgba(255, 255, 255, 0.22);
-      color: #ffffff;
-      font-size: 0.86rem;
-      font-weight: 850;
-      letter-spacing: 0.05em;
-      text-transform: uppercase;
-      backdrop-filter: blur(4px);
-    }
-
-    .score-highlight {
-      display: inline-flex;
-      align-items: baseline;
-      justify-content: center;
-      gap: 8px;
-      margin: 4px auto 18px;
-      padding: 12px 18px;
-      border-radius: 18px;
+      gap: 16px;
+      margin: 4px auto 20px;
+      padding: 16px 22px;
+      border-radius: 22px;
       background: rgba(255, 255, 255, 0.14);
       border: 1px solid rgba(255, 255, 255, 0.20);
       box-shadow: 0 12px 28px rgba(20, 27, 52, 0.10);
       backdrop-filter: blur(5px);
     }
 
+    .score-main {
+      display: flex;
+      align-items: baseline;
+      gap: 8px;
+    }
+
     .score-number {
-      font-size: clamp(2.1rem, 5vw, 3.4rem);
+      font-size: clamp(2.5rem, 6vw, 4rem);
       line-height: 1;
       font-weight: 900;
       letter-spacing: -0.05em;
       color: #ffffff;
     }
 
-    .score-label {
-      color: rgba(255, 255, 255, 0.86);
-      font-size: 0.95rem;
-      font-weight: 750;
+    .score-total {
+      font-size: clamp(1.25rem, 3vw, 1.75rem);
+      line-height: 1;
+      font-weight: 850;
+      color: rgba(255, 255, 255, 0.82);
     }
 
-    .feature-chips {
-      position: relative;
-      z-index: 1;
-      display: flex;
-      flex-wrap: wrap;
-      justify-content: center;
-      gap: 10px;
-      margin-top: 22px;
-    }
-
-    .chip {
-      background: rgba(255, 255, 255, 0.12);
-      border: 1px solid rgba(255, 255, 255, 0.16);
-      color: #fff;
-      padding: 8px 12px;
-      border-radius: 999px;
-      font-size: 0.9rem;
-      backdrop-filter: blur(4px);
+    .score-language {
+      font-size: clamp(1.1rem, 2.5vw, 1.45rem);
+      font-weight: 850;
+      color: #ffffff;
+      white-space: nowrap;
     }
 
     .pricing-card {
@@ -406,7 +383,15 @@
 
       .score-highlight {
         flex-direction: column;
-        gap: 4px;
+        gap: 8px;
+      }
+
+      .score-main {
+        justify-content: center;
+      }
+
+      .score-language {
+        white-space: normal;
       }
     }
   </style>
@@ -424,20 +409,21 @@
     <section class="title-card" aria-label="Vitamova Subscription Intro">
       <div class="title-card-content">
         {% if first_name and score and language %}
-          <div class="score-kicker">
-            Your {{ language }} launchpad
-          </div>
-
-          <h1>{{ first_name }}, you have already started.</h1>
+          <h1>{{ first_name }}, you can improve your {{ language }}.</h1>
 
           <div class="score-highlight" aria-label="{{ language }} vocabulary score">
-            <span class="score-number">{{ score }}</span>
-            <span class="score-label">in {{ language }}</span>
+            <div class="score-main">
+              <span class="score-number">{{ score }}</span>
+              <span class="score-total">/ 6000</span>
+            </div>
+            <div class="score-language">
+              in {{ language }}
+            </div>
           </div>
 
           <p>
-            That score is not a finish line. It is your starting point. Vitamova will help you
-            build sharper vocabulary, practice with purpose, and keep leveling up in {{ language }}.
+            This is your starting point. Vitamova will help you build sharper vocabulary,
+            practice with purpose, and keep moving toward real progress in {{ language }}.
           </p>
         {% else %}
           <h1>Unlock your language learning path</h1>
@@ -446,12 +432,6 @@
             and recommendations based on your current level.
           </p>
         {% endif %}
-      </div>
-
-      <div class="feature-chips">
-        <span class="chip">Personalized practice</span>
-        <span class="chip">Saved progress</span>
-        <span class="chip">Smarter vocabulary growth</span>
       </div>
     </section>
 
