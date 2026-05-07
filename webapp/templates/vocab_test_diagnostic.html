@@ -883,7 +883,8 @@
         batch: currentBatch,
         questions_per_batch: QUESTIONS_PER_BATCH,
         total_questions: TOTAL_QUESTIONS,
-        previous_answers: allAnswers
+        previous_answers: allAnswers,
+        language: "{{ language }}"
       });
 
       if (data.status !== "questions" || !Array.isArray(data.questions)) {

@@ -303,9 +303,7 @@ def home(request):
             "has_score": vocab_score != -1,
             "review_count": review_count,
             "language": target_language,
-            "language_options": [
-                {"code": "es", "name": "Spanish"},
-                ]
+            "language_options": vitalib.UserInfo.Get(connection, request.user.id).languages()
             })
 
     if vocab_score == -1:
@@ -599,11 +597,14 @@ def vocab_test(request):
 
                     cursor.execute(
                         """
-                        SELECT correct_answer, lemma_rank
-                        FROM spanish_vocab_test_bank
-                        WHERE id = %s
+                        SELECT v.correct_answer, l.rank AS lemma_rank
+                        FROM vocab_test_bank v
+                        JOIN lemmas l
+                            ON v.lemma_id = l.id
+                        WHERE v.id = %s
+                        AND l.language = %s
                         """,
-                        [question_id]
+                        [question_id, language]
                     )
                     row = cursor.fetchone()
 
@@ -837,7 +838,10 @@ def vocab_test(request):
     # Users with no vocab score can always take the free diagnostic,
     # regardless of subscription status.
     if vocab_score == -1:
-        return render(request, "vocab_test_diagnostic.html")
+        return render(request, "vocab_test_diagnostic.html", {
+            "language": language
+            }
+        )
 
     if is_user_subscribed(request.user):
         return render(request, "vocab_test_retest.html", {
