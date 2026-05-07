@@ -27,6 +27,6 @@ urlpatterns = [
     path('subscribe/', views.subscribe, name='subscribe'),
     path('flag-question/', views.flag_question, name='flag-question'),
     path('vocab-builder/', views.vocab_builder, name='vocab-builder'),
-    path('review', views.review, name='review'),
-    path('reading-practice', views.reading_practice, name='reading-practice')
+    path('review/', views.review, name='review'),
+    path('reading-practice/', views.reading_practice, name='reading-practice')
 ]

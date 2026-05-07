@@ -7,8 +7,6 @@ import stripe
 from datetime import date
 from pathlib import Path
 import json
-import random
-from openai import OpenAI
 import vitalib
 
 # Build paths inside the project like this: BASE_DIR / 'subdir'.
