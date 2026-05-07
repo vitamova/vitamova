@@ -174,10 +174,35 @@ class UserInfo:
                 return None
 
             return dict(zip(columns, row))
-        def score(self):
+        def score(self, language):
+            language = language.strip().lower()
+
             with self.conn.cursor() as cur:
-                cur.execute("SELECT vocab_score FROM registered_user WHERE user_id=%s", (self.user_id,))
-                return cur.fetchone()[0]
+                cur.execute(
+                    """
+                    SELECT target_language, second_target_language, vocab_score, second_vocab_score
+                    FROM registered_user
+                    WHERE user_id = %s
+                    """,
+                    (self.user_id,)
+                )
+
+                row = cur.fetchone()
+
+            if not row:
+                raise ValueError(f"No registered_user found for user_id {self.user_id}")
+
+            target_language, second_target_language, vocab_score, second_vocab_score = row
+
+            if target_language and language == target_language.strip().lower():
+                return vocab_score
+
+            if second_target_language and language == second_target_language.strip().lower():
+                return second_vocab_score
+
+            raise ValueError(
+                f"Language '{language}' does not match any target language for user_id {self.user_id}"
+            )
         def languages(self):
             with self.conn.cursor() as cur:
                 cur.execute("SELECT target_language, second_target_language FROM registered_user WHERE user_id=%s", (self.user_id,))
