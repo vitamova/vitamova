@@ -1,0 +1,320 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <link rel="icon" href="/static/icon.png">
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+
+  <title>Vitamova | Coming Soon</title>
+
+  <style>
+    :root {
+      --vita-yellow: #ffd54a;
+      --vita-yellow-dark: #f4bf20;
+      --vita-blue: #1f5eff;
+      --vita-blue-dark: #1748c6;
+      --bg-soft: #f7f9ff;
+      --text-dark: #1a1f36;
+      --text-muted: #667085;
+      --card: #ffffff;
+      --border: #e6eaf2;
+      --shadow: 0 18px 45px rgba(24, 42, 100, 0.12);
+    }
+
+    * {
+      box-sizing: border-box;
+    }
+
+    body {
+      margin: 0;
+      font-family: Inter, ui-sans-serif, system-ui, -apple-system, Segoe UI, Roboto, Helvetica, Arial, sans-serif;
+      color: var(--text-dark);
+      background:
+        radial-gradient(circle at 10% 10%, rgba(255, 213, 74, 0.25), transparent 40%),
+        radial-gradient(circle at 90% 20%, rgba(31, 94, 255, 0.20), transparent 42%),
+        linear-gradient(180deg, #fdfefe 0%, var(--bg-soft) 100%);
+      min-height: 100vh;
+      padding: 24px;
+    }
+
+    .page {
+      width: 100%;
+      max-width: 840px;
+      min-height: calc(100vh - 48px);
+      margin: 0 auto;
+      display: flex;
+      flex-direction: column;
+      justify-content: center;
+      gap: 22px;
+    }
+
+    .brand {
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      gap: 10px;
+      font-weight: 800;
+      font-size: 1.15rem;
+      letter-spacing: 0.2px;
+      color: var(--text-dark);
+    }
+
+    .brand-badge {
+      width: 42px;
+      height: 42px;
+      border-radius: 12px;
+      overflow: hidden;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      box-shadow: 0 8px 20px rgba(20, 27, 52, 0.08);
+    }
+
+    .brand-icon {
+      width: 100%;
+      height: 100%;
+      object-fit: cover;
+      display: block;
+    }
+
+    .soon-card {
+      background: linear-gradient(160deg, var(--vita-blue) 0%, #3d7dff 55%, #6aa0ff 100%);
+      color: white;
+      border-radius: 28px;
+      padding: 46px 32px;
+      position: relative;
+      overflow: hidden;
+      box-shadow: var(--shadow);
+      text-align: center;
+    }
+
+    .soon-card::before,
+    .soon-card::after {
+      content: "";
+      position: absolute;
+      border-radius: 999px;
+      filter: blur(2px);
+      opacity: 0.9;
+    }
+
+    .soon-card::before {
+      width: 240px;
+      height: 240px;
+      background: rgba(255, 213, 74, 0.35);
+      top: -90px;
+      right: -50px;
+    }
+
+    .soon-card::after {
+      width: 180px;
+      height: 180px;
+      background: rgba(255, 255, 255, 0.15);
+      bottom: -55px;
+      left: -35px;
+    }
+
+    .soon-card-content {
+      position: relative;
+      z-index: 1;
+      max-width: 680px;
+      margin: 0 auto;
+    }
+
+    .status-pill {
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      margin-bottom: 18px;
+      padding: 8px 14px;
+      border-radius: 999px;
+      background: rgba(255, 255, 255, 0.14);
+      border: 1px solid rgba(255, 255, 255, 0.20);
+      color: #ffffff;
+      font-size: 0.86rem;
+      font-weight: 850;
+      letter-spacing: 0.05em;
+      text-transform: uppercase;
+      backdrop-filter: blur(4px);
+    }
+
+    .soon-card h1 {
+      margin: 0 0 16px;
+      font-size: clamp(2.2rem, 5vw, 4rem);
+      line-height: 1.02;
+      letter-spacing: -0.05em;
+    }
+
+    .soon-card p {
+      margin: 0 auto;
+      color: rgba(255, 255, 255, 0.92);
+      max-width: 62ch;
+      line-height: 1.6;
+      font-size: 1.08rem;
+    }
+
+    .support-card {
+      background: var(--card);
+      border: 1px solid var(--border);
+      border-radius: 28px;
+      box-shadow: var(--shadow);
+      padding: 28px;
+      text-align: center;
+    }
+
+    .support-card h2 {
+      margin: 0;
+      font-size: clamp(1.4rem, 2.5vw, 1.85rem);
+      letter-spacing: -0.03em;
+    }
+
+    .support-card p {
+      margin: 12px auto 0;
+      color: var(--text-muted);
+      line-height: 1.55;
+      font-size: 1rem;
+      max-width: 58ch;
+    }
+
+    .actions {
+      display: flex;
+      justify-content: center;
+      gap: 12px;
+      margin-top: 24px;
+      flex-wrap: wrap;
+    }
+
+    .btn {
+      border: none;
+      border-radius: 14px;
+      padding: 14px 18px;
+      font-size: 0.98rem;
+      font-weight: 800;
+      cursor: pointer;
+      transition: transform 0.04s ease, box-shadow 0.15s ease, background-color 0.15s ease, border-color 0.15s ease;
+      text-decoration: none;
+      text-align: center;
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      min-width: 180px;
+    }
+
+    .btn:active {
+      transform: translateY(1px);
+    }
+
+    .btn-primary {
+      background: var(--vita-blue);
+      color: white;
+      box-shadow: 0 8px 20px rgba(31, 94, 255, 0.18);
+    }
+
+    .btn-primary:hover {
+      background: var(--vita-blue-dark);
+    }
+
+    .btn-secondary {
+      background: white;
+      color: var(--vita-blue);
+      border: 1px solid rgba(31, 94, 255, 0.22);
+      box-shadow: 0 8px 20px rgba(20, 27, 52, 0.05);
+    }
+
+    .btn-secondary:hover {
+      background: #fbfcff;
+      border-color: rgba(31, 94, 255, 0.35);
+    }
+
+    .helper {
+      margin: 18px auto 0;
+      color: var(--text-muted);
+      font-size: 0.88rem;
+      line-height: 1.45;
+      text-align: center;
+      max-width: 56ch;
+    }
+
+    @media (max-width: 720px) {
+      body {
+        padding: 18px;
+      }
+
+      .page {
+        min-height: calc(100vh - 36px);
+      }
+
+      .soon-card,
+      .support-card {
+        padding: 28px 20px;
+      }
+
+      .actions {
+        flex-direction: column;
+      }
+
+      .btn {
+        width: 100%;
+      }
+    }
+  </style>
+</head>
+
+<body>
+  <main class="page">
+    <div class="brand">
+      <div class="brand-badge">
+        <img src="/static/icon.png" alt="Vitamova icon" class="brand-icon">
+      </div>
+      <span>Vitamova</span>
+    </div>
+
+    <section class="soon-card" aria-label="Coming Soon">
+      <div class="soon-card-content">
+        <div class="status-pill">
+          Coming soon
+        </div>
+
+        <h1>
+          {% if feature_name %}
+            {{ feature_name }} is almost ready.
+          {% else %}
+            This feature is almost ready.
+          {% endif %}
+        </h1>
+
+        <p>
+          {% if message %}
+            {{ message }}
+          {% else %}
+            We are still building this part of Vitamova. Soon, you will have more ways to
+            practice smarter, track your progress, and keep your language learning moving.
+          {% endif %}
+        </p>
+      </div>
+    </section>
+
+    <section class="support-card" aria-label="What to do next">
+      <h2>Keep building your vocabulary</h2>
+
+      <p>
+        This page is not available yet, but your progress still matters. Head back and keep
+        practicing while we finish building the next part of the experience.
+      </p>
+
+      <div class="actions">
+        <a class="btn btn-primary" href="{% if back_url %}{{ back_url }}{% else %}/dashboard/{% endif %}">
+          Back to dashboard
+        </a>
+
+        <a class="btn btn-secondary" href="/">
+          Home
+        </a>
+      </div>
+
+      <div class="helper">
+        Thanks for being early. Vitamova is still growing, and new features are on the way.
+      </div>
+    </section>
+  </main>
+</body>
+</html>

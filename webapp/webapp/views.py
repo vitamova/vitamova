@@ -973,3 +973,51 @@ def subscribe(request):
         "language": "Spanish",
         "first_name": "Wesley"
     })
+
+def vocab_builder(request):
+    if not request.user.is_authenticated:
+        return redirect("login")
+
+    if not is_registered_user(request.user):
+        return redirect("/register/")
+
+    if not is_user_subscribed(request.user):
+        return redirect("/subscribe/")
+
+    return render(request, "coming_soon.html", {
+        "feature_name": "Vocab Builder",
+        "message": "Vocab Builder is coming soon! In the meantime, you can review and practice the words you've already learned in the Review and Reading Practice sections.",
+        "back_url": "/",
+    })
+
+def review(request):
+    if not request.user.is_authenticated:
+        return redirect("login")
+
+    if not is_registered_user(request.user):
+        return redirect("/register/")
+
+    if not is_user_subscribed(request.user):
+        return redirect("/subscribe/")
+
+    return render(request, "coming_soon.html", {
+        "feature_name": "Review",
+        "message": "Review is coming soon! In the meantime, you can practice the words you've already learned in the Reading Practice section.",
+        "back_url": "/",
+    })
+
+def reading_practice(request):
+    if not request.user.is_authenticated:
+        return redirect("login")
+
+    if not is_registered_user(request.user):
+        return redirect("/register/")
+
+    if not is_user_subscribed(request.user):
+        return redirect("/subscribe/")
+
+    return render(request, "coming_soon.html", {
+        "feature_name": "Reading Practice",
+        "message": "Reading Practice is coming soon! In the meantime, you can review and practice the words you've already learned in the Review section.",
+        "back_url": "/",
+    })
