@@ -425,6 +425,25 @@
           </select>
         </div>
 
+        <div class="field">
+          <div class="label-row">
+            <label for="second_target_language">Second target language</label>
+            <span class="info" tabindex="0" aria-label="More second target language information">
+              i
+              <span class="info-text">Optional. This should be different from your first target language.</span>
+            </span>
+          </div>
+
+          <select class="select" id="second_target_language" name="second_target_language">
+            <option value="">None</option>
+            {% for language in target_language_options %}
+              <option value="{{ language.code }}">{{ language.name }}</option>
+            {% endfor %}
+          </select>
+        </div>
+          
+        </div>
+
         <div class="terms">
           <strong>Terms and Conditions</strong>
           <p>
@@ -459,6 +478,33 @@
         </div>
       </form>
     </section>
+    <script>
+      document.addEventListener("DOMContentLoaded", function () {
+        const firstTarget = document.getElementById("target_language");
+        const secondTarget = document.getElementById("second_target_language");
+
+        function updateSecondTargetOptions() {
+          const firstValue = firstTarget.value;
+
+          for (const option of secondTarget.options) {
+            if (option.value && option.value === firstValue) {
+              option.disabled = true;
+            } else {
+              option.disabled = false;
+            }
+          }
+
+          if (secondTarget.value === firstValue) {
+            secondTarget.value = "";
+          }
+        }
+
+        firstTarget.addEventListener("change", updateSecondTargetOptions);
+        secondTarget.addEventListener("change", updateSecondTargetOptions);
+
+        updateSecondTargetOptions();
+      });
+    </script>
   </main>
 </body>
 </html>
