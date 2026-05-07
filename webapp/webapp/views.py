@@ -27,24 +27,24 @@ with open(stripe_key_path, 'r') as f:
 
 
 # Define supported target languages
-SUPPORTED_LANGUAGES = {
-    1: {
+SUPPORTED_LANGUAGES = [
+    {
         "code": "es",
         "name": "Spanish"
     },
-    2: {
+    {
         "code": "ru",
         "name": "Russian"
     }
-}
+]
 
 # Define supported native languages
-SUPPORTED_NATIVE_LANGUAGES = {
-    1: {
+SUPPORTED_NATIVE_LANGUAGES = [
+    {
         "code": "en",
         "name": "English"
     }
-}
+]
 
 # Helper functions
 
