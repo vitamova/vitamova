@@ -3,6 +3,7 @@ from django.db import connection
 from django.views.decorators.http import require_POST
 from django.utils import timezone
 from django.http import JsonResponse
+from .decorators import registered_subscribed_required
 import stripe
 from datetime import date
 from pathlib import Path
@@ -972,6 +973,7 @@ def subscribe(request):
         "first_name": "Wesley"
     })
 
+@registered_subscribed_required
 def vocab_builder(request):
     if not request.user.is_authenticated:
         return redirect("login")
@@ -988,12 +990,10 @@ def vocab_builder(request):
         "back_url": "/",
     })
 
+@registered_subscribed_required
 def review(request):
     if not request.user.is_authenticated:
         return redirect("login")
-
-    if not is_registered_user(request.user):
-        return redirect("/register/")
 
     if not is_user_subscribed(request.user):
         return redirect("/subscribe/")
@@ -1004,12 +1004,10 @@ def review(request):
         "back_url": "/",
     })
 
+@registered_subscribed_required
 def reading_practice(request):
     if not request.user.is_authenticated:
         return redirect("/login/")
-
-    if not is_registered_user(request.user):
-        return redirect("/register/")
 
     if not is_user_subscribed(request.user):
         return redirect("/subscribe/")
