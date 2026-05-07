@@ -25,6 +25,18 @@ stripe_key_path = Path.home() / 'data' / 'stripe_key.txt'
 with open(stripe_key_path, 'r') as f:
     stripe.api_key = f.read().strip()
 
+
+# Define supported target languages
+SUPPORTED_LANGUAGES = {
+    "es": "Spanish",
+    "ru": "Russian"
+}
+
+# Define supported native languages
+SUPPORTED_NATIVE_LANGUAGES = {
+    "en": "English"
+}
+
 # Helper functions
 
 def is_registered_user(user):
@@ -395,7 +407,9 @@ def register(request):
 
     elif request.method == 'GET':
         return render(request, 'register.html', {
-            'first_name': request.user.first_name
+            'first_name': request.user.first_name,
+            "native_language_options": SUPPORTED_NATIVE_LANGUAGES,
+            "target_language_options": SUPPORTED_LANGUAGES
         })
 
 

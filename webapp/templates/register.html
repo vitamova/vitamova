@@ -394,17 +394,19 @@
         {% csrf_token %}
 
         <div class="field">
-        <div class="label-row">
+          <div class="label-row">
             <label for="native_language">Native language</label>
             <span class="info" tabindex="0" aria-label="More native language information">
-            i
-            <span class="info-text">More languages will be added in the future.</span>
+              i
+              <span class="info-text">More languages will be added in the future.</span>
             </span>
-        </div>
+          </div>
 
-        <select class="select" id="native_language" name="native_language" required>
-            <option value="en">English</option>
-        </select>
+          <select class="select" id="native_language" name="native_language" required>
+            {% for language in native_language_options %}
+              <option value="{{ language.code }}">{{ language.name }}</option>
+            {% endfor %}
+          </select>
         </div>
 
         <div class="field">
@@ -417,7 +419,9 @@
           </div>
 
           <select class="select" id="target_language" name="target_language" required>
-            <option value="es">Spanish</option>
+            {% for language in target_language_options %}
+              <option value="{{ language.code }}">{{ language.name }}</option>
+            {% endfor %}
           </select>
         </div>
 
