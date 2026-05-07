@@ -222,7 +222,9 @@ def home(request):
         "subscribed",
         "subscription_expiration",
         "stripe_customer_id",
-        "vocab_score"
+        "vocab_score",
+        "target_language",
+        "second_target_language"
         )
 
     subscribed, subscription_expiration, stripe_customer_id, vocab_score = (
@@ -231,24 +233,13 @@ def home(request):
         registered_user.get("stripe_customer_id"),
         registered_user.get("vocab_score"),
     )
-    
+
     #See if language is specified as a query parameter
-    target_language = request.GET.get("language")
+    language = request.GET.get("language")
 
     #Get target_language value from registered_user table to pass to template
-    if not target_language:
-        with connection.cursor() as cursor:
-            cursor.execute(
-                """
-                SELECT target_language
-                FROM registered_user
-                WHERE user_id = %s
-                LIMIT 1
-                """,
-                [request.user.id]
-            )
-            target_language_row = cursor.fetchone()
-            target_language = target_language_row[0] if target_language_row else None
+    if not language:
+        language = registered_user.get("target_language", "es")
 
     with connection.cursor() as cursor:
         cursor.execute(
@@ -262,7 +253,7 @@ def home(request):
             """,
             [
                 request.user.id,
-                target_language,
+                language,
                 timezone.now(),
             ]
         )
@@ -276,11 +267,8 @@ def home(request):
             "user_email": request.user.email,
             "has_score": vocab_score != -1,
             "review_count": review_count,
-            "language": target_language,
-            "language_options": [
-                {"code": "ru", "name": "Russian"},
-                {"code": "es", "name": "Spanish"}
-                ]
+            "language": language,
+            "language_options": vitalib.UserInfo.Get(connection, request.user.id).languages()
             })
 
     # If the local table says the user is unsubscribed or expired,

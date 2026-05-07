@@ -178,6 +178,16 @@ class UserInfo:
             with self.conn.cursor() as cur:
                 cur.execute("SELECT vocab_score FROM registered_user WHERE user_id=%s", (self.user_id,))
                 return cur.fetchone()[0]
+        def languages(self):
+            with self.conn.cursor() as cur:
+                cur.execute("SELECT target_language, second_target_language FROM registered_user WHERE user_id=%s", (self.user_id,))
+                row = cur.fetchone()
+                if row:
+                    return [
+                        {"code": row[0], "name": LANGUAGE_MAP.get(row[0], row[0])},
+                        {"code": row[1], "name": LANGUAGE_MAP.get(row[1], row[1])}
+                    ]
+                return []
 
 class vocabulary:
     @staticmethod
