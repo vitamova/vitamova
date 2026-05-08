@@ -437,11 +437,30 @@ def account(request):
         request.user.last_name = last_name.strip()
         request.user.save()
         # Now update the UserInfo table with the language preferences
-        user_info = vitalib.UserInfo.Update(connection, request.user.id).data(
+        vitalib.UserInfo.Update(connection, request.user.id).data(
             native_language=native_language,
             target_language=target_language,
             second_target_language=second_target_language
         )
+
+        user_info = vitalib.UserInfo.Get(connection, request.user.id).data(
+            "native_language",
+            "target_language",
+            "second_target_language"
+        )
+
+        return JsonResponse({
+            "success": True,
+            "message": "Account updated successfully.",
+            "account": {
+                "email": request.user.email,
+                "first_name": request.user.first_name,
+                "last_name": request.user.last_name,
+                "native_language": user_info.get("native_language"),
+                "target_language": user_info.get("target_language"),
+                "second_target_language": user_info.get("second_target_language")
+            }
+        })
 
 
     if request.method == 'GET':
