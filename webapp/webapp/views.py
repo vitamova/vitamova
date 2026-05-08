@@ -230,6 +230,9 @@ def create_customer_portal_session(request):
     portal_session = stripe.billing_portal.Session.create(
         customer=stripe_customer_id,
         return_url=request.build_absolute_uri("/"),
+        branding_settings={
+            "display_name": "Vitamova"
+        },
     )
 
     return redirect(portal_session.url)
