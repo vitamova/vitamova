@@ -229,6 +229,7 @@ def create_customer_portal_session(request):
 
     portal_session = stripe.billing_portal.Session.create(
         customer=stripe_customer_id,
+        configuration="bpc_1TUd3xKOiNtX3WewK8WfAXcK",
         return_url=request.build_absolute_uri("/")
     )
 
