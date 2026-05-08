@@ -214,6 +214,25 @@ def create_checkout_session(request):
     except Exception as e:
         print(f"Error creating Stripe checkout session: {e}")
         return redirect("/subscribe/")
+    
+@require_POST
+@registered_logged_in_required
+def create_customer_portal_session(request):
+    user_data = vitalib.UserInfo.Get(connection, request.user.id).data(
+        "stripe_customer_id"
+    )
+
+    stripe_customer_id = user_data.get("stripe_customer_id")
+
+    if not stripe_customer_id:
+        return redirect("/subscribe/")
+
+    portal_session = stripe.billing_portal.Session.create(
+        customer=stripe_customer_id,
+        return_url=request.build_absolute_uri("/"),
+    )
+
+    return redirect(portal_session.url)
 
 @registered_logged_in_required
 def home(request):

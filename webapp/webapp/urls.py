@@ -23,6 +23,7 @@ urlpatterns = [
     path('accounts/', include('allauth.urls')),
     path('register/', views.register, name='register'),
     path('create-checkout-session/', views.create_checkout_session, name='create-checkout-session'),
+    path('create-customer-portal-session/', views.create_customer_portal_session, name='create-customer-portal-session'),
     path('vocab-test/', views.vocab_test, name='vocab-test'),
     path('subscribe/', views.subscribe, name='subscribe'),
     path('flag-question/', views.flag_question, name='flag-question'),
