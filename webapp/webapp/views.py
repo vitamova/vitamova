@@ -388,6 +388,7 @@ def account(request):
     )
     return render(request, "account.html", {
         "first_name": request.user.first_name,
+        "last_name": request.user.last_name,
         "user_email": request.user.email,
         "native_language": user_data.get("native_language"),
         "target_language": user_data.get("target_language"),
