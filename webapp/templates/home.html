@@ -548,23 +548,25 @@
           </div>
         </form>
 
-        <div class="account">
-          <button class="account-button" type="button" id="accountButton" aria-haspopup="true" aria-expanded="false">
-            <span class="account-email">{{ user_email }}</span>
-            <span class="account-avatar">{{ first_name|first|upper }}</span>
-          </button>
+      <div class="account">
+        <button class="account-button" type="button" id="accountButton" aria-haspopup="true" aria-expanded="false">
+          <span class="account-email">{{ user_email }}</span>
+          <span class="account-avatar">{{ first_name|first|upper }}</span>
+        </button>
 
-          <nav class="account-menu" id="accountMenu" aria-label="Account menu">
-            <a href="/account/">Edit account</a>
-            <form method="POST" action="/create-customer-portal-session/" class="account-menu-form">
-              {% csrf_token %}
-              <button type="submit" class="account-menu-link">
-                Manage subscription
-              </button>
-            </form>            
-            <a href="/accounts/logout/">Sign out</a>
-          </nav>
-        </div>
+        <nav class="account-menu" id="accountMenu" aria-label="Account menu">
+          <a href="/account/">Edit account</a>
+
+          <form method="POST" action="/create-customer-portal-session/" class="account-menu-form">
+            {% csrf_token %}
+            <button type="submit" class="account-menu-link">
+              Manage subscription
+            </button>
+          </form>
+
+          <a href="/accounts/logout/">Sign out</a>
+        </nav>
+      </div>
       </div>
     </header>
 
