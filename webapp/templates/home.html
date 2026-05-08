@@ -172,6 +172,20 @@
       flex-shrink: 0;
     }
 
+    .account-menu {
+      display: none;
+      position: absolute;
+      top: calc(100% + 10px);
+      right: 0;
+      min-width: 210px;
+      padding: 8px;
+      background: white;
+      border: 1px solid var(--border);
+      border-radius: 16px;
+      box-shadow: 0 18px 45px rgba(24, 42, 100, 0.12);
+      z-index: 50;
+    }
+
     .account-menu.is-open {
       display: block;
     }
@@ -179,27 +193,6 @@
     .account-menu-form {
       margin: 0;
       padding: 0;
-    }
-
-    .account-menu-button {
-      display: block;
-      width: 100%;
-      color: var(--text-dark);
-      text-decoration: none;
-      padding: 10px 11px;
-      border-radius: 11px;
-      font-weight: 700;
-      font-size: 0.92rem;
-      font-family: inherit;
-      line-height: inherit;
-      text-align: left;
-      background: none;
-      border: none;
-      cursor: pointer;
-    }
-
-    .account-menu-button:hover {
-      background: #f7f9ff;
     }
 
     .account-menu a,
