@@ -172,35 +172,35 @@
       flex-shrink: 0;
     }
 
-    .account-menu {
-      display: none;
-      position: absolute;
-      right: 0;
-      top: calc(100% + 10px);
-      width: 220px;
-      background: white;
-      border: 1px solid var(--border);
-      border-radius: 16px;
-      box-shadow: var(--shadow);
-      padding: 8px;
-      z-index: 10;
-    }
-
     .account-menu.is-open {
       display: block;
     }
 
-    .account-menu a {
+    .account-menu-form {
+      margin: 0;
+      padding: 0;
+    }
+
+    .account-menu a,
+    .account-menu-link {
       display: block;
+      width: 100%;
       color: var(--text-dark);
       text-decoration: none;
       padding: 10px 11px;
       border-radius: 11px;
       font-weight: 700;
       font-size: 0.92rem;
+      font-family: inherit;
+      line-height: inherit;
+      text-align: left;
+      background: none;
+      border: none;
+      cursor: pointer;
     }
 
-    .account-menu a:hover {
+    .account-menu a:hover,
+    .account-menu-link:hover {
       background: #f7f9ff;
     }
 
