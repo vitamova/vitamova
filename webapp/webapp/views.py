@@ -402,11 +402,12 @@ def account(request):
             }
         }
         # We'll start with error checking. All fields are required except second_target_language
-        first_name = request.POST.get("first_name")
-        last_name = request.POST.get("last_name")
-        native_language = request.POST.get("native_language")
-        target_language = request.POST.get("target_language")
-        second_target_language = request.POST.get("second_target_language")
+        data = json.loads(request.body.decode("utf-8"))
+        first_name = data.get("first_name")
+        last_name = data.get("last_name")
+        native_language = data.get("native_language")
+        target_language = data.get("target_language")
+        second_target_language = data.get("second_target_language")
         if not first_name or not last_name or not native_language or not target_language:
             return JsonResponse({
                 "success": False,
