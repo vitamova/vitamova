@@ -535,7 +535,12 @@
 
           <nav class="account-menu" id="accountMenu" aria-label="Account menu">
             <a href="/account/">Edit account</a>
-            <a href="/subscribe/">Manage subscription</a>
+            <form method="POST" action="/create-customer-portal-session/" class="account-menu-form">
+              {% csrf_token %}
+              <button type="submit" class="account-menu-link">
+                Manage subscription
+              </button>
+            </form>            
             <a href="/accounts/logout/">Sign out</a>
           </nav>
         </div>
