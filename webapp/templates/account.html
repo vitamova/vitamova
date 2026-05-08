@@ -1,0 +1,702 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <link rel="icon" href="/static/icon.png">
+  <link rel="manifest" href="/static/manifest.webmanifest">
+  <meta name="theme-color" content="#1f5eff">
+
+  <meta name="apple-mobile-web-app-capable" content="yes">
+  <meta name="apple-mobile-web-app-title" content="Vitamova">
+  <meta name="apple-mobile-web-app-status-bar-style" content="default">
+  <link rel="apple-touch-icon" href="/static/icon-192.png">
+
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+
+  <title>Vitamova | Account</title>
+
+  <style>
+    :root {
+      --vita-yellow: #ffd54a;
+      --vita-yellow-dark: #f4bf20;
+      --vita-blue: #1f5eff;
+      --vita-blue-dark: #1748c6;
+      --bg-soft: #f7f9ff;
+      --text-dark: #1a1f36;
+      --text-muted: #667085;
+      --card: #ffffff;
+      --border: #e6eaf2;
+      --shadow: 0 18px 45px rgba(24, 42, 100, 0.12);
+      --danger: #b42318;
+      --success: #067647;
+      --success-bg: #ecfdf3;
+      --warning-bg: #fff8e6;
+      --warning: #92400e;
+    }
+
+    * {
+      box-sizing: border-box;
+    }
+
+    body {
+      margin: 0;
+      font-family: Inter, ui-sans-serif, system-ui, -apple-system, Segoe UI, Roboto, Helvetica, Arial, sans-serif;
+      color: var(--text-dark);
+      background:
+        radial-gradient(circle at 10% 10%, rgba(255, 213, 74, 0.25), transparent 40%),
+        radial-gradient(circle at 90% 20%, rgba(31, 94, 255, 0.20), transparent 42%),
+        linear-gradient(180deg, #fdfefe 0%, var(--bg-soft) 100%);
+      min-height: 100vh;
+      padding: 24px;
+    }
+
+    .page {
+      width: 100%;
+      max-width: 860px;
+      min-height: calc(100vh - 48px);
+      margin: 0 auto;
+      display: flex;
+      flex-direction: column;
+      justify-content: center;
+      gap: 22px;
+    }
+
+    .brand {
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      gap: 10px;
+      font-weight: 800;
+      font-size: 1.15rem;
+      letter-spacing: 0.2px;
+      color: var(--text-dark);
+    }
+
+    .brand-badge {
+      width: 42px;
+      height: 42px;
+      border-radius: 12px;
+      overflow: hidden;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      box-shadow: 0 8px 20px rgba(20, 27, 52, 0.08);
+    }
+
+    .brand-icon {
+      width: 100%;
+      height: 100%;
+      object-fit: cover;
+      display: block;
+    }
+
+    .account-card {
+      background: var(--card);
+      border: 1px solid var(--border);
+      border-radius: 28px;
+      box-shadow: var(--shadow);
+      padding: 32px;
+    }
+
+    .header {
+      text-align: center;
+      max-width: 640px;
+      margin: 0 auto 28px;
+    }
+
+    .header h1 {
+      margin: 0;
+      font-size: clamp(2rem, 4vw, 3rem);
+      line-height: 1.05;
+      letter-spacing: -0.04em;
+    }
+
+    .header p {
+      margin: 12px auto 0;
+      color: var(--text-muted);
+      line-height: 1.55;
+      font-size: 1rem;
+      max-width: 58ch;
+    }
+
+    .message {
+      display: none;
+      margin: 0 auto 22px;
+      border-radius: 14px;
+      padding: 12px 14px;
+      font-size: 0.92rem;
+      line-height: 1.4;
+      max-width: 640px;
+      text-align: center;
+      font-weight: 700;
+    }
+
+    .message.is-visible {
+      display: block;
+    }
+
+    .message.error {
+      color: var(--danger);
+      background: #fff3f0;
+      border: 1px solid #ffd6cc;
+    }
+
+    .message.success {
+      color: var(--success);
+      background: var(--success-bg);
+      border: 1px solid #abefc6;
+    }
+
+    .section-stack {
+      display: grid;
+      gap: 18px;
+      max-width: 640px;
+      margin: 0 auto;
+    }
+
+    .form {
+      display: grid;
+      gap: 18px;
+    }
+
+    .field {
+      display: grid;
+      gap: 8px;
+    }
+
+    label {
+      font-size: 0.92rem;
+      font-weight: 800;
+      color: var(--text-dark);
+    }
+
+    .field-note {
+      color: var(--text-muted);
+      font-size: 0.82rem;
+      line-height: 1.4;
+    }
+
+    .input,
+    .select {
+      width: 100%;
+      border: 1px solid var(--border);
+      border-radius: 14px;
+      padding: 13px 14px;
+      background: #fbfcff;
+      color: var(--text-dark);
+      font-size: 1rem;
+      font-family: inherit;
+      outline: none;
+      transition: border-color 0.15s ease, box-shadow 0.15s ease, background-color 0.15s ease;
+    }
+
+    .input:focus,
+    .select:focus {
+      border-color: rgba(31, 94, 255, 0.55);
+      box-shadow: 0 0 0 4px rgba(31, 94, 255, 0.10);
+      background: #ffffff;
+    }
+
+    .input[readonly] {
+      color: var(--text-muted);
+      background: #f5f7fb;
+      cursor: not-allowed;
+    }
+
+    .language-grid {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 18px;
+    }
+
+    .subscription-box {
+      border: 1px solid var(--border);
+      border-radius: 20px;
+      padding: 18px;
+      background:
+        radial-gradient(circle at 95% 10%, rgba(255, 213, 74, 0.20), transparent 34%),
+        #fbfcff;
+      display: grid;
+      gap: 14px;
+    }
+
+    .subscription-header {
+      display: flex;
+      align-items: flex-start;
+      justify-content: space-between;
+      gap: 16px;
+    }
+
+    .subscription-title {
+      display: grid;
+      gap: 5px;
+    }
+
+    .subscription-title h2 {
+      margin: 0;
+      font-size: 1.05rem;
+      letter-spacing: -0.02em;
+    }
+
+    .subscription-title p {
+      margin: 0;
+      color: var(--text-muted);
+      line-height: 1.45;
+      font-size: 0.9rem;
+    }
+
+    .status-badge {
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      border-radius: 999px;
+      padding: 7px 10px;
+      font-size: 0.78rem;
+      font-weight: 900;
+      white-space: nowrap;
+    }
+
+    .status-badge.active {
+      color: var(--success);
+      background: var(--success-bg);
+      border: 1px solid #abefc6;
+    }
+
+    .status-badge.inactive {
+      color: var(--warning);
+      background: var(--warning-bg);
+      border: 1px solid #fedf89;
+    }
+
+    .subscription-actions {
+      display: flex;
+      justify-content: flex-start;
+    }
+
+    .subscription-actions form {
+      margin: 0;
+      width: 100%;
+    }
+
+    .actions {
+      display: flex;
+      justify-content: space-between;
+      gap: 12px;
+      margin-top: 8px;
+      flex-wrap: wrap;
+    }
+
+    .btn {
+      border: none;
+      border-radius: 14px;
+      padding: 14px 18px;
+      font-size: 0.98rem;
+      font-weight: 800;
+      cursor: pointer;
+      transition: transform 0.04s ease, box-shadow 0.15s ease, background-color 0.15s ease, border-color 0.15s ease;
+      text-decoration: none;
+      text-align: center;
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      min-width: 160px;
+      font-family: inherit;
+    }
+
+    .btn:active {
+      transform: translateY(1px);
+    }
+
+    .btn:disabled {
+      opacity: 0.65;
+      cursor: not-allowed;
+    }
+
+    .btn-primary {
+      background: var(--vita-blue);
+      color: white;
+      box-shadow: 0 8px 20px rgba(31, 94, 255, 0.18);
+    }
+
+    .btn-primary:hover {
+      background: var(--vita-blue-dark);
+    }
+
+    .btn-secondary {
+      background: white;
+      color: var(--vita-blue);
+      border: 1px solid rgba(31, 94, 255, 0.22);
+      box-shadow: 0 8px 20px rgba(20, 27, 52, 0.05);
+    }
+
+    .btn-secondary:hover {
+      background: #fbfcff;
+      border-color: rgba(31, 94, 255, 0.35);
+    }
+
+    .btn-subscription {
+      width: 100%;
+      background: white;
+      color: var(--vita-blue);
+      border: 1px solid rgba(31, 94, 255, 0.22);
+      box-shadow: 0 8px 20px rgba(20, 27, 52, 0.05);
+    }
+
+    .btn-subscription:hover {
+      background: #f7f9ff;
+      border-color: rgba(31, 94, 255, 0.35);
+    }
+
+    .helper {
+      margin: 18px auto 0;
+      color: var(--text-muted);
+      font-size: 0.88rem;
+      line-height: 1.45;
+      text-align: center;
+      max-width: 56ch;
+    }
+
+    @media (max-width: 720px) {
+      body {
+        padding: 18px;
+      }
+
+      .page {
+        min-height: calc(100vh - 36px);
+      }
+
+      .account-card {
+        padding: 26px 20px;
+      }
+
+      .language-grid {
+        grid-template-columns: 1fr;
+      }
+
+      .subscription-header {
+        flex-direction: column;
+        align-items: flex-start;
+      }
+
+      .actions {
+        flex-direction: column-reverse;
+      }
+
+      .btn {
+        width: 100%;
+      }
+    }
+  </style>
+</head>
+
+<body>
+  <main class="page">
+    <div class="brand">
+      <div class="brand-badge">
+        <img src="/static/icon.png" alt="Vitamova icon" class="brand-icon">
+      </div>
+      <span>Vitamova</span>
+    </div>
+
+    <section class="account-card" aria-label="Account management">
+      <div class="header">
+        <h1>Manage your account</h1>
+        <p>
+          Keep your profile, subscription, and language settings up to date so Vitamova can
+          personalize your practice around the languages you are learning.
+        </p>
+      </div>
+
+      <div class="message success" id="successMessage"></div>
+      <div class="message error" id="errorMessage"></div>
+
+      <div class="section-stack">
+        <div class="field">
+          <label for="email">Email</label>
+          <input
+            class="input"
+            id="email"
+            name="email"
+            type="email"
+            value="{{ user_email }}"
+            readonly
+          >
+          <div class="field-note">
+            Your email is managed by your sign-in provider.
+          </div>
+        </div>
+
+        <div class="subscription-box" aria-label="Subscription status">
+          <div class="subscription-header">
+            <div class="subscription-title">
+              <h2>Subscription</h2>
+
+              {% if subscribed %}
+                <p>
+                  Your Vitamova subscription is active{% if subscription_expiration %} through {{ subscription_expiration }}{% endif %}.
+                </p>
+              {% else %}
+                <p>
+                  You do not currently have an active Vitamova subscription.
+                </p>
+              {% endif %}
+            </div>
+
+            {% if subscribed %}
+              <span class="status-badge active">Active</span>
+            {% else %}
+              <span class="status-badge inactive">Inactive</span>
+            {% endif %}
+          </div>
+
+          <div class="subscription-actions">
+            {% if subscribed %}
+              <form method="POST" action="/create-customer-portal-session/">
+                {% csrf_token %}
+                <button class="btn btn-subscription" type="submit">
+                  Manage subscription
+                </button>
+              </form>
+            {% else %}
+              <a class="btn btn-subscription" href="/subscribe/">
+                Subscribe
+              </a>
+            {% endif %}
+          </div>
+        </div>
+
+        <form class="form" id="accountForm">
+          {% csrf_token %}
+
+          <div class="language-grid">
+            <div class="field">
+              <label for="first_name">First name</label>
+              <input
+                class="input"
+                id="first_name"
+                name="first_name"
+                type="text"
+                value="{{ first_name }}"
+                autocomplete="given-name"
+                required
+              >
+            </div>
+
+            <div class="field">
+              <label for="last_name">Last name</label>
+              <input
+                class="input"
+                id="last_name"
+                name="last_name"
+                type="text"
+                value="{{ last_name }}"
+                autocomplete="family-name"
+              >
+            </div>
+          </div>
+
+          <div class="field">
+            <label for="native_language">Native language</label>
+            <select class="select" id="native_language" name="native_language" required>
+              {% for language in native_language_options %}
+                <option value="{{ language.code }}" {% if language.code == native_language %}selected{% endif %}>
+                  {{ language.name }}
+                </option>
+              {% endfor %}
+            </select>
+          </div>
+
+          <div class="language-grid">
+            <div class="field">
+              <label for="target_language">Primary target language</label>
+              <select class="select" id="target_language" name="target_language" required>
+                {% for language in target_language_options %}
+                  <option value="{{ language.code }}" {% if language.code == target_language %}selected{% endif %}>
+                    {{ language.name }}
+                  </option>
+                {% endfor %}
+              </select>
+            </div>
+
+            <div class="field">
+              <label for="second_target_language">Secondary target language</label>
+              <select class="select" id="second_target_language" name="second_target_language">
+                <option value="">None</option>
+                {% for language in target_language_options %}
+                  <option value="{{ language.code }}" {% if language.code == second_target_language %}selected{% endif %}>
+                    {{ language.name }}
+                  </option>
+                {% endfor %}
+              </select>
+              <div class="field-note">
+                Optional. This must be different from your primary target language.
+              </div>
+            </div>
+          </div>
+
+          <div class="actions">
+            <a class="btn btn-secondary" href="/">
+              Home
+            </a>
+
+            <button class="btn btn-primary" id="saveButton" type="submit">
+              Save changes
+            </button>
+          </div>
+        </form>
+      </div>
+
+      <div class="helper">
+        Changes to your target languages may affect future practice recommendations.
+      </div>
+    </section>
+  </main>
+
+  <script>
+    const accountForm = document.getElementById("accountForm");
+    const saveButton = document.getElementById("saveButton");
+    const successMessage = document.getElementById("successMessage");
+    const errorMessage = document.getElementById("errorMessage");
+
+    const firstName = document.getElementById("first_name");
+    const lastName = document.getElementById("last_name");
+    const nativeLanguage = document.getElementById("native_language");
+    const firstTarget = document.getElementById("target_language");
+    const secondTarget = document.getElementById("second_target_language");
+
+    function getCookie(name) {
+      const cookies = document.cookie ? document.cookie.split(";") : [];
+
+      for (let i = 0; i < cookies.length; i++) {
+        const cookie = cookies[i].trim();
+
+        if (cookie.substring(0, name.length + 1) === (name + "=")) {
+          return decodeURIComponent(cookie.substring(name.length + 1));
+        }
+      }
+
+      return null;
+    }
+
+    function showSuccess(message) {
+      errorMessage.classList.remove("is-visible");
+      errorMessage.textContent = "";
+
+      successMessage.textContent = message;
+      successMessage.classList.add("is-visible");
+    }
+
+    function showError(message) {
+      successMessage.classList.remove("is-visible");
+      successMessage.textContent = "";
+
+      errorMessage.textContent = message;
+      errorMessage.classList.add("is-visible");
+    }
+
+    function clearMessages() {
+      successMessage.classList.remove("is-visible");
+      successMessage.textContent = "";
+
+      errorMessage.classList.remove("is-visible");
+      errorMessage.textContent = "";
+    }
+
+    function updateSecondTargetOptions() {
+      const firstValue = firstTarget.value;
+
+      for (const option of secondTarget.options) {
+        if (option.value && option.value === firstValue) {
+          option.disabled = true;
+        } else {
+          option.disabled = false;
+        }
+      }
+
+      if (secondTarget.value === firstValue) {
+        secondTarget.value = "";
+      }
+    }
+
+    firstTarget.addEventListener("change", updateSecondTargetOptions);
+    secondTarget.addEventListener("change", updateSecondTargetOptions);
+
+    updateSecondTargetOptions();
+
+    accountForm.addEventListener("submit", async function (event) {
+      event.preventDefault();
+      clearMessages();
+
+      const payload = {
+        first_name: firstName.value.trim(),
+        last_name: lastName.value.trim(),
+        native_language: nativeLanguage.value,
+        target_language: firstTarget.value,
+        second_target_language: secondTarget.value || null
+      };
+
+      if (!payload.first_name) {
+        showError("First name is required.");
+        return;
+      }
+
+      if (!payload.native_language) {
+        showError("Native language is required.");
+        return;
+      }
+
+      if (!payload.target_language) {
+        showError("Primary target language is required.");
+        return;
+      }
+
+      if (
+        payload.second_target_language &&
+        payload.second_target_language === payload.target_language
+      ) {
+        showError("Secondary target language must be different from primary target language.");
+        return;
+      }
+
+      saveButton.disabled = true;
+      saveButton.textContent = "Saving...";
+
+      try {
+        const response = await fetch("/account/", {
+          method: "POST",
+          headers: {
+            "Content-Type": "application/json",
+            "X-CSRFToken": getCookie("csrftoken")
+          },
+          body: JSON.stringify(payload)
+        });
+
+        const data = await response.json();
+
+        if (!response.ok || !data.success) {
+          throw new Error(data.error || "Unable to update account.");
+        }
+
+        showSuccess(data.message || "Account updated successfully.");
+      } catch (error) {
+        showError(error.message || "Something went wrong updating your account.");
+      } finally {
+        saveButton.disabled = false;
+        saveButton.textContent = "Save changes";
+      }
+    });
+
+    if ("serviceWorker" in navigator) {
+      window.addEventListener("load", function () {
+        navigator.serviceWorker.register("/service-worker.js")
+          .then(function (registration) {
+            console.log("Vitamova service worker registered:", registration.scope);
+          })
+          .catch(function (error) {
+            console.log("Vitamova service worker registration failed:", error);
+          });
+      });
+    }
+  </script>
+</body>
+</html>

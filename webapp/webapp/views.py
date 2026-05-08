@@ -377,6 +377,10 @@ def register(request):
             "native_language_options": SUPPORTED_NATIVE_LANGUAGES,
             "target_language_options": SUPPORTED_LANGUAGES
         })
+    
+@registered_logged_in_required
+def account(request):
+    return render(request, "account.html")
 
 @registered_logged_in_required
 def vocab_test(request):
