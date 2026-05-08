@@ -380,24 +380,88 @@ def register(request):
     
 @registered_logged_in_required
 def account(request):
-    user_data = vitalib.UserInfo.Get(connection, request.user.id).data(
-        "native_language",
-        "target_language",
-        "second_target_language",
-        "subscription_expiration",
-    )
-    return render(request, "account.html", {
-        "first_name": request.user.first_name,
-        "last_name": request.user.last_name,
-        "user_email": request.user.email,
-        "native_language": user_data.get("native_language"),
-        "target_language": user_data.get("target_language"),
-        "second_target_language": user_data.get("second_target_language"),
-        "native_language_options": SUPPORTED_NATIVE_LANGUAGES,
-        "target_language_options": SUPPORTED_LANGUAGES,
-        "subscribed": is_user_subscribed(request.user),
-        "subscription_expiration": user_data.get("subscription_expiration"),
-    })
+
+    if request.method == 'POST':
+        example_request = {
+            "first_name": "Wesley",
+            "last_name": "Belleman",
+            "native_language": "en",
+            "target_language": "es",
+            "second_target_language": "ru"
+            }
+        example_response = {
+            "success": True,
+            "message": "Account updated successfully.",
+            "account": {
+                "email": "wesley@example.com",
+                "first_name": "Wesley",
+                "last_name": "Belleman",
+                "native_language": "en",
+                "target_language": "es",
+                "second_target_language": "ru"
+            }
+        }
+        # We'll start with error checking. All fields are required except second_target_language
+        first_name = request.POST.get("first_name")
+        last_name = request.POST.get("last_name")
+        native_language = request.POST.get("native_language")
+        target_language = request.POST.get("target_language")
+        second_target_language = request.POST.get("second_target_language")
+        if not first_name or not last_name or not native_language or not target_language:
+            return JsonResponse({
+                "success": False,
+                "message": "Missing required fields."
+            }, status=400)
+        # target_language must be one of the codes in SUPPORTED_LANGUAGES
+        if target_language not in [lang["code"] for lang in SUPPORTED_LANGUAGES]:
+            return JsonResponse({
+                "success": False,
+                "message": "Invalid target language."
+            }, status=400)
+        # native_language must be one of the codes in SUPPORTED_NATIVE_LANGUAGES
+        if native_language not in [lang["code"] for lang in SUPPORTED_NATIVE_LANGUAGES]:
+            return JsonResponse({
+                "success": False,
+                "message": "Invalid native language."
+            }, status=400)
+        # second_target_language must be either empty or one of the codes in SUPPORTED_LANGUAGES
+        if second_target_language and second_target_language not in [lang["code"] for lang in SUPPORTED_LANGUAGES]:
+            return JsonResponse({
+                "success": False,
+                "message": "Invalid second target language."
+            }, status=400)
+        # Now we can update
+        # Start with first_name and last_name
+        request.user.first_name = first_name.strip()
+        request.user.last_name = last_name.strip()
+        request.user.save()
+        # Now update the UserInfo table with the language preferences
+        user_info = vitalib.UserInfo.Update(connection, request.user.id).data(
+            native_language=native_language,
+            target_language=target_language,
+            second_target_language=second_target_language
+        )
+
+
+    if request.method == 'GET':
+        user_data = vitalib.UserInfo.Get(connection, request.user.id).data(
+            "native_language",
+            "target_language",
+            "second_target_language",
+            "subscription_expiration",
+        )
+        return render(request, "account.html", {
+            "first_name": request.user.first_name,
+            "last_name": request.user.last_name,
+            "user_email": request.user.email,
+            "native_language": user_data.get("native_language"),
+            "target_language": user_data.get("target_language"),
+            "second_target_language": user_data.get("second_target_language"),
+            "native_language_options": SUPPORTED_NATIVE_LANGUAGES,
+            "target_language_options": SUPPORTED_LANGUAGES,
+            "subscribed": is_user_subscribed(request.user),
+            "subscription_expiration": user_data.get("subscription_expiration"),
+        })
 
 @registered_logged_in_required
 def vocab_test(request):
