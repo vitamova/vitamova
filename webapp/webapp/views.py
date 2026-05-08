@@ -380,7 +380,23 @@ def register(request):
     
 @registered_logged_in_required
 def account(request):
-    return render(request, "account.html")
+    user_data = vitalib.UserInfo.Get(connection, request.user.id).data(
+        "native_language",
+        "target_language",
+        "second_target_language",
+        "subscription_expiration",
+    )
+    return render(request, "account.html", {
+        "first_name": request.user.first_name,
+        "user_email": request.user.email,
+        "native_language": user_data.get("native_language"),
+        "target_language": user_data.get("target_language"),
+        "second_target_language": user_data.get("second_target_language"),
+        "native_language_options": SUPPORTED_NATIVE_LANGUAGES,
+        "target_language_options": SUPPORTED_LANGUAGES,
+        "subscribed": is_user_subscribed(request.user),
+        "subscription_expiration": user_data.get("subscription_expiration"),
+    })
 
 @registered_logged_in_required
 def vocab_test(request):
