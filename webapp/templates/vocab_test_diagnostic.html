@@ -914,7 +914,8 @@
         answers: currentBatchAnswers,
         all_answers: allAnswersAfterThisBatch,
         questions_per_batch: QUESTIONS_PER_BATCH,
-        total_questions: TOTAL_QUESTIONS
+        total_questions: TOTAL_QUESTIONS,
+        language: "{{ language }}"
       };
 
       const data = await postDiagnostic(payload);
