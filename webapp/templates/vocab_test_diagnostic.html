@@ -574,8 +574,12 @@
       </p>
 
       <div class="word-range" id="wordRange">
-        Estimated vocabulary known: <span>calculating...</span>
+        Estimated vocabulary range: <span>calculating...</span>
       </div>
+
+      <p id="vocabularyContext">
+        Your vocabulary range context will appear here.
+      </p>
 
       <p>
         This score is not a limit. It is a starting point. Vitamova can help you grow from here by
@@ -969,26 +973,147 @@
       await submitCurrentBatchAndLoadNext();
     }
 
-    function estimateWordsKnown(score) {
+    function estimateVocabularyRange(score) {
       const safeScore = Math.max(0, Math.min(6000, Number(score) || 0));
 
-      if (safeScore < 300) {
-        return "You are likely at the beginning of your measured vocabulary range.";
+      const levelRanges = {
+        1: [1, 1500],
+        2: [1501, 3000],
+        3: [3001, 6000],
+        4: [6001, 10000],
+        5: [10001, 15000],
+        6: [15001, 22000]
+      };
+
+      const levelWidth = 1000;
+
+      let level = Math.floor(safeScore / levelWidth) + 1;
+
+      if (safeScore === 0) {
+        level = 1;
       }
 
-      const lower = Math.max(0, Math.floor(safeScore / 1000) * 1000);
-      const upper = Math.min(6000, lower + 1000);
-
-      if (safeScore >= 5950) {
-        return "You are likely beyond the top measured range of this diagnostic.";
+      if (level > 6) {
+        level = 6;
       }
 
-      return `Your current frontier is roughly the ${lower.toLocaleString()} to ${upper.toLocaleString()} word range.`;
+      const levelStartScore = (level - 1) * levelWidth;
+      const progressWithinLevel = Math.max(
+        0,
+        Math.min(1, (safeScore - levelStartScore) / levelWidth)
+      );
+
+      const [bandStart, bandEnd] = levelRanges[level];
+
+      const estimatedCenter = bandStart + progressWithinLevel * (bandEnd - bandStart);
+
+      /*
+        Give the user a range instead of a false-precision exact number.
+        The range gets wider at higher levels because vocabulary size estimates
+        naturally become less precise as word frequency decreases.
+      */
+      const marginByLevel = {
+        1: 150,
+        2: 250,
+        3: 450,
+        4: 700,
+        5: 950,
+        6: 1500
+      };
+
+      const margin = marginByLevel[level];
+
+      let lowEstimate = Math.max(bandStart, Math.round((estimatedCenter - margin) / 50) * 50);
+      let highEstimate = Math.min(bandEnd, Math.round((estimatedCenter + margin) / 50) * 50);
+
+      if (level === 6) {
+        highEstimate = Math.round((estimatedCenter + margin) / 50) * 50;
+      }
+
+      return {
+        level,
+        lowEstimate,
+        highEstimate,
+        description: getVocabularyContext(level, estimatedCenter)
+      };
+    }
+
+    function getVocabularyContext(level, estimatedCenter) {
+      if (level === 1) {
+        if (estimatedCenter < 500) {
+          return "This range indicates an early beginner vocabulary base. You are building the foundation that makes simple recognition and everyday phrases easier.";
+        }
+
+        if (estimatedCenter < 1000) {
+          return "This range suggests a developing beginner foundation. With consistent practice, you can start recognizing more common words and simple patterns.";
+        }
+
+        return "This range is near the upper end of the beginner band. You are approaching the point where common everyday vocabulary becomes more familiar.";
+      }
+
+      if (level === 2) {
+        if (estimatedCenter < 2000) {
+          return "This range suggests a high-beginner to early-intermediate vocabulary. You likely know many common words, with room to strengthen everyday comprehension.";
+        }
+
+        if (estimatedCenter < 2600) {
+          return "This range is consistent with an emerging intermediate learner. You are moving beyond the basics and can benefit from targeted practice with frequent, useful words.";
+        }
+
+        return "This range is near the upper end of the early-intermediate band. You are building the vocabulary needed for more flexible reading and listening.";
+      }
+
+      if (level === 3) {
+        if (estimatedCenter < 4000) {
+          return "This range suggests a solid intermediate vocabulary. You likely recognize many everyday words and are ready to expand into more specific topics and contexts.";
+        }
+
+        if (estimatedCenter < 5200) {
+          return "This range is consistent with a strong intermediate learner. You are developing the vocabulary depth needed for richer reading, listening, and conversation.";
+        }
+
+        return "This range is approaching upper-intermediate vocabulary. You likely have a strong base and can benefit from practice with nuance, register, and less frequent words.";
+      }
+
+      if (level === 4) {
+        if (estimatedCenter < 7500) {
+          return "This range suggests an upper-intermediate vocabulary. You likely understand a broad set of everyday and topical words, with room to grow into more advanced material.";
+        }
+
+        if (estimatedCenter < 9000) {
+          return "This range is consistent with an advanced learner in development. You are likely ready for more authentic reading, listening, and topic-specific vocabulary.";
+        }
+
+        return "This range is near the advanced band. Continued practice can help refine precision, idiomatic usage, and recognition of less common vocabulary.";
+      }
+
+      if (level === 5) {
+        if (estimatedCenter < 12000) {
+          return "This range suggests an advanced vocabulary. You likely have enough word knowledge for many authentic materials, while still benefiting from targeted expansion.";
+        }
+
+        if (estimatedCenter < 14000) {
+          return "This range is consistent with a strong advanced vocabulary. Your next gains will likely come from specialized topics, nuance, and lower-frequency words.";
+        }
+
+        return "This range is near a very advanced vocabulary band. You are moving into the kind of word knowledge associated with broad, flexible comprehension.";
+      }
+
+      if (estimatedCenter < 18000) {
+        return "This range suggests a highly advanced vocabulary. It is approaching the lower range often associated with educated native-like breadth in many contexts.";
+      }
+
+      if (estimatedCenter < 21000) {
+        return "This range is consistent with very broad vocabulary knowledge. It may support native-like comprehension across many general and specialized contexts.";
+      }
+
+      return "This range is in line with exceptional vocabulary breadth. At this level, growth is less about basic coverage and more about precision, nuance, and specialized language.";
     }
 
     function showResult(score) {
       const safeScore = Math.max(0, Math.min(6000, Number(score) || 0));
       const percent = (safeScore / 6000) * 100;
+      const vocabularyEstimate = estimateVocabularyRange(safeScore);
 
       testCard.style.display = "none";
       resultCard.classList.add("is-visible");
@@ -996,8 +1121,16 @@
       scoreRing.style.setProperty("--score-percent", `${percent}%`);
       scoreValue.textContent = safeScore.toLocaleString();
 
-      scoreSummary.textContent = `Your estimated vocabulary score is ${safeScore.toLocaleString()} out of 6,000.`;
-      wordRange.innerHTML = `Estimated vocabulary range: <span>${estimateWordsKnown(safeScore)}</span>`;
+      scoreSummary.textContent = "Vitamova has estimated your current vocabulary level.";
+
+      wordRange.innerHTML = `
+        Estimated vocabulary range:
+        <span>
+          ${vocabularyEstimate.lowEstimate.toLocaleString()}–${vocabularyEstimate.highEstimate.toLocaleString()} words
+        </span>
+      `;
+
+      vocabularyContext.textContent = vocabularyEstimate.description;
 
       window.onbeforeunload = null;
     }
