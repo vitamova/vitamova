@@ -4,4 +4,4 @@ django-allauth>=65.14.1
 psycopg2-binary
 stripe==5.0.0
 openai>=1.82.0
-jwt>=2.8.0
+jwt==1.4.0
