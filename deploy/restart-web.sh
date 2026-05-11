@@ -24,7 +24,7 @@ fi
 
 # Step 3: Clone the latest code
 echo "⬇️ Cloning latest vitamova repo..."
-if git clone git@github.com:vitamova/vitamova.git; then
+if git clone https://github.com/vitamova/vitamova.git; then
   echo "✅ Git clone successful."
 else
   echo "❌ ERROR: Failed to clone repo."

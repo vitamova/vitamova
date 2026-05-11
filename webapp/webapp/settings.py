@@ -33,8 +33,12 @@ if server_type == 'prod':
 else:
     DEBUG = True
 
-ALLOWED_HOSTS = ['app.vitamova.com']
-CSRF_TRUSTED_ORIGINS = ['https://app.vitamova.com']
+if server_type == 'prod':
+    ALLOWED_HOSTS = ['app.vitamova.com']
+    CSRF_TRUSTED_ORIGINS = ['https://app.vitamova.com']
+elif server_type == 'dev':
+    ALLOWED_HOSTS = ['dev.app.vitamova.com']
+    CSRF_TRUSTED_ORIGINS = ['https://dev.app.vitamova.com']
 
 LOGIN_REDIRECT_URL = '/'
 
