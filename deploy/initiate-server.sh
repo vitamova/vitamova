@@ -21,6 +21,7 @@ echo "=== Installing Python dependencies ==="
 pip install -r ~/vitamova/deploy/requirements.txt
 
 echo "=== Applying Django migrations ==="
+export PYTHONPATH="$HOME/vitamova:$PYTHONPATH"
 cd ~/vitamova/webapp
 python manage.py migrate
 cd ~/vitamova
