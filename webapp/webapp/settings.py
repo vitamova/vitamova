@@ -22,8 +22,16 @@ secret_key_path = Path.home() / 'data' / 'django_secret.txt'
 with open(secret_key_path, 'r') as f:
     SECRET_KEY = f.read().strip()
 
+# In ˜/data/server_type.txt we have either "prod" or "dev" to indicate whether we're running on the production server or a development machine.
+server_type_path = Path.home() / 'data' / 'server_type.txt'
+with open(server_type_path, 'r') as f:
+    server_type = f.read().strip()
+
 # SECURITY WARNING: don't run with debug turned on in production!
-DEBUG = True
+if server_type == 'prod':
+    DEBUG = False
+else:
+    DEBUG = True
 
 ALLOWED_HOSTS = ['app.vitamova.com']
 CSRF_TRUSTED_ORIGINS = ['https://app.vitamova.com']
