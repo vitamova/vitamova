@@ -266,7 +266,7 @@ def home(request):
     if not language:
         language = registered_user.get("target_language", "es")
 
-    review_count = vitalib.Vocab.Get(connection, request.user.username, language).review_count()
+    review_count = vitalib.Vocab.Get(connection, request.user.id, language).review_count()
 
     today = date.today()
 
