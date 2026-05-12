@@ -223,7 +223,7 @@ def create_checkout_session(request):
 @require_POST
 @registered_logged_in_required
 def create_customer_portal_session(request):
-    user_data = vitalib.UserInfo.Get(connection, request.user.id).data(
+    user_data = vitalib.Database.UserInfo.Get(connection, request.user.id).data(
         "stripe_customer_id"
     )
 
@@ -243,7 +243,7 @@ def create_customer_portal_session(request):
 @registered_logged_in_required
 def home(request):
 
-    registered_user = vitalib.UserInfo.Get(connection, request.user.id).data(
+    registered_user = vitalib.Database.UserInfo.Get(connection, request.user.id).data(
         "subscribed",
         "subscription_expiration",
         "stripe_customer_id",
@@ -266,7 +266,7 @@ def home(request):
     if not language:
         language = registered_user.get("target_language", "es")
 
-    review_count = vitalib.Vocab.Get(connection, request.user.id, language).review_count()
+    review_count = vitalib.Database.Vocab.Get(connection, request.user.id, language).review_count()
 
     today = date.today()
 
@@ -278,7 +278,7 @@ def home(request):
         subscribed = stripe_status["subscribed"]
         subscription_expiration = stripe_status["subscription_expiration"]
 
-        vitalib.UserInfo.Update(connection, request.user.id).data(
+        vitalib.Database.UserInfo.Update(connection, request.user.id).data(
             subscribed=subscribed,
             subscription_expiration=subscription_expiration,
             stripe_customer_id=stripe_status["stripe_customer_id"]
@@ -291,7 +291,7 @@ def home(request):
             "has_score": vocab_score != -1,
             "review_count": review_count,
             "language": language,
-            "language_options": vitalib.UserInfo.Get(connection, request.user.id).languages(),
+            "language_options": vitalib.Database.UserInfo.Get(connection, request.user.id).languages(),
             "dev": server_type == 'dev'
             })
 
@@ -328,8 +328,8 @@ def register(request):
         subscription_expiration = stripe_status["subscription_expiration"]
         stripe_customer_id = stripe_status["stripe_customer_id"]
 
-        # vitalib.Test(connection, request.user.username, "es").score_result(data.get("answers", []))
-        vitalib.UserInfo.Create(connection, request.user.id).data(
+        # vitalib.Database.Test(connection, request.user.username, "es").score_result(data.get("answers", []))
+        vitalib.Database.UserInfo.Create(connection, request.user.id).data(
             native_language=native_language,
             target_language=target_language,
             second_target_language=second_target_language,
@@ -406,13 +406,13 @@ def account(request):
         request.user.last_name = last_name.strip()
         request.user.save()
         # Now update the UserInfo table with the language preferences
-        vitalib.UserInfo.Update(connection, request.user.id).data(
+        vitalib.Database.UserInfo.Update(connection, request.user.id).data(
             native_language=native_language,
             target_language=target_language,
             second_target_language=second_target_language
         )
 
-        user_info = vitalib.UserInfo.Get(connection, request.user.id).data(
+        user_info = vitalib.Database.UserInfo.Get(connection, request.user.id).data(
             "native_language",
             "target_language",
             "second_target_language"
@@ -433,7 +433,7 @@ def account(request):
 
 
     if request.method == 'GET':
-        user_data = vitalib.UserInfo.Get(connection, request.user.id).data(
+        user_data = vitalib.Database.UserInfo.Get(connection, request.user.id).data(
             "native_language",
             "target_language",
             "second_target_language",
@@ -467,7 +467,7 @@ def vocab_test(request):
     elif request.method == "GET":
         language = request.GET.get("language", "es")
 
-    vocab_score = vitalib.UserInfo.Get(connection, request.user.id).score(language)
+    vocab_score = vitalib.Database.UserInfo.Get(connection, request.user.id).score(language)
 
     # If the score is not -1 calculate the frontier
     if vocab_score != -1:
@@ -534,7 +534,7 @@ def vocab_test(request):
                 elif frontier == 6:
                     fetch_counts[6] = 35
                     fetch_counts[5] = 15
-                questions = vitalib.Test(connection, request.user.username, language).get_questions(fetch_counts)
+                questions = vitalib.Database.Test(connection, request.user.username, language).get_questions(fetch_counts)
                 return JsonResponse({
                     "status": "questions",
                     "questions": questions,
@@ -564,7 +564,7 @@ def vocab_test(request):
                     "below_frontier_accuracy": 0.90,
                     "above_frontier_accuracy": 0.40
                     }
-                score_result = vitalib.Test(connection, request.user.username, language).score_result(data.get("answers", []))
+                score_result = vitalib.Database.Test(connection, request.user.username, language).score_result(data.get("answers", []))
                 if score_result["score"] > vocab_score:
                     outcome = "improved"
                 elif score_result["score"] <= vocab_score:
@@ -606,8 +606,8 @@ def vocab_test(request):
                 # Accept_new means we want to update the user's score to the new score calculated in complete_retest
                 # Use the db helper function to update the user's score in the database
                 elif choice == "accept_new":
-                    vitalib.UserInfo.Update(connection, request.user.id).score(language, data.get("new_score"))
-                    updated_score = vitalib.UserInfo.Get(connection, request.user.id).score()
+                    vitalib.Database.UserInfo.Update(connection, request.user.id).score(language, data.get("new_score"))
+                    updated_score = vitalib.Database.UserInfo.Get(connection, request.user.id).score()
                     if updated_score != data.get("new_score"):
                         return JsonResponse({
                             "status": "error",
@@ -850,7 +850,7 @@ def vocab_test(request):
                 score = base_score + bonus
                 score = max(0, min(6000, score))
 
-                vitalib.UserInfo.Update(connection, request.user.id).score(language, score)
+                vitalib.Database.UserInfo.Update(connection, request.user.id).score(language, score)
 
                 return JsonResponse({
                     "status": "complete",
@@ -910,7 +910,7 @@ def vocab_test(request):
         # Fetch diagnostic questions based on fetch_counts.
         # ---------------------------------------------------------------------
         language = data.get("language", "es")
-        questions = vitalib.Test(connection, request.user.username, language).get_questions(fetch_counts)
+        questions = vitalib.Database.Test(connection, request.user.username, language).get_questions(fetch_counts)
 
         return JsonResponse({
             "status": "questions",
@@ -967,7 +967,7 @@ def flag_question(request):
             status=400
         )
 
-    flagged = vitalib.Test(connection, request.user.username, language).flag(question_id)
+    flagged = vitalib.Database.Test(connection, request.user.username, language).flag(question_id)
 
     if flagged["status"] != "flagged":
         return JsonResponse(
@@ -987,7 +987,7 @@ def subscribe(request):
         return redirect("home")
     
     # Get user's score and language
-    user_data = vitalib.UserInfo.Get(connection, request.user.id).data()
+    user_data = vitalib.Database.UserInfo.Get(connection, request.user.id).data()
 
     return render(request, "subscribe.html", {
         "stripe_public_key": STRIPE_PUBLIC_KEY,
