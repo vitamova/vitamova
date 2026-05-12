@@ -214,7 +214,7 @@ class Vocab:
                     [
                         self.user_id,
                         self.language,
-                        timezone.now(),
+                        datetime.datetime.now(datetime.timezone.utc)
                     ]
                 )
                 review_count = cursor.fetchone()[0]
