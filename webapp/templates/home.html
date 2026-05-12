@@ -567,7 +567,11 @@
 
     <section class="hero" aria-label="Vitamova Dashboard Welcome">
       <div class="hero-content">
-        <h1>Welcome back, {{ first_name }}</h1>
+        <h1>Welcome back, {{ first_name }}
+          {% if dev %}
+            [ DEV SERVER ]
+          {% endif %}
+        </h1>
         <p>
           Keep building the kind of vocabulary that helps you speak with more precision,
           understand more naturally, and move beyond beginner-level practice.

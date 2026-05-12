@@ -194,131 +194,31 @@ class UserInfo:
                     ]
                 return []
 
-class vocabulary:
-    @staticmethod
-    def add(conn, username, word, definition, example):
-        #Get language from username using user_info class
-        language = user_info.get(conn,username).language()
-        vocab_table = "vocabulary"
-        dict_table = "dictionary_"+language
-        #if the word is not in the dictionary, add it with the definition and example
-        with conn.cursor() as cur:
-            cur.execute("SELECT id FROM "+dict_table+" WHERE word=%s", (word,))
-            if cur.fetchone() is None:
-                print("Word", word, "is not in the dictionary, adding it now")
-                cur.execute("INSERT INTO "+dict_table+" (word, definition, example) VALUES (%s, %s, %s)", (word, definition, example))
-            else:
-                print("Word", word, "is already in the dictionary")
-        #Get the id of the word from the dictionary
-        with conn.cursor() as cur:
-            cur.execute("SELECT id FROM "+dict_table+" WHERE word=%s", (word,))
-            word_id = cur.fetchone()[0]
-        #Print the word id
-        print("The word "+word+" has an id of ", word_id)
-        #If the word is in the vocabulary, change the level to 0 and the next review to tomorrow
-        tomorrow = str((datetime.datetime.now() + datetime.timedelta(days=1)).date())
-        with conn.cursor() as cur:
-            cur.execute("SELECT word_id FROM "+vocab_table+" WHERE username=%s AND word_id=%s", (username, word_id))
-            if cur.fetchone() is not None:
-                print("Word", word, "is already in the vocabulary, resetting it now")
-                cur.execute("UPDATE "+vocab_table+" SET level=0, next_review=%s WHERE username=%s AND word_id=%s", (tomorrow, username, word_id))
-            #If the word is not in the vocabulary, add it with level 0 and next review tomorrow
-            else:
-                print("Word", word, "is not in the vocabulary, adding it now")
-                cur.execute("INSERT INTO "+vocab_table+" (username, word_id, level, next_review) VALUES (%s, %s, 0, %s)", (username, word_id, tomorrow))
-    class count:
-        def __init__(self, conn, username):
-            self.username = username
+class Vocab:
+    class Get:
+        def __init__(self, conn, user_id, language):
             self.conn = conn
-            #Get the language from the username using user_info class
-            self.language = user_info.get(self.conn, self.username).language()
-        def all(self):
-            with self.conn.cursor() as cur:
-                cur.execute("SELECT COUNT(*) FROM vocabulary WHERE username=%s", (self.username,))
-                return cur.fetchone()[0]
-        def today(self):
-            #This will return the number of words that need to be reviewed today
-            #These will have a next_review date of today or earlier
-            with self.conn.cursor() as cur:
-                cur.execute("SELECT COUNT(*) FROM vocabulary WHERE username=%s AND next_review<=%s", (self.username, str(datetime.datetime.now().date())))
-                return cur.fetchone()[0]
-    class get:
-        def __init__(self, conn, username):
-            self.username = username
-            self.conn = conn
-            #Get the language from the username using user_info class
-            self.language = user_info.get(self.conn, self.username).language()
-        def all(self):
-            #Get all words in the vocabulary
-            with self.conn.cursor() as cur:
-                cur.execute("SELECT word_id, level, next_review FROM vocabulary WHERE username=%s", (self.username,))
-                return cur.fetchall()
-        def today(self, quantity):
-            #Get all words that need to be reviewed today
-            with self.conn.cursor() as cur:
-                #The quantity parameter will be used to limit the number of words returned
-                #The older words will be returned first
-                cur.execute("SELECT word_id FROM vocabulary WHERE username=%s AND next_review<=%s ORDER BY next_review LIMIT %s", (self.username, str(datetime.datetime.now().date()), quantity))
-                word_list = cur.fetchall()
-            #Now get all the words with matching word_id from the dictionary
-            words = []
-            for word_id in word_list:
-                with self.conn.cursor() as cur:
-                    cur.execute("SELECT id, word, definition, example FROM dictionary_"+self.language+" WHERE id=%s", (word_id,))
-                    result = cur.fetchone()
-                    if result is not None:
-                        words.append({
-                            "id": result[0], #We need to use id instead of word_id because we are getting the id from the dictionary table
-                            "word": result[1],
-                            "definition": result[2],
-                            "example": result[3]
-                        })
-            return words
-
-    class level:
-        def __init__(self, conn, username):
-            self.conn = conn
-            self.username = username
-            #Get the language from the username using user_info class
-            self.language = user_info.get(self.conn, self.username).language()
-        def increase(self, word_id):
-            #We will use the ebbinghaus forgetting curve to determine the next review date
-            #If the current level is 0, increase to 1 and the next review is 3 days from now
-            #If the current level is 1, increase to 2 and the next review is 7 days from now
-            #If the current level is 2, increase to 3 and the next review is 14 days from now
-            #If the current level is 3, increase to 4 and the next review is 30 days from now
-            #If the current level is 4, increase to 5 and the next review is 60 days from now
-            #If the current level is 5, increase to 6 and the next review is in year 3000
-            #6 is the highest level
-            with self.conn.cursor() as cur:
-                cur.execute("SELECT level FROM vocabulary WHERE username=%s AND word_id=%s", (self.username, word_id))
-                level = cur.fetchone()[0]
-            if level == 0:
-                next_review = str((datetime.datetime.now() + datetime.timedelta(days=3)).date())
-                level = 1
-            elif level == 1:
-                next_review = str((datetime.datetime.now() + datetime.timedelta(days=7)).date())
-                level = 2
-            elif level == 2:
-                next_review = str((datetime.datetime.now() + datetime.timedelta(days=14)).date())
-                level = 3
-            elif level == 3:
-                next_review = str((datetime.datetime.now() + datetime.timedelta(days=30)).date())
-                level = 4
-            elif level == 4:
-                next_review = str((datetime.datetime.now() + datetime.timedelta(days=60)).date())
-                level = 5
-            elif level == 5:
-                next_review = "3000-01-01"
-                level = 6
-            with self.conn.cursor() as cur:
-                cur.execute("UPDATE vocabulary SET level=%s, next_review=%s WHERE username=%s AND word_id=%s", (level, next_review, self.username, word_id))
-
-        def reset(self, word_id):
-            #Reset word level to 0 and next review to tomorrow
-            tomorrow = str((datetime.datetime.now() + datetime.timedelta(days=1)).date())
-            with self.conn.cursor() as cur:
-                cur.execute("UPDATE vocabulary SET level=0, next_review=%s WHERE username=%s AND word_id=%s", (tomorrow, self.username, word_id))
+            self.user_id = user_id
+            self.language = language
+        def review_count(self):
+            with self.conn.cursor() as cursor:
+                cursor.execute(
+                    """
+                    SELECT COUNT(*)
+                    FROM user_vocabulary
+                    WHERE user_id = %s
+                    AND language = %s
+                    AND next_review_at IS NOT NULL
+                    AND next_review_at < %s
+                    """,
+                    [
+                        self.user_id,
+                        self.language,
+                        timezone.now(),
+                    ]
+                )
+                review_count = cursor.fetchone()[0]
+            return review_count
 
 class Test:
     LEVEL_RANGES = {
@@ -329,9 +229,9 @@ class Test:
         5: (10001, 15000),
         6: (15001, None),
     }
-    def __init__(self, conn, username, language):
+    def __init__(self, conn, user_id, language):
         self.conn = conn
-        self.username = username
+        self.user_id = user_id
         self.language = language
     def score_result(self, answers):
         level_correct_counts = {1: 0, 2: 0, 3: 0, 4: 0, 5: 0, 6: 0}
@@ -629,3 +529,25 @@ class Test:
                         "options": options,
                     })    
         return questions
+    def flag(self, question_id):
+        with self.conn.cursor() as cursor:
+            cursor.execute(
+                """
+                INSERT INTO flagged_questions (
+                    user_id,
+                    question_id,
+                    language,
+                    flagged_at
+                )
+                VALUES (%s, %s, %s, %s)
+                ON CONFLICT (user_id, question_id, language)
+                DO UPDATE SET flagged_at = EXCLUDED.flagged_at
+                """,
+                [
+                    self.user_id,
+                    question_id,
+                    self.language,
+                    datetime.datetime.now(datetime.timezone.utc)
+                ]
+            )
+        return {"status": "flagged"}

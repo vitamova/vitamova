@@ -45,6 +45,11 @@ SUPPORTED_NATIVE_LANGUAGES = [
     }
 ]
 
+# Get server_type from data/server_type.txt to determine if we're on prod or dev server
+server_type_path = Path.home() / 'data' / 'server_type.txt'
+with open(server_type_path, 'r') as f:
+    server_type = f.read().strip()
+
 # Helper functions
 
     
@@ -261,25 +266,23 @@ def home(request):
     if not language:
         language = registered_user.get("target_language", "es")
 
-    with connection.cursor() as cursor:
-        cursor.execute(
-            """
-            SELECT COUNT(*)
-            FROM user_vocabulary
-            WHERE user_id = %s
-            AND language = %s
-            AND next_review_at IS NOT NULL
-            AND next_review_at < %s
-            """,
-            [
-                request.user.id,
-                language,
-                timezone.now(),
-            ]
-        )
-        review_count = cursor.fetchone()[0]
+    review_count = vitalib.Vocab.Get(connection, request.user.username, language).review_count()
 
     today = date.today()
+
+    # If the local table says the user is unsubscribed or expired
+    if not subscribed or not subscription_expiration or subscription_expiration <= today:
+        # check Stripe again before showing the unsubscribed page.
+        stripe_status = check_vitamova_subscription_in_stripe(request.user.email)
+
+        subscribed = stripe_status["subscribed"]
+        subscription_expiration = stripe_status["subscription_expiration"]
+
+        vitalib.UserInfo.Update(connection, request.user.id).data(
+            subscribed=subscribed,
+            subscription_expiration=subscription_expiration,
+            stripe_customer_id=stripe_status["stripe_customer_id"]
+        )
 
     if subscribed and subscription_expiration and subscription_expiration > today:
         return render(request, "home.html", {
@@ -288,42 +291,8 @@ def home(request):
             "has_score": vocab_score != -1,
             "review_count": review_count,
             "language": language,
-            "language_options": vitalib.UserInfo.Get(connection, request.user.id).languages()
-            })
-
-    # If the local table says the user is unsubscribed or expired,
-    # check Stripe again before showing the unsubscribed page.
-    stripe_status = check_vitamova_subscription_in_stripe(request.user.email)
-
-    subscribed = stripe_status["subscribed"]
-    subscription_expiration = stripe_status["subscription_expiration"]
-    stripe_customer_id = stripe_status["stripe_customer_id"]
-
-    with connection.cursor() as cursor:
-        cursor.execute(
-            """
-            UPDATE registered_user
-            SET subscribed = %s,
-                subscription_expiration = %s,
-                stripe_customer_id = COALESCE(%s, stripe_customer_id)
-            WHERE user_id = %s
-            """,
-            [
-                subscribed,
-                subscription_expiration,
-                stripe_customer_id,
-                request.user.id,
-            ]
-        )
-
-    if subscribed and subscription_expiration and subscription_expiration > today:
-        return render(request, "home.html", {
-            "first_name": request.user.first_name,
-            "user_email": request.user.email,
-            "has_score": vocab_score != -1,
-            "review_count": review_count,
-            "language": target_language,
-            "language_options": vitalib.UserInfo.Get(connection, request.user.id).languages()
+            "language_options": vitalib.UserInfo.Get(connection, request.user.id).languages(),
+            "dev": server_type == 'dev'
             })
 
     if vocab_score == -1:
@@ -998,31 +967,18 @@ def flag_question(request):
             status=400
         )
 
-    with connection.cursor() as cursor:
-        cursor.execute(
-            """
-            INSERT INTO flagged_questions (
-                user_id,
-                question_id,
-                language,
-                flagged_at
-            )
-            VALUES (%s, %s, %s, %s)
-            ON CONFLICT (user_id, question_id, language)
-            DO UPDATE SET flagged_at = EXCLUDED.flagged_at
-            """,
-            [
-                request.user.id,
-                question_id,
-                language,
-                timezone.now()
-            ]
-        )
+    flagged = vitalib.Test(connection, request.user.username, language).flag(question_id)
 
-    return JsonResponse({
-        "status": "ok",
-        "message": "Question flagged for review."
-    })
+    if flagged["status"] != "flagged":
+        return JsonResponse(
+            {"status": "error", "message": "Failed to flag question."},
+            status=500
+        )
+    else:
+        return JsonResponse({
+            "status": "ok",
+            "message": "Question flagged for review."
+        })
 
 @registered_logged_in_required
 def subscribe(request):
