@@ -1,8 +1,10 @@
 import vitalib
 
 class Test:
-    def __init__(self, conn):
+    def __init__(self, conn, user_id, language):
         self.conn = conn
+        self.user_id = user_id
+        self.language = language
     def grade(self, answers):
         # This just returns right or wrong for each question
         return answers
@@ -35,5 +37,5 @@ class Test:
                 fetch_counts[frontier] = 8
                 fetch_counts[frontier + 1] = 1
         # Fetch questions based on fetch_counts
-        questions = vitalib.Database.Test(self.conn).fetch_questions(fetch_counts)
+        questions = vitalib.Database.Test(self.conn, self.user_id, self.language).fetch_questions(fetch_counts)
         return questions
