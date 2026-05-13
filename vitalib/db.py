@@ -260,325 +260,115 @@ class Database:
             5: (10001, 15000),
             6: (15001, None),
         }
-        def __init__(self, conn, user_id, language):
-            self.conn = conn
-            self.user_id = user_id
-            self.language = language
-        def score_result(self, answers):
-            level_correct_counts = {1: 0, 2: 0, 3: 0, 4: 0, 5: 0, 6: 0}
-            level_total_counts = {1: 0, 2: 0, 3: 0, 4: 0, 5: 0, 6: 0}
+        class Questions:
+            def __init__(self, conn, language):
+                self.conn = conn
+                self.language = language
 
-            level_weighted_correct = {
-                1: 0.0,
-                2: 0.0,
-                3: 0.0,
-                4: 0.0,
-                5: 0.0,
-                6: 0.0,
-            }
+            def any(self, fetch_counts):
+                questions = []
 
-            level_weighted_total = {
-                1: 0.0,
-                2: 0.0,
-                3: 0.0,
-                4: 0.0,
-                5: 0.0,
-                6: 0.0,
-            }
+                with self.conn.cursor() as cursor:
+                    for level, count in fetch_counts.items():
+                        if count <= 0:
+                            continue
 
-            # Score all submitted answers.
-            with self.conn.cursor() as cursor:
-                for answer in answers:
-                    question_id = answer.get("question_id")
-                    selected_option = answer.get("selected_option")
+                        min_rank, max_rank = LEVEL_RANGES[level]
 
-                    if not question_id or selected_option is None:
-                        continue
-
-                    cursor.execute(
-                        """
-                        SELECT v.correct_answer, l.rank AS lemma_rank
-                        FROM vocab_test_bank v
-                        JOIN lemmas l
-                            ON v.lemma_id = l.id
-                        WHERE v.id = %s
-                        AND l.language = %s
-                        """,
-                        [question_id, self.language]
-                    )
-                    row = cursor.fetchone()
-
-                    if not row:
-                        continue
-
-                    correct_answer = row[0]
-                    lemma_rank = row[1]
-
-                    level = None
-                    min_rank_for_level = None
-                    max_rank_for_level = None
-
-                    # Determine level from lemma_rank.
-                    for lvl, (min_rank, max_rank) in self.LEVEL_RANGES.items():
-                        if max_rank is None:
-                            if lemma_rank >= min_rank:
-                                level = lvl
-                                min_rank_for_level = min_rank
-
-                                # Level 6 has no natural upper bound in LEVEL_RANGES.
-                                # This synthetic bound is only for rank weighting.
-                                max_rank_for_level = min_rank + 5000
-                                break
-
-                        elif min_rank <= lemma_rank <= max_rank:
-                            level = lvl
-                            min_rank_for_level = min_rank
-                            max_rank_for_level = max_rank
-                            break
-
-                    if not level:
-                        continue
-
-                    # Check correctness once, then reuse it for both normal and weighted scoring.
-                    correct_value = int(
-                        str(selected_option).strip().casefold()
-                        == str(correct_answer).strip().casefold()
-                    )
-
-                    # Rank weight within the level.
-                    # Earlier/easier words are around 1.0.
-                    # Later/harder words are up to around 2.0.
-                    level_span = max_rank_for_level - min_rank_for_level
-
-                    if level_span <= 0:
-                        rank_position = 0.0
-                    else:
-                        rank_position = (lemma_rank - min_rank_for_level) / level_span
-                        rank_position = max(0.0, min(1.0, rank_position))
-
-                    rank_weight = 1.0 + rank_position
-
-                    level_total_counts[level] += 1
-                    level_correct_counts[level] += correct_value
-
-                    level_weighted_total[level] += rank_weight
-                    level_weighted_correct[level] += correct_value * rank_weight
-
-            # Find the first tested level below 80%.
-            # Since the loop stops there, all earlier tested levels were 80%+.
-            frontier_level = 1
-
-            for lvl in range(1, 7):
-                total = level_total_counts[lvl]
-                correct = level_correct_counts[lvl]
-
-                if total == 0:
-                    continue
-
-                accuracy = correct / total
-
-                if accuracy < 0.8:
-                    frontier_level = lvl
-                    break
-            else:
-                frontier_level = 6
-
-            # Calculate plain, unweighted accuracies for reporting/retest downgrade logic.
-            frontier_accuracy = 0.0
-            below_frontier_accuracy = 0.0
-            above_frontier_accuracy_plain = 0.0
-
-            frontier_total = level_total_counts[frontier_level]
-            frontier_correct = level_correct_counts[frontier_level]
-
-            if frontier_total > 0:
-                frontier_accuracy = frontier_correct / frontier_total
-
-            below_correct = 0
-            below_total = 0
-
-            for lvl in range(1, frontier_level):
-                below_correct += level_correct_counts[lvl]
-                below_total += level_total_counts[lvl]
-
-            if below_total > 0:
-                below_frontier_accuracy = below_correct / below_total
-
-            above_correct = 0
-            above_total = 0
-
-            for lvl in range(frontier_level + 1, 7):
-                above_correct += level_correct_counts[lvl]
-                above_total += level_total_counts[lvl]
-
-            if above_total > 0:
-                above_frontier_accuracy_plain = above_correct / above_total
-
-            base_score = 1000 * (frontier_level - 1)
-
-            frontier_weighted_total = level_weighted_total[frontier_level]
-            frontier_weighted_correct = level_weighted_correct[frontier_level]
-
-            if frontier_weighted_total > 0:
-                frontier_weighted_accuracy = (
-                    frontier_weighted_correct / frontier_weighted_total
-                )
-            else:
-                frontier_weighted_accuracy = 0.0
-
-            entry_threshold = 0.40
-            mastery_threshold = 0.80
-
-            raw_bonus_progress = (
-                (frontier_weighted_accuracy - entry_threshold)
-                / (mastery_threshold - entry_threshold)
-            )
-            raw_bonus_progress = max(0.0, min(1.0, raw_bonus_progress))
-
-            raw_bonus = round(999 * raw_bonus_progress)
-
-            above_frontier_weighted_correct = 0.0
-            above_frontier_weighted_total = 0.0
-
-            # Confidence multiplier from all levels above the frontier.
-            # Higher levels and harder ranks count more.
-            for lvl in range(frontier_level + 1, 7):
-                level_distance = lvl - frontier_level
-
-                # frontier + 1 = 1.0x
-                # frontier + 2 = 1.5x
-                # frontier + 3 = 2.0x
-                distance_weight = 1.0 + (0.5 * (level_distance - 1))
-
-                above_frontier_weighted_correct += (
-                    level_weighted_correct[lvl] * distance_weight
-                )
-                above_frontier_weighted_total += (
-                    level_weighted_total[lvl] * distance_weight
-                )
-
-            if above_frontier_weighted_total > 0:
-                above_frontier_accuracy = (
-                    above_frontier_weighted_correct
-                    / above_frontier_weighted_total
-                )
-            else:
-                above_frontier_accuracy = 0.0
-
-            # Sample confidence prevents tiny above-frontier samples from
-            # over-influencing the multiplier.
-            sample_confidence = min(1.0, above_frontier_weighted_total / 12.0)
-
-            above_frontier_proof = above_frontier_accuracy * sample_confidence
-
-            # Multiplier range: 0.70 to 1.00.
-            confidence_multiplier = 0.70 + (0.30 * above_frontier_proof)
-
-            bonus = round(raw_bonus * confidence_multiplier)
-
-            score = base_score + bonus
-            score = max(0, min(6000, score))
-
-            return {
-                "score": score,
-                "frontier_level": frontier_level,
-                "frontier_accuracy": round(frontier_accuracy, 2),
-                "below_frontier_accuracy": round(below_frontier_accuracy, 2),
-                "above_frontier_accuracy": round(above_frontier_accuracy_plain, 2),
-            }
-
-        def get_questions(self, fetch_counts):
-            questions = []
-            # ---------------------------------------------------------------------
-            # Fetch diagnostic questions based on fetch_counts.
-            # ---------------------------------------------------------------------
-            with self.conn.cursor() as cursor:
-                for level, (min_rank, max_rank) in Database.Test.LEVEL_RANGES.items():
-                    count = fetch_counts.get(level, 0)
-
-                    if count <= 0:
-                        continue
-
-                    if max_rank is None:
-                        cursor.execute(
-                            """
+                        sql = """
                             SELECT
-                                v.id,
-                                v.question,
-                                v.correct_answer,
-                                v.distractor_1,
-                                v.distractor_2,
-                                v.distractor_3
-                            FROM vocab_test_bank v
-                            JOIN lemmas l
-                                ON v.lemma_id = l.id
+                                vtb.id,
+                                vtb.question,
+                                vtb.correct_answer,
+                                vtb.distractor_1,
+                                vtb.distractor_2,
+                                vtb.distractor_3
+                            FROM vocab_test_bank vtb
+                            JOIN lemmas l ON l.id = vtb.lemma_id
                             WHERE l.language = %s
                             AND l.rank >= %s
-                            ORDER BY RANDOM()
-                            LIMIT %s
-                            """,
-                            [self.language, min_rank, count]
-                        )
+                        """
 
+                        params = [self.language, min_rank]
 
-                    else:
-                        cursor.execute(
-                            """
+                        if max_rank is not None:
+                            sql += " AND l.rank <= %s"
+                            params.append(max_rank)
+
+                        sql += " ORDER BY RANDOM() LIMIT %s"
+                        params.append(count)
+
+                        cursor.execute(sql, params)
+                        questions.extend(cursor.fetchall())
+
+                return questions
+
+            def new(self, user_id, fetch_counts):
+                questions = []
+
+                with self.conn.cursor() as cursor:
+                    for level, count in fetch_counts.items():
+                        if count <= 0:
+                            continue
+
+                        min_rank, max_rank = LEVEL_RANGES[level]
+
+                        sql = """
                             SELECT
-                                v.id,
-                                v.question,
-                                v.correct_answer,
-                                v.distractor_1,
-                                v.distractor_2,
-                                v.distractor_3
-                            FROM vocab_test_bank v
-                            JOIN lemmas l
-                                ON v.lemma_id = l.id
+                                vtb.id,
+                                vtb.question,
+                                vtb.correct_answer,
+                                vtb.distractor_1,
+                                vtb.distractor_2,
+                                vtb.distractor_3
+                            FROM vocab_test_bank vtb
+                            JOIN lemmas l ON l.id = vtb.lemma_id
                             WHERE l.language = %s
-                            AND l.rank BETWEEN %s AND %s
-                            ORDER BY RANDOM()
-                            LIMIT %s
-                            """,
-                            [self.language, min_rank, max_rank, count]
+                            AND l.rank >= %s
+                            AND NOT EXISTS (
+                                SELECT 1
+                                FROM user_vocabulary uv
+                                WHERE uv.user_id = %s
+                                    AND uv.lemma_id = vtb.lemma_id
+                            )
+                        """
+
+                        params = [self.language, min_rank, user_id]
+
+                        if max_rank is not None:
+                            sql += " AND l.rank <= %s"
+                            params.append(max_rank)
+
+                        sql += " ORDER BY RANDOM() LIMIT %s"
+                        params.append(count)
+
+                        cursor.execute(sql, params)
+                        questions.extend(cursor.fetchall())
+
+                return questions
+            
+            def flag(self, user_id, question_id):
+                with self.conn.cursor() as cursor:
+                    cursor.execute(
+                        """
+                        INSERT INTO flagged_questions (
+                            user_id,
+                            question_id,
+                            language,
+                            flagged_at
                         )
-
-                    rows = cursor.fetchall()
-
-                    for row in rows:
-                        options = [
-                            row[2],
-                            row[3],
-                            row[4],
-                            row[5],
+                        VALUES (%s, %s, %s, %s)
+                        ON CONFLICT (user_id, question_id, language)
+                        DO UPDATE SET flagged_at = EXCLUDED.flagged_at
+                        """,
+                        [
+                            user_id,
+                            question_id,
+                            self.language,
+                            datetime.datetime.now(datetime.timezone.utc)
                         ]
-
-                        random.shuffle(options)
-
-                        questions.append({
-                            "question_id": row[0],
-                            "question": row[1],
-                            "options": options,
-                        })    
-            return questions
-        def flag(self, question_id):
-            with self.conn.cursor() as cursor:
-                cursor.execute(
-                    """
-                    INSERT INTO flagged_questions (
-                        user_id,
-                        question_id,
-                        language,
-                        flagged_at
                     )
-                    VALUES (%s, %s, %s, %s)
-                    ON CONFLICT (user_id, question_id, language)
-                    DO UPDATE SET flagged_at = EXCLUDED.flagged_at
-                    """,
-                    [
-                        self.user_id,
-                        question_id,
-                        self.language,
-                        datetime.datetime.now(datetime.timezone.utc)
-                    ]
-                )
-            return {"status": "flagged"}
+                return {"status": "flagged"}
+        class Answers:
+            pass
+

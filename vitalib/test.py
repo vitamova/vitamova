@@ -37,5 +37,5 @@ class Test:
                     fetch_counts[frontier] = 8
                     fetch_counts[frontier + 1] = 1
             # Fetch questions based on fetch_counts
-            questions = vitalib.Database.Test(self.conn, self.user_id, self.language).get_questions(fetch_counts)
+            questions = vitalib.Database.Test.Questions(self.conn, self.language).new(self.user_id, fetch_counts))
             return questions
