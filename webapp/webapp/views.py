@@ -1,7 +1,6 @@
 from django.shortcuts import render, redirect
 from django.db import connection
 from django.views.decorators.http import require_POST
-from django.utils import timezone
 from django.http import JsonResponse
 from .decorators import registered_logged_in_required
 import stripe
