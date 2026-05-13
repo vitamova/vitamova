@@ -495,7 +495,7 @@ def vocab_test(request):
                 {"status": "error", "message": "Invalid action."},
                 status=400
             )
-        if action == "get_questions" and batch == "1":
+        if action == "get_questions" and batch == 1:
             return vitalib.Test.Get(connection, request.user.id, language).any_questions(type="diagnostic", score=vocab_score, batch=1)
             
 
@@ -940,8 +940,7 @@ def vocab_test(request):
         # ---------------------------------------------------------------------
         # Fetch diagnostic questions based on fetch_counts.
         # ---------------------------------------------------------------------
-        language = data.get("language", "es")
-        questions = vitalib.Database.Test(connection, request.user.username, language).get_questions(fetch_counts)
+        questions = []]
 
         return JsonResponse({
             "status": "questions",
