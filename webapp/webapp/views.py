@@ -998,7 +998,7 @@ def vocab_builder(request):
     
     if request.method == "GET":
         language = request.GET.get("language", "es")
-        return render(request, vocab_builder.html, {
+        return render(request, "vocab_builder.html", {
             "language": language
         })
 
