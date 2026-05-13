@@ -937,17 +937,12 @@ def vocab_test(request):
 
     return redirect("/subscribe/")
 
+@registered_logged_in_required
 def flag_question(request):
     if request.method != "POST":
         return JsonResponse(
             {"status": "error", "message": "Invalid request method."},
             status=400
-        )
-
-    if not request.user.is_authenticated:
-        return JsonResponse(
-            {"status": "error", "message": "User not authenticated."},
-            status=401
         )
 
     try:
