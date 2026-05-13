@@ -275,7 +275,7 @@
             throw new Error("Server returned an invalid JSON response.");
         }
 
-        if (!response.ok || data.ok === false) {
+        if (!response.ok || data.status !== "ok") {
             throw new Error(data.error || "Request failed.");
         }
 
@@ -311,7 +311,7 @@
 
     function renderQuestion() {
         const question = questions[currentQuestionIndex];
-        const selectedOptionId = answers[question.question_id] || null;
+        const selectedAnswer = answers[question.question_id] || null;
 
         questionCounter.textContent = `Question ${currentQuestionIndex + 1} of ${questions.length}`;
         answeredCounter.textContent = `${Object.keys(answers).length} answered`;
@@ -326,7 +326,7 @@
 
         const prompt = document.createElement("h2");
         prompt.className = "text-2xl font-black leading-tight";
-        prompt.textContent = question.prompt;
+        prompt.textContent = question.question;
         card.appendChild(prompt);
 
         if (question.context) {
@@ -339,18 +339,18 @@
         const answersWrapper = document.createElement("div");
         answersWrapper.className = "mt-7 grid gap-3";
 
-        question.options.forEach(option => {
+        question.options.forEach(optionText => {
             const btn = document.createElement("button");
             btn.type = "button";
             btn.className = "answer-btn w-full text-left rounded-2xl border border-slate-200 bg-slate-50 px-5 py-4 font-semibold";
-            btn.textContent = option.text;
+            btn.textContent = optionText;
 
-            if (selectedOptionId === option.option_id) {
+            if (selectedAnswer === optionText) {
                 btn.classList.add("selected");
             }
 
             btn.addEventListener("click", () => {
-                answers[question.question_id] = option.option_id;
+                answers[question.question_id] = optionText;
                 renderQuestion();
             });
 
@@ -387,10 +387,10 @@
         submitBtn.disabled = true;
         submitBtn.textContent = "Submitting...";
 
-        const answerList = Object.entries(answers).map(([questionId, selectedOptionId]) => {
+        const answerList = Object.entries(answers).map(([questionId, selectedAnswer]) => {
             return {
                 question_id: Number(questionId),
-                selected_option_id: selectedOptionId
+                selected_answer: selectedAnswer
             };
         });
 
@@ -429,29 +429,31 @@
         const card = document.createElement("div");
         card.className = "rounded-3xl border border-slate-200 bg-white p-6 md:p-8";
 
-        const lemmaHeader = document.createElement("div");
-        lemmaHeader.className = "mb-6";
+        if (item.lemma) {
+            const lemmaHeader = document.createElement("div");
+            lemmaHeader.className = "mb-6";
 
-        const lemma = document.createElement("h3");
-        lemma.className = "text-3xl font-black";
-        lemma.textContent = item.lemma.lemma;
+            const lemma = document.createElement("h3");
+            lemma.className = "text-3xl font-black";
+            lemma.textContent = item.lemma.lemma || "";
 
-        const translation = document.createElement("p");
-        translation.className = "mt-2 text-lg font-semibold text-blue-700";
-        translation.textContent = item.lemma.translation || "No translation available.";
+            const translation = document.createElement("p");
+            translation.className = "mt-2 text-lg font-semibold text-blue-700";
+            translation.textContent = item.lemma.translation || "No translation available.";
 
-        const definition = document.createElement("p");
-        definition.className = "mt-3 text-slate-600 leading-relaxed";
-        definition.textContent = item.lemma.definition || "No definition available.";
+            const definition = document.createElement("p");
+            definition.className = "mt-3 text-slate-600 leading-relaxed";
+            definition.textContent = item.lemma.definition || "No definition available.";
 
-        lemmaHeader.appendChild(lemma);
-        lemmaHeader.appendChild(translation);
-        lemmaHeader.appendChild(definition);
-        card.appendChild(lemmaHeader);
+            lemmaHeader.appendChild(lemma);
+            lemmaHeader.appendChild(translation);
+            lemmaHeader.appendChild(definition);
+            card.appendChild(lemmaHeader);
+        }
 
         const prompt = document.createElement("h4");
         prompt.className = "text-xl font-black mt-6";
-        prompt.textContent = item.prompt;
+        prompt.textContent = item.question;
         card.appendChild(prompt);
 
         if (item.context) {
@@ -464,19 +466,19 @@
         const answersWrapper = document.createElement("div");
         answersWrapper.className = "mt-6 grid gap-3";
 
-        item.options.forEach(option => {
+        item.options.forEach(optionText => {
             const row = document.createElement("div");
             row.className = "rounded-2xl border border-slate-200 bg-slate-50 px-5 py-4 font-semibold";
 
-            if (option.option_id === item.selected_option_id) {
+            if (optionText === item.selected_answer) {
                 row.classList.add("answer-wrong");
             }
 
-            if (option.option_id === item.correct_option_id) {
+            if (optionText === item.correct_answer) {
                 row.classList.add("answer-correct");
             }
 
-            row.textContent = option.text;
+            row.textContent = optionText;
             answersWrapper.appendChild(row);
         });
 
@@ -487,10 +489,10 @@
 
         explanation.innerHTML = `
             <p class="font-bold text-slate-900">Your answer:</p>
-            <p class="text-red-600 font-semibold mt-1">${item.selected_answer_text}</p>
+            <p class="text-red-600 font-semibold mt-1">${item.selected_answer}</p>
 
             <p class="font-bold text-slate-900 mt-4">Correct answer:</p>
-            <p class="text-green-600 font-semibold mt-1">${item.correct_answer_text}</p>
+            <p class="text-green-600 font-semibold mt-1">${item.correct_answer}</p>
         `;
 
         card.appendChild(explanation);
