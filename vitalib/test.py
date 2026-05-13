@@ -18,6 +18,8 @@ class Test:
                 # If batch is 1, fetch_counts should be 3 each
                 if batch == 1:
                     fetch_counts = {i: 3 for i in range(1, 7)}
+                    questions = vitalib.Database.Test.Questions(self.conn, self.language).any(fetch_counts)
+                    return Test.Format.questions(questions)
                 # If batch is anything else fetch_counts should be based on frontier
         def new_questions(self, type, score):
             # Get frontier based on score
@@ -40,6 +42,53 @@ class Test:
             # Fetch questions based on fetch_counts
             questions = vitalib.Database.Test.Questions(self.conn, self.language).new(self.user_id, fetch_counts)
             return Test.Format.questions(questions)
+        def results(self, answers):
+            example_return = {
+                "status": "ok",
+                "language": "es",
+                "total_questions": 10,
+                "correct_count": 7,
+                "incorrect_count": 3,
+                "missed_questions": [
+                    {
+                    "question_id": 102,
+                    "lemma_id": 55,
+                    "prompt": "What does 'casa' mean?",
+                    "context": null,
+                    "selected_option_id": "C",
+                    "selected_answer_text": "book",
+                    "correct_option_id": "A",
+                    "correct_answer_text": "house",
+                    "options": [
+                        {
+                        "option_id": "A",
+                        "text": "house"
+                        },
+                        {
+                        "option_id": "B",
+                        "text": "dog"
+                        },
+                        {
+                        "option_id": "C",
+                        "text": "book"
+                        },
+                        {
+                        "option_id": "D",
+                        "text": "street"
+                        }
+                    ],
+                    "lemma": {
+                        "id": 55,
+                        "language": "es",
+                        "rank": 125,
+                        "lemma": "casa",
+                        "translation": "house",
+                        "definition": "A building or place where people live."
+                    }
+                    }
+                ]
+                }
+            correct_answers = vitalib.Database.Test.Answers(self.conn).correct(answers)
     class Format:
         @staticmethod
         def questions(rows):

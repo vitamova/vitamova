@@ -371,5 +371,29 @@ class Database:
                     )
                 return {"status": "flagged"}
         class Answers:
-            pass
+            def __init__(self, conn):
+                self.conn = conn
+            def correct(self, questions):
+                question_ids = [q["question_id"] for q in questions]
+
+                if not question_ids:
+                    return {}
+
+                with self.conn.cursor() as cursor:
+                    cursor.execute(
+                        """
+                        SELECT id, correct_answer
+                        FROM vocab_test_bank
+                        WHERE id = ANY(%s);
+                        """,
+                        [question_ids]
+                    )
+
+                    rows = cursor.fetchall()
+
+                return {
+                    question_id: correct_answer
+                    for question_id, correct_answer in rows
+                }
+
 

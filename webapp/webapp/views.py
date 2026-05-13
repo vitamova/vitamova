@@ -453,7 +453,23 @@ def account(request):
 
 @registered_logged_in_required
 def vocab_test(request):
+    if request.method == "GET":
+        language = request.GET.get("language", "es")
+        vocab_score = vitalib.Database.UserInfo.Get(connection, request.user.id).score(language)
+        if vocab_score == -1:
+            return render(request, "vocab_test_diagnostic.html", {
+                "language": language
+                }
+            )
 
+        if is_user_subscribed(request.user):
+            return render(request, "vocab_test_retest.html", {
+                "current_score": vocab_score,
+                "language": language
+            })
+
+        return redirect("/subscribe/")
+    
     if request.method == "POST":
         try:
             data = json.loads(request.body.decode("utf-8"))
@@ -463,11 +479,26 @@ def vocab_test(request):
                 status=400
             )
         language = data.get("language", "es")
-    elif request.method == "GET":
-        language = request.GET.get("language", "es")
+        vocab_score = vitalib.Database.UserInfo.Get(connection, request.user.id).score(language)
+        action = data.get("action")
 
-    vocab_score = vitalib.Database.UserInfo.Get(connection, request.user.id).score(language)
+        if action not in [
+            "get_questions",
+            "submit_batch",
+            "complete_diagnostic",
+            "get_retest_questions",
+            "complete_retest",
+            "resolve_retest_score",
+        ]:
+            return JsonResponse(
+                {"status": "error", "message": "Invalid action."},
+                status=400
+            )
+        if action == "get_questions" and batch == "1":
+            return vitalib.Test.Get(connection, request.user.id, language).any_questions(type="diagnostic", score=vocab_score, batch=1)
+            
 
+    
     # If the score is not -1 calculate the frontier
     if vocab_score != -1:
         frontier = (vocab_score // 1000) + 1
@@ -922,19 +953,7 @@ def vocab_test(request):
 
     # Users with no vocab score can always take the free diagnostic,
     # regardless of subscription status.
-    if vocab_score == -1:
-        return render(request, "vocab_test_diagnostic.html", {
-            "language": language
-            }
-        )
 
-    if is_user_subscribed(request.user):
-        return render(request, "vocab_test_retest.html", {
-            "current_score": vocab_score,
-            "language": language
-        })
-
-    return redirect("/subscribe/")
 
 @registered_logged_in_required
 def flag_question(request):
