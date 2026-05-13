@@ -9,6 +9,15 @@ LANGUAGE_MAP = {
     # Add more languages here as needed
 }
 
+LEVEL_RANGES = {
+    1: (1, 1500),
+    2: (1501, 3000),
+    3: (3001, 6000),
+    4: (6001, 10000),
+    5: (10001, 15000),
+    6: (15001, None),
+}
+
 class Database:
     #Retrieve user information
     class UserInfo:
@@ -252,14 +261,6 @@ class Database:
                 return {"status": "added"}
 
     class Test:
-        LEVEL_RANGES = {
-            1: (1, 1500),
-            2: (1501, 3000),
-            3: (3001, 6000),
-            4: (6001, 10000),
-            5: (10001, 15000),
-            6: (15001, None),
-        }
         class Questions:
             def __init__(self, conn, language):
                 self.conn = conn
