@@ -995,12 +995,12 @@ def vocab_builder(request):
 
     if not is_user_subscribed(request.user):
         return redirect("/subscribe/")
-
-    return render(request, "coming_soon.html", {
-        "feature_name": "Vocab Builder",
-        "message": "Vocab Builder is coming soon! In the meantime, you can review and practice the words you've already learned in the Review and Reading Practice sections.",
-        "back_url": "/",
-    })
+    
+    if request.method == "GET":
+        language = request.GET.get("language", "es")
+        return render(request, vocab_builder.html, {
+            "language": language
+        })
 
 @registered_logged_in_required
 def review(request):
