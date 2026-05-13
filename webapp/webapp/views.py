@@ -961,7 +961,7 @@ def flag_question(request):
             status=400
         )
 
-    flagged = vitalib.Database.Test(connection, request.user.username, language).flag(question_id)
+    flagged = vitalib.Database.Test.Questions.flag(connection, request.user.username, language, question_id)
 
     if flagged["status"] != "flagged":
         return JsonResponse(
@@ -1009,7 +1009,7 @@ def vocab_builder(request):
         action = data.get("action")
         if action == "load_questions":
             score = vitalib.Database.UserInfo.Get(connection, request.user.id).score(language)
-            questions = vitalib.Test.Get(connection, request.user.id, language).any_questions(type="vocab_builder", score=score)
+            questions = vitalib.Test.Get(connection, request.user.id, language).new_questions("vocab_builder", score)
             return JsonResponse({
                 "status": "ok",
                 "questions": questions
