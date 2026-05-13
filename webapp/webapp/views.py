@@ -481,6 +481,7 @@ def vocab_test(request):
         language = data.get("language", "es")
         vocab_score = vitalib.Database.UserInfo.Get(connection, request.user.id).score(language)
         action = data.get("action")
+        batch = int(data.get("batch", 1))
 
         if action not in [
             "get_questions",
