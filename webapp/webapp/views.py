@@ -1014,6 +1014,8 @@ def vocab_builder(request):
                 "status": "ok",
                 "questions": questions
             })
+        if action == "submit_answers":
+            pass
 
 @registered_logged_in_required
 def review(request):
