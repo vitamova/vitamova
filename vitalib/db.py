@@ -185,11 +185,13 @@ class Database:
                     cursor.execute(
                         """
                         SELECT COUNT(*)
-                        FROM user_vocabulary
-                        WHERE user_id = %s
-                        AND language = %s
-                        AND next_review_at IS NOT NULL
-                        AND next_review_at < %s
+                        FROM user_vocabulary uv
+                        JOIN lemmas l
+                            ON uv.lemma_id = l.id
+                        WHERE uv.user_id = %s
+                        AND l.language = %s
+                        AND uv.next_review_at IS NOT NULL
+                        AND uv.next_review_at < %s
                         """,
                         [
                             self.user_id,
@@ -198,6 +200,7 @@ class Database:
                         ]
                     )
                     review_count = cursor.fetchone()[0]
+
                 return review_count
         class Add:
             def __init__(self, conn, user_id):
