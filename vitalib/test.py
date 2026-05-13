@@ -1,4 +1,5 @@
 import vitalib
+import random
 
 class Test:
     class Get:
