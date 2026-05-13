@@ -38,4 +38,28 @@ class Test:
                     fetch_counts[frontier + 1] = 1
             # Fetch questions based on fetch_counts
             questions = vitalib.Database.Test.Questions(self.conn, self.language).new(self.user_id, fetch_counts)
+            return Test.Format.questions(questions)
+    class Format:
+        @staticmethod
+        def questions(rows):
+            questions = []
+
+            for row in rows:
+                question_id, question, correct_answer, distractor_1, distractor_2, distractor_3 = row
+
+                options = [
+                    correct_answer,
+                    distractor_1,
+                    distractor_2,
+                    distractor_3
+                ]
+
+                random.shuffle(options)
+
+                questions.append({
+                    "question_id": question_id,
+                    "question": question,
+                    "options": options
+                })
+
             return questions
