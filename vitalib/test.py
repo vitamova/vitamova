@@ -1,16 +1,12 @@
 import vitalib
 
 class Test:
-    class GetUnique:
+    class Get:
         def __init__(self, conn, user_id, language):
             self.conn = conn
             self.user_id = user_id
             self.language = language
-    class GetAny:
-        def __init__(self, conn, language):
-            self.conn = conn
-            self.language = language
-        def questions(self, type, score, batch=None):
+        def any_questions(self, type, score, batch=None):
             # Get frontier based on score
             frontier = min((score // 1000) + 1, 6)
             fetch_counts = {}
@@ -22,6 +18,10 @@ class Test:
                 if batch == 1:
                     fetch_counts = {i: 3 for i in range(1, 7)}
                 # If batch is anything else fetch_counts should be based on frontier
+        def new_questions(self, type, score):
+            # Get frontier based on score
+            frontier = min((score // 1000) + 1, 6)
+            fetch_counts = {}
             if type == "vocab_builder":
                 # Get 8 questions from the frontier level 1 from a level above and 1 from a level below
                 # If frontier is 1 do an 8/2 split
