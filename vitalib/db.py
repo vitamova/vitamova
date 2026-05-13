@@ -493,7 +493,7 @@ class Database:
             # Fetch diagnostic questions based on fetch_counts.
             # ---------------------------------------------------------------------
             with self.conn.cursor() as cursor:
-                for level, (min_rank, max_rank) in Test.LEVEL_RANGES.items():
+                for level, (min_rank, max_rank) in Database.Test.LEVEL_RANGES.items():
                     count = fetch_counts.get(level, 0)
 
                     if count <= 0:
