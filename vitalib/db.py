@@ -28,7 +28,7 @@ class Database:
                 self.user_id = user_id
 
             def data(self, **fields):
-                allowed_columns = UserInfo.ALLOWED_COLUMNS | {"user_id"}
+                allowed_columns = Database.UserInfo.ALLOWED_COLUMNS | {"user_id"}
 
                 fields["user_id"] = self.user_id
 
@@ -59,7 +59,7 @@ class Database:
                 if not fields:
                     return
 
-                invalid_columns = set(fields.keys()) - UserInfo.ALLOWED_COLUMNS
+                invalid_columns = set(fields.keys()) - Database.UserInfo.ALLOWED_COLUMNS
                 if invalid_columns:
                     raise ValueError(f"Invalid column name(s): {', '.join(invalid_columns)}")
 
@@ -113,9 +113,9 @@ class Database:
                 self.user_id = user_id
             def data(self, *columns):
                 if not columns:
-                    columns = tuple(UserInfo.ALLOWED_COLUMNS)
+                    columns = tuple(Database.UserInfo.ALLOWED_COLUMNS)
 
-                invalid_columns = set(columns) - UserInfo.ALLOWED_COLUMNS
+                invalid_columns = set(columns) - Database.UserInfo.ALLOWED_COLUMNS
                 if invalid_columns:
                     raise ValueError(f"Invalid column name(s): {', '.join(invalid_columns)}")
 
