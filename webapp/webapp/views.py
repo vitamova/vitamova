@@ -940,7 +940,7 @@ def vocab_test(request):
         # ---------------------------------------------------------------------
         # Fetch diagnostic questions based on fetch_counts.
         # ---------------------------------------------------------------------
-        questions = []]
+        questions = []
 
         return JsonResponse({
             "status": "questions",
