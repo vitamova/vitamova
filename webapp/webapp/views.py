@@ -1009,7 +1009,7 @@ def vocab_builder(request):
         action = data.get("action")
         if action == "load_questions":
             score = vitalib.Database.UserInfo.Get(connection, request.user.id).score(language)
-            questions = vitalib.Test(connection).get_questions(type="vocab_builder", score=score)
+            questions = vitalib.Test(connection, request.user.id, language).get_questions(type="vocab_builder", score=score)
             return JsonResponse({
                 "status": "ok",
                 "questions": questions
