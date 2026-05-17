@@ -252,7 +252,6 @@ class Database:
                             created_at,
                             updated_at
                         ) VALUES (%s, %s, 'learning', 0, %s, NULL, 0, 0, 0, %s, %s)
-                        ON CONFLICT (user_id, lemma_id, language) DO NOTHING
                         """,
                         [
                             self.user_id,
