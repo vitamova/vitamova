@@ -309,6 +309,7 @@
             showError(error.message);
         }
     }
+    
 
     function renderQuestion() {
         const question = questions[currentQuestionIndex];
@@ -340,7 +341,9 @@
         const answersWrapper = document.createElement("div");
         answersWrapper.className = "mt-7 grid gap-3";
 
-        question.options.forEach(optionText => {
+        const displayedOptions = [...question.options, "I don't know"];
+
+        displayedOptions.forEach(optionText => {
             const btn = document.createElement("button");
             btn.type = "button";
             btn.className = "answer-btn w-full text-left rounded-2xl border border-slate-200 bg-slate-50 px-5 py-4 font-semibold";
@@ -482,7 +485,16 @@
             const answersWrapper = document.createElement("div");
             answersWrapper.className = "grid gap-3";
 
-            item.options.forEach(optionText => {
+            const reviewOptions = [...item.options];
+
+            if (
+                item.selected_option === "I don't know" &&
+                !reviewOptions.includes("I don't know")
+            ) {
+                reviewOptions.push("I don't know");
+            }
+
+            reviewOptions.forEach(optionText => {
                 const row = document.createElement("div");
                 row.className = "rounded-2xl border border-slate-200 bg-slate-50 px-5 py-4 font-semibold flex items-center justify-between gap-4";
 
