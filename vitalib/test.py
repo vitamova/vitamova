@@ -94,7 +94,7 @@ class Test:
             # All we need to do is find the first level where the user got between 40% and 80% correct
             results = self.results(answers)
             # Append the lemma rank
-            results = vitalib.Database.Test.Questions(self.conn).append_lemma_rank(results)
+            results = vitalib.Database.Test.Questions(self.conn, self.language).append_lemma_rank(results)
             frontier = 1
             for level in LEVEL_RANGES:
                 level_results = [r for r in results if LEVEL_RANGES[level][0] <= r["lemma_rank"] <= (LEVEL_RANGES[level][1] or float('inf'))]
