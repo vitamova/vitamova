@@ -556,7 +556,7 @@ def vocab_test(request):
                     )
                 all_answers = data.get("all_answers", [])
                 # Now get an actual score based on the answers
-                score = vitalib.Test.Get(connection, request.user.id, language).score_result(all_answers)
+                score = vitalib.Test.Get(connection, request.user.id, language).score(all_answers)
                 return JsonResponse({
                     "status": "complete",
                     "score": score
@@ -571,11 +571,48 @@ def vocab_test(request):
                 )
             # Implement retest actions here
             if action == "get_retest_questions":
-                pass
+                # Calculate frontier from vocab_score
+                frontier = min((vocab_score // 1000) + 1, 6)
+                questions = vitalib.Test.Get(connection, request.user.id, language).any_questions(type="retest", frontier=frontier)
+                return JsonResponse({
+                    "status": "questions",
+                    "questions": questions
+                })
             if action == "complete_retest":
-                pass
+                # Get parameter "answers" from data
+                answers = data.get("answers", [])
+                # Now get an actual score based on the answers
+                score = vitalib.Test.Get(connection, request.user.id, language).score(answers)
+                # "outcome" options are improved, downgrade_choice, or keep_current
+                if score > vocab_score:
+                    outcome = "improved"
+                elif score//1000 < vocab_score//1000:
+                    outcome = "downgrade_choice"
+                else:
+                    outcome = "keep_current"
+                return JsonResponse({
+                    "status": "complete",
+                    "score": score,
+                    "outcome": outcome
+                })
             if action == "resolve_retest_score":
-                pass
+                # Get parameter "choice"
+                choice = data.get("choice")
+                # If "choice" is "accept_new" update the score
+                if choice == "accept_new":
+                    new_score = data.get("new_score")
+                    # Make sure new_score is lower than the current score
+                    # Don't want people to try to game the system
+                    if new_score >= vocab_score:
+                        return JsonResponse(
+                            {"status": "error", "message": "Nice try. I'd recommend working on your vocabulary rather than trying to game the system."},
+                            status=400
+                        )
+                    else:
+                        vitalib.Database.UserInfo.Update(connection, request.user.id).score(language, new_score)
+                        return JsonResponse({
+                            "status": "ok"
+                        })
 
 @registered_logged_in_required
 def flag_question(request):

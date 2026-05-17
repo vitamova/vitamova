@@ -17,7 +17,7 @@ class Test:
             self.user_id = user_id
             self.language = language
         def any_questions(self, type, frontier, batch=None):
-            # Get frontier based on score
+            # First we need to set fetch_counts based on the parameters
             fetch_counts = { i : 0 for i in range(1, 7) }
             if type == "diagnostic":
                 # Batch must be provided for diagnostic questions
@@ -26,9 +26,6 @@ class Test:
                 # If batch is 1, fetch_counts should be 3 each
                 if batch == 1:
                     fetch_counts = {i: 3 for i in range(1, 7)}
-                    questions = vitalib.Database.Test.Questions(self.conn, self.language).any(fetch_counts)
-                    return Test.Format.questions(questions)
-                # If batch is anything else fetch_counts should be based on frontier
                 else:
                     if frontier == 1:
                         fetch_counts[1] = 12
@@ -40,8 +37,22 @@ class Test:
                         fetch_counts[frontier - 1] = 4
                         fetch_counts[frontier] = 10
                         fetch_counts[frontier + 1] = 4
-                    questions = vitalib.Database.Test.Questions(self.conn, self.language).any(fetch_counts)
-                    return Test.Format.questions(questions)
+            elif type == "retest":
+                # Get 50 questions total with a 30/10/10 split or 35/15 split if frontier is 1 or 6
+                if frontier == 1:
+                    fetch_counts[1] = 35
+                    fetch_counts[2] = 15
+                elif frontier == 6:
+                    fetch_counts[5] = 15
+                    fetch_counts[6] = 35
+                else:
+                    fetch_counts[frontier - 1] = 15
+                    fetch_counts[frontier] = 30
+                    fetch_counts[frontier + 1] = 15
+            
+            # Now it's simple, just get the questions and return them formatted
+            questions = vitalib.Database.Test.Questions(self.conn, self.language).any(fetch_counts)
+            return Test.Format.questions(questions)
         def new_questions(self, type, score):
             # Get frontier based on score
             frontier = min((score // 1000) + 1, 6)
@@ -97,9 +108,9 @@ class Test:
                     break
             return frontier
         def bonus(results, frontier_level):
-            level_weighted_total = { 0.0 for i in range(1, 7) }
+            level_weighted_total = { i: 0.0 for i in range(1, 7) }
 
-            level_weighted_correct = { 0.0 for i in range(1, 7) }
+            level_weighted_correct = { i: 0.0 for i in range(1, 7) }
 
             for result in results:
                 lemma_rank = result["lemma_rank"]
