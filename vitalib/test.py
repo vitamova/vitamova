@@ -46,9 +46,9 @@ class Test:
                     fetch_counts[5] = 15
                     fetch_counts[6] = 35
                 else:
-                    fetch_counts[frontier - 1] = 15
+                    fetch_counts[frontier - 1] = 10
                     fetch_counts[frontier] = 30
-                    fetch_counts[frontier + 1] = 15
+                    fetch_counts[frontier + 1] = 10
             
             # Now it's simple, just get the questions and return them formatted
             questions = vitalib.Database.Test.Questions(self.conn, self.language).any(fetch_counts)
