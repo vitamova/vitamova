@@ -592,7 +592,7 @@ def vocab_test(request):
                     outcome = "keep_current"
                 return JsonResponse({
                     "status": "complete",
-                    "score": score,
+                    "new_score": score,
                     "outcome": outcome
                 })
             if action == "resolve_retest_score":
