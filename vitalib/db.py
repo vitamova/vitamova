@@ -236,6 +236,7 @@ class Database:
                         return {"status": "already_exists"}
                     
                     # Since we're adding a new lemma, we can set most of these to their initial values.
+                    # Next review will be in 1 day, so we can set next_review_at to now + 1 day
                     cursor.execute(
                         """
                         INSERT INTO user_vocabulary (
@@ -250,12 +251,13 @@ class Database:
                             times_incorrect,
                             created_at,
                             updated_at
-                        ) VALUES (%s, %s, %s, 'learning', 0, NULL, NULL, 0, 0, 0, %s, %s)
+                        ) VALUES (%s, %s, 'learning', 0, %s, NULL, 0, 0, 0, %s, %s)
                         ON CONFLICT (user_id, lemma_id, language) DO NOTHING
                         """,
                         [
                             self.user_id,
                             lemma_id,
+                            datetime.datetime.now(datetime.timezone.utc) + datetime.timedelta(days=1),
                             datetime.datetime.now(datetime.timezone.utc),
                             datetime.datetime.now(datetime.timezone.utc)
                         ]
