@@ -707,7 +707,7 @@ def vocab_builder(request):
             missed = vitalib.Test.Get(connection, request.user.id, language).missed(answers)
             # Add all the missed lemmas to the user's vocab list
             for m in missed:
-                lemma_id = m["lemma"]["lemma_id"]
+                lemma_id = m["lemma"]["id"]
                 vitalib.Database.Vocab.Add(connection, request.user.id).lemma(lemma_id)
             return JsonResponse({
                 "status": "ok",

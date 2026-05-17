@@ -411,6 +411,7 @@ class Database:
                     )
                     lemma_map = {
                         row[0]: {
+                            "id": row[0],
                             "lemma": row[1],
                             "translation": row[2],
                             "definition": row[3]
