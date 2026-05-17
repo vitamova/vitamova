@@ -613,6 +613,15 @@ def vocab_test(request):
                         return JsonResponse({
                             "status": "ok"
                         })
+                elif choice == "keep_current":
+                    return JsonResponse({
+                        "status": "ok"
+                    })
+                else:
+                    return JsonResponse(
+                        {"status": "error", "message": "Invalid JSON."},
+                        status=400
+                    )
 
 @registered_logged_in_required
 def flag_question(request):
