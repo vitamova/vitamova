@@ -10,7 +10,6 @@ For the full list of settings and their values, see
 https://docs.djangoproject.com/en/5.0/ref/settings/
 """
 
-import os
 from pathlib import Path
 import json
 
@@ -137,7 +136,7 @@ DATABASES = {
         "ENGINE": "django.db.backends.postgresql",
         "NAME": "vitamova",
         "USER": "webapp",
-        "PASSWORD": data.get("db_password"),
+        "PASSWORD": data.get("database_password"),
         "HOST": "vitamova-db.cluster-cartvcorpihi.us-east-1.rds.amazonaws.com",
         "PORT": "5432",
     }
