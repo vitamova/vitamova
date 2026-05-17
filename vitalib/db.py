@@ -419,6 +419,31 @@ class Database:
                     question_id = question["question_id"]
                     question["lemma"] = lemma_map.get(question_id)
                 return questions
+            def append_options(self, questions):
+                #Access the database to get the options
+                #Options should be shuffled
+                question_ids = [q["question_id"] for q in questions]
+                if not question_ids:
+                    return questions
+                with self.conn.cursor() as cursor:
+                    cursor.execute(
+                        """
+                        SELECT id, correct_answer, distractor_1, distractor_2, distractor_3
+                        FROM vocab_test_bank
+                        WHERE id = ANY(%s)
+                        """,
+                        [question_ids]
+                    )
+                    options_map = {
+                        row[0]: [row[1], row[2], row[3], row[4]]
+                        for row in cursor.fetchall()
+                    }
+                for question in questions:
+                    question_id = question["question_id"]
+                    options = options_map.get(question_id, [])
+                    random.shuffle(options)
+                    question["options"] = options
+                return questions
         class Answers:
             def __init__(self, conn):
                 self.conn = conn
