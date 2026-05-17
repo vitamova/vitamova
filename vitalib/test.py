@@ -198,7 +198,7 @@ class Test:
 
             # Now get the detailed results to calculate the bonus
             results = self.results(answers)
-            results = vitalib.Database.Test.Questions(self.conn).append_lemma_rank(results)
+            results = vitalib.Database.Test.Questions(self.conn, self.language).append_lemma_rank(results)
 
             bonus = self.bonus(results, frontier)
             total_score = base_score + bonus
