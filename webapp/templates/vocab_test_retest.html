@@ -996,7 +996,7 @@
         throw new Error("Could not save your retest choice.");
       }
 
-      window.location.href = "/";
+      window.location.href = "/?language=" + encodeURIComponent(LANGUAGE);
     }
 
     retestForm.addEventListener("submit", async (event) => {
