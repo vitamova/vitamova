@@ -2,6 +2,7 @@ from django.shortcuts import render, redirect
 from django.db import connection
 from django.views.decorators.http import require_POST
 from django.http import JsonResponse
+from django.conf import settings
 from .decorators import registered_logged_in_required
 import stripe
 from datetime import date
@@ -18,10 +19,8 @@ VITAMOVA_PRICE_MAP = {
 }
 
 STRIPE_PUBLIC_KEY= "pk_live_51RIChJKOiNtX3WewnOeHxiL99XltNWm2TluZew2fn6fzcmuHJ3R2x7EuLbbNpb74k1gnHlSRPHOoFJsFTEd5z8fp00rYr00NmV"
-# Stripe key is in data/stripe_key.txt
-stripe_key_path = Path.home() / 'data' / 'stripe_key.txt'
-with open(stripe_key_path, 'r') as f:
-    stripe.api_key = f.read().strip()
+# Stripe key is a variable from settings.py
+stripe.api_key = settings.STRIPE_PRIVATE_KEY
 
 
 # Define supported target languages
@@ -291,7 +290,7 @@ def home(request):
             "review_count": review_count,
             "language": language,
             "language_options": vitalib.Database.UserInfo.Get(connection, request.user.id).languages(),
-            "dev": server_type == 'dev'
+            "dev": settings.SERVER_TYPE == 'dev'
             })
 
     if vocab_score == -1:
