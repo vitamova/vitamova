@@ -207,7 +207,7 @@ class Test:
             current_score = vitalib.Database.UserInfo.Get(self.conn, self.user_id).score(self.language)
             # Update user's score if total_score is higher
             if total_score > current_score:
-                vitalib.Database.UserInfo.Update(self.conn, self.user_id).update_score(self.language, total_score)
+                vitalib.Database.UserInfo.Update(self.conn, self.user_id).score(self.language, total_score)
 
             return total_score
     class Format:
