@@ -10,33 +10,36 @@ For the full list of settings and their values, see
 https://docs.djangoproject.com/en/5.0/ref/settings/
 """
 
-import os
 from pathlib import Path
+import json
 
 # Build paths inside the project like this: BASE_DIR / 'subdir'.
 BASE_DIR = Path(__file__).resolve().parent.parent
 
 
-# The secret key is in ~/data/django_secret.txt
-secret_key_path = Path.home() / 'data' / 'django_secret.txt'
-with open(secret_key_path, 'r') as f:
-    SECRET_KEY = f.read().strip()
+# I put all all the sensitive data in ˜/data.json
+data_path = Path.home() / 'data.json'
+with open(data_path, 'r') as f:
+    data = json.load(f)
 
-# In ˜/data/server_type.txt we have either "prod" or "dev" to indicate whether we're running on the production server or a development machine.
-server_type_path = Path.home() / 'data' / 'server_type.txt'
-with open(server_type_path, 'r') as f:
-    server_type = f.read().strip()
+# Here are my own constants that I want to use in settings
+SERVER_TYPE = data.get("server_type", "dev")
+STRIPE_PRIVATE_KEY = data.get("stripe_private_key")
 
+
+SECRET_KEY = data.get("django_secret")
 # SECURITY WARNING: don't run with debug turned on in production!
-if server_type == 'prod':
+if SERVER_TYPE == 'prod':
     DEBUG = False
 else:
     DEBUG = True
 
-if server_type == 'prod':
+
+
+if SERVER_TYPE == 'prod':
     ALLOWED_HOSTS = ['app.vitamova.com']
     CSRF_TRUSTED_ORIGINS = ['https://app.vitamova.com']
-elif server_type == 'dev':
+elif SERVER_TYPE == 'dev':
     ALLOWED_HOSTS = ['dev.app.vitamova.com']
     CSRF_TRUSTED_ORIGINS = ['https://dev.app.vitamova.com']
 
@@ -67,18 +70,11 @@ AUTHENTICATION_BACKENDS = [
     'allauth.account.auth_backends.AuthenticationBackend',
 ]
 
-# Client ID and secret are in data/google_sso_client.txt, in the format: client_id\nclient_secret
-google_sso_client_path = Path.home() / 'data' / 'google_sso_client.txt'
-with open(google_sso_client_path, 'r') as f:
-    lines = f.read().strip().split('\n')
-    GOOGLE_CLIENT_ID = lines[0]
-    GOOGLE_CLIENT_SECRET = lines[1]
-
 SOCIALACCOUNT_PROVIDERS = {
     "google": {
         "APP": {
-            "client_id": GOOGLE_CLIENT_ID,
-            "secret": GOOGLE_CLIENT_SECRET,
+            "client_id": data.get("google_client_id"),
+            "secret": data.get("google_client_secret"),
             "key": ""
         },
     "SCOPE": ["profile", "email"],
@@ -135,18 +131,12 @@ WSGI_APPLICATION = 'webapp.wsgi.application'
 
 # Database
 # https://docs.djangoproject.com/en/5.0/ref/settings/#databases
-
-# The database password is in ~/data/db_pw.txt
-db_password_path = Path.home() / 'data' / 'db_pw.txt'
-with open(db_password_path, 'r') as f:
-    db_password = f.read().strip()
-
 DATABASES = {
     "default": {
         "ENGINE": "django.db.backends.postgresql",
         "NAME": "vitamova",
         "USER": "webapp",
-        "PASSWORD": db_password,
+        "PASSWORD": data.get("database_password"),
         "HOST": "vitamova-db.cluster-cartvcorpihi.us-east-1.rds.amazonaws.com",
         "PORT": "5432",
     }

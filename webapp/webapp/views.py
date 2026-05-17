@@ -1,8 +1,8 @@
 from django.shortcuts import render, redirect
 from django.db import connection
 from django.views.decorators.http import require_POST
-from django.utils import timezone
 from django.http import JsonResponse
+from django.conf import settings
 from .decorators import registered_logged_in_required
 import stripe
 from datetime import date
@@ -19,10 +19,8 @@ VITAMOVA_PRICE_MAP = {
 }
 
 STRIPE_PUBLIC_KEY= "pk_live_51RIChJKOiNtX3WewnOeHxiL99XltNWm2TluZew2fn6fzcmuHJ3R2x7EuLbbNpb74k1gnHlSRPHOoFJsFTEd5z8fp00rYr00NmV"
-# Stripe key is in data/stripe_key.txt
-stripe_key_path = Path.home() / 'data' / 'stripe_key.txt'
-with open(stripe_key_path, 'r') as f:
-    stripe.api_key = f.read().strip()
+# Stripe key is a variable from settings.py
+stripe.api_key = settings.STRIPE_PRIVATE_KEY
 
 
 # Define supported target languages
@@ -44,6 +42,11 @@ SUPPORTED_NATIVE_LANGUAGES = [
         "name": "English"
     }
 ]
+
+# Get server_type from data/server_type.txt to determine if we're on prod or dev server
+server_type_path = Path.home() / 'data' / 'server_type.txt'
+with open(server_type_path, 'r') as f:
+    server_type = f.read().strip()
 
 # Helper functions
 
@@ -218,7 +221,7 @@ def create_checkout_session(request):
 @require_POST
 @registered_logged_in_required
 def create_customer_portal_session(request):
-    user_data = vitalib.UserInfo.Get(connection, request.user.id).data(
+    user_data = vitalib.Database.UserInfo.Get(connection, request.user.id).data(
         "stripe_customer_id"
     )
 
@@ -238,7 +241,7 @@ def create_customer_portal_session(request):
 @registered_logged_in_required
 def home(request):
 
-    registered_user = vitalib.UserInfo.Get(connection, request.user.id).data(
+    registered_user = vitalib.Database.UserInfo.Get(connection, request.user.id).data(
         "subscribed",
         "subscription_expiration",
         "stripe_customer_id",
@@ -261,25 +264,23 @@ def home(request):
     if not language:
         language = registered_user.get("target_language", "es")
 
-    with connection.cursor() as cursor:
-        cursor.execute(
-            """
-            SELECT COUNT(*)
-            FROM user_vocabulary
-            WHERE user_id = %s
-            AND language = %s
-            AND next_review_at IS NOT NULL
-            AND next_review_at < %s
-            """,
-            [
-                request.user.id,
-                language,
-                timezone.now(),
-            ]
-        )
-        review_count = cursor.fetchone()[0]
+    review_count = vitalib.Database.Vocab.Get(connection, request.user.id, language).review_count()
 
     today = date.today()
+
+    # If the local table says the user is unsubscribed or expired
+    if not subscribed or not subscription_expiration or subscription_expiration <= today:
+        # check Stripe again before showing the unsubscribed page.
+        stripe_status = check_vitamova_subscription_in_stripe(request.user.email)
+
+        subscribed = stripe_status["subscribed"]
+        subscription_expiration = stripe_status["subscription_expiration"]
+
+        vitalib.Database.UserInfo.Update(connection, request.user.id).data(
+            subscribed=subscribed,
+            subscription_expiration=subscription_expiration,
+            stripe_customer_id=stripe_status["stripe_customer_id"]
+        )
 
     if subscribed and subscription_expiration and subscription_expiration > today:
         return render(request, "home.html", {
@@ -288,42 +289,8 @@ def home(request):
             "has_score": vocab_score != -1,
             "review_count": review_count,
             "language": language,
-            "language_options": vitalib.UserInfo.Get(connection, request.user.id).languages()
-            })
-
-    # If the local table says the user is unsubscribed or expired,
-    # check Stripe again before showing the unsubscribed page.
-    stripe_status = check_vitamova_subscription_in_stripe(request.user.email)
-
-    subscribed = stripe_status["subscribed"]
-    subscription_expiration = stripe_status["subscription_expiration"]
-    stripe_customer_id = stripe_status["stripe_customer_id"]
-
-    with connection.cursor() as cursor:
-        cursor.execute(
-            """
-            UPDATE registered_user
-            SET subscribed = %s,
-                subscription_expiration = %s,
-                stripe_customer_id = COALESCE(%s, stripe_customer_id)
-            WHERE user_id = %s
-            """,
-            [
-                subscribed,
-                subscription_expiration,
-                stripe_customer_id,
-                request.user.id,
-            ]
-        )
-
-    if subscribed and subscription_expiration and subscription_expiration > today:
-        return render(request, "home.html", {
-            "first_name": request.user.first_name,
-            "user_email": request.user.email,
-            "has_score": vocab_score != -1,
-            "review_count": review_count,
-            "language": target_language,
-            "language_options": vitalib.UserInfo.Get(connection, request.user.id).languages()
+            "language_options": vitalib.Database.UserInfo.Get(connection, request.user.id).languages(),
+            "dev": settings.SERVER_TYPE == 'dev'
             })
 
     if vocab_score == -1:
@@ -359,8 +326,8 @@ def register(request):
         subscription_expiration = stripe_status["subscription_expiration"]
         stripe_customer_id = stripe_status["stripe_customer_id"]
 
-        # vitalib.Test(connection, request.user.username, "es").score_result(data.get("answers", []))
-        vitalib.UserInfo.Create(connection, request.user.id).data(
+        # vitalib.Database.Test(connection, request.user.username, "es").score_result(data.get("answers", []))
+        vitalib.Database.UserInfo.Create(connection, request.user.id).data(
             native_language=native_language,
             target_language=target_language,
             second_target_language=second_target_language,
@@ -437,13 +404,13 @@ def account(request):
         request.user.last_name = last_name.strip()
         request.user.save()
         # Now update the UserInfo table with the language preferences
-        vitalib.UserInfo.Update(connection, request.user.id).data(
+        vitalib.Database.UserInfo.Update(connection, request.user.id).data(
             native_language=native_language,
             target_language=target_language,
             second_target_language=second_target_language
         )
 
-        user_info = vitalib.UserInfo.Get(connection, request.user.id).data(
+        user_info = vitalib.Database.UserInfo.Get(connection, request.user.id).data(
             "native_language",
             "target_language",
             "second_target_language"
@@ -464,7 +431,7 @@ def account(request):
 
 
     if request.method == 'GET':
-        user_data = vitalib.UserInfo.Get(connection, request.user.id).data(
+        user_data = vitalib.Database.UserInfo.Get(connection, request.user.id).data(
             "native_language",
             "target_language",
             "second_target_language",
@@ -485,7 +452,23 @@ def account(request):
 
 @registered_logged_in_required
 def vocab_test(request):
+    if request.method == "GET":
+        language = request.GET.get("language", "es")
+        vocab_score = vitalib.Database.UserInfo.Get(connection, request.user.id).score(language)
+        if vocab_score == -1:
+            return render(request, "vocab_test_diagnostic.html", {
+                "language": language
+                }
+            )
 
+        if is_user_subscribed(request.user):
+            return render(request, "vocab_test_retest.html", {
+                "current_score": vocab_score,
+                "language": language
+            })
+
+        return redirect("/subscribe/")
+    
     if request.method == "POST":
         try:
             data = json.loads(request.body.decode("utf-8"))
@@ -495,168 +478,18 @@ def vocab_test(request):
                 status=400
             )
         language = data.get("language", "es")
-    elif request.method == "GET":
-        language = request.GET.get("language", "es")
-
-    vocab_score = vitalib.UserInfo.Get(connection, request.user.id).score(language)
-
-    # If the score is not -1 calculate the frontier
-    if vocab_score != -1:
-        frontier = (vocab_score // 1000) + 1
-        frontier = max(1, min(6, frontier))
-
-    # -------------------------------------------------------------------------
-    # POST requests are used by the diagnostic/retest frontend XHR flows.
-    # -------------------------------------------------------------------------
-    if request.method == "POST":
-
+        vocab_score = vitalib.Database.UserInfo.Get(connection, request.user.id).score(language)
         action = data.get("action")
-        batch = str(data.get("batch", "1"))
-        all_answers = data.get("all_answers", [])
+        batch = int(data.get("batch", 1))
 
-        questions = []
+        # If the user is not subscribed, their score must be -1
+        if not is_user_subscribed(request.user) and vocab_score != -1:
+            return JsonResponse(
+                {"status": "error", "message": "User must subscribe."},
+                status=400
+            )
 
-        level_ranges = {
-            1: (1, 1500),
-            2: (1501, 3000),
-            3: (3001, 6000),
-            4: (6001, 10000),
-            5: (10001, 15000),
-            6: (15001, None),
-        }
-
-        # ---------------------------------------------------------------------
-        # RETEST ACTION PLACEHOLDERS
-        #
-        # These should probably stay near the top of the POST block because they
-        # are separate flows from the initial diagnostic.
-        # ---------------------------------------------------------------------
-
-        retest_actions = [ "get_retest_questions", "complete_retest", "resolve_retest_score" ]
-
-        if action in retest_actions:
-            #If the user's score is -1 return an error
-            if vocab_score == -1:
-                return JsonResponse(
-                    {"status": "error", "message": "No existing score found for retest."},
-                    status=400
-                )
-            language = data.get("language", "es")
-
-            if action == "get_retest_questions":
-                fetch_counts = {
-                    1: 0,
-                    2: 0,
-                    3: 0,
-                    4: 0,
-                    5: 0,
-                    6: 0,
-                }
-                # If the frontier is 2, 3, 4, or 5, 30 questions from the frontier and 10 from the level below.
-                if frontier in [2, 3, 4, 5]:
-                    fetch_counts[frontier] = 30
-                    fetch_counts[frontier - 1] = 10
-                    fetch_counts[frontier + 1] = 10
-                # If the frontier is 1, 35 questions from level 1 and 15 from level 2.
-                elif frontier == 1:
-                    fetch_counts[1] = 35
-                    fetch_counts[2] = 15
-                # If the frontier is 6, 35 questions from level 6 and 15 from level 5.
-                elif frontier == 6:
-                    fetch_counts[6] = 35
-                    fetch_counts[5] = 15
-                questions = vitalib.Test(connection, request.user.username, language).get_questions(fetch_counts)
-                return JsonResponse({
-                    "status": "questions",
-                    "questions": questions,
-                })
-                
-
-            elif action == "complete_retest":
-                example_request = {
-                    "action": "complete_retest",
-                    "current_score": 2730,
-                    "current_frontier": 3,
-                    "answers": [
-                        {
-                        "question_id": 123,
-                        "selected_option": "varias"
-                        }
-                    ],
-                    "total_questions": 50,
-                    "language": "es"
-                    }
-                example_response = {
-                    "status": "complete",
-                    "outcome": "improved",
-                    "current_score": 2730,
-                    "new_score": 3120,
-                    "frontier_accuracy": 0.83,
-                    "below_frontier_accuracy": 0.90,
-                    "above_frontier_accuracy": 0.40
-                    }
-                score_result = vitalib.Test(connection, request.user.username, language).score_result(data.get("answers", []))
-                if score_result["score"] > vocab_score:
-                    outcome = "improved"
-                elif score_result["score"] <= vocab_score:
-                    # If frontier accuracy was less than 0.35 and below frontier acccuracy was less than 0.7
-                    # We outcome is downgrade_choice
-                    # Otherwise outcome is keep_current
-                    if score_result["frontier_accuracy"] < 0.35 and score_result["below_frontier_accuracy"] < 0.7:
-                        outcome = "downgrade_choice"
-                    else:
-                        outcome = "keep_current"
-                return JsonResponse({
-                    "status": "complete",
-                    "outcome": outcome,
-                    "current_score": vocab_score,
-                    "new_score": score_result["score"],
-                    "frontier_accuracy": score_result["frontier_accuracy"],
-                    "below_frontier_accuracy": score_result["below_frontier_accuracy"],
-                    "above_frontier_accuracy": score_result["above_frontier_accuracy"],
-                })
-
-            elif action == "resolve_retest_score":
-                example_request = {
-                    "action": "resolve_retest_score",
-                    "choice": "keep_current",
-                    "current_score": 2730,
-                    "new_score": 1720,
-                    "language": "es"
-                    }
-                example_response = {
-                    "status": "ok"
-                    }
-                # Choice options are keep_current or accept_new
-                choice = data.get("choice")
-                # Keep_current is easy - just return ok without changing anything
-                if choice == "keep_current":
-                    return JsonResponse({
-                        "status": "ok"
-                    })
-                # Accept_new means we want to update the user's score to the new score calculated in complete_retest
-                # Use the db helper function to update the user's score in the database
-                elif choice == "accept_new":
-                    vitalib.UserInfo.Update(connection, request.user.id).score(language, data.get("new_score"))
-                    updated_score = vitalib.UserInfo.Get(connection, request.user.id).score()
-                    if updated_score != data.get("new_score"):
-                        return JsonResponse({
-                            "status": "error",
-                            "message": "Failed to update score."
-                        }, status=500)
-                    else:
-                        return JsonResponse({
-                            "status": "ok"
-                        })
-            # ---------------------------------------------------------------------
-            # DIAGNOSTIC ACTIONS
-            #
-            # Existing supported actions:
-            # - get_questions
-            # - submit_batch
-            # - complete_diagnostic
-            # ---------------------------------------------------------------------
-
+        # Ensure the action is valid
         if action not in [
             "get_questions",
             "submit_batch",
@@ -669,316 +502,132 @@ def vocab_test(request):
                 {"status": "error", "message": "Invalid action."},
                 status=400
             )
+        
+        # Set the diagnostic and retest actions
 
-        # ---------------------------------------------------------------------
-        # Diagnostic batch 1:
-        # Broad scan, 3 questions from each level.
-        # ---------------------------------------------------------------------
-        if action == "get_questions" and batch == "1":
-            fetch_counts = {
-                1: 3,
-                2: 3,
-                3: 3,
-                4: 3,
-                5: 3,
-                6: 3,
-            }
+        diagnostic_actions = ["get_questions", "submit_batch", "complete_diagnostic"]
+        retest_actions = ["get_retest_questions", "complete_retest", "resolve_retest_score"]
 
-        # ---------------------------------------------------------------------
-        # Diagnostic batches 2-4:
-        # Score all previous answers and use the frontier level to select the
-        # next adaptive question distribution, or calculate the final score.
-        # ---------------------------------------------------------------------
-        elif action in ["submit_batch", "complete_diagnostic"] and batch in ["1", "2", "3", "4"]:
-            level_correct_counts = {1: 0, 2: 0, 3: 0, 4: 0, 5: 0, 6: 0}
-            level_total_counts = {1: 0, 2: 0, 3: 0, 4: 0, 5: 0, 6: 0}
-
-            level_weighted_correct = {
-                1: 0.0,
-                2: 0.0,
-                3: 0.0,
-                4: 0.0,
-                5: 0.0,
-                6: 0.0,
-            }
-
-            level_weighted_total = {
-                1: 0.0,
-                2: 0.0,
-                3: 0.0,
-                4: 0.0,
-                5: 0.0,
-                6: 0.0,
-            }
-
-            # Score all submitted answers so far.
-            with connection.cursor() as cursor:
-                for answer in all_answers:
-                    question_id = answer.get("question_id")
-                    selected_option = answer.get("selected_option")
-
-                    if not question_id or selected_option is None:
-                        continue
-
-                    cursor.execute(
-                        """
-                        SELECT v.correct_answer, l.rank AS lemma_rank
-                        FROM vocab_test_bank v
-                        JOIN lemmas l
-                            ON v.lemma_id = l.id
-                        WHERE v.id = %s
-                        AND l.language = %s
-                        """,
-                        [question_id, language]
-                    )
-                    row = cursor.fetchone()
-
-                    if not row:
-                        continue
-
-                    correct_answer = row[0]
-                    lemma_rank = row[1]
-
-                    level = None
-                    min_rank_for_level = None
-                    max_rank_for_level = None
-
-                    # Determine level from lemma_rank.
-                    for lvl, (min_rank, max_rank) in level_ranges.items():
-                        if max_rank is None:
-                            if lemma_rank >= min_rank:
-                                level = lvl
-                                min_rank_for_level = min_rank
-
-                                # Level 6 has no natural upper bound in level_ranges.
-                                # This synthetic bound is only for rank weighting.
-                                max_rank_for_level = min_rank + 5000
-                                break
-
-                        elif min_rank <= lemma_rank <= max_rank:
-                            level = lvl
-                            min_rank_for_level = min_rank
-                            max_rank_for_level = max_rank
-                            break
-
-                    if not level:
-                        continue
-
-                    is_correct = (
-                        str(selected_option).strip().casefold()
-                        == str(correct_answer).strip().casefold()
-                    )
-
-                    level_total_counts[level] += 1
-
-                    if is_correct:
-                        level_correct_counts[level] += 1
-
-                    # Rank weight within the level.
-                    # Earlier/easier words are around 1.0.
-                    # Later/harder words are up to around 2.0.
-                    level_span = max_rank_for_level - min_rank_for_level
-
-                    if level_span <= 0:
-                        rank_position = 0.0
-                    else:
-                        rank_position = (lemma_rank - min_rank_for_level) / level_span
-                        rank_position = max(0.0, min(1.0, rank_position))
-
-                    rank_weight = 1.0 + rank_position
-
-                    level_weighted_total[level] += rank_weight
-
-                    if is_correct:
-                        level_weighted_correct[level] += rank_weight
-
-            # Find the first tested level below 80%.
-            # Since the loop stops there, all earlier tested levels were 80%+.
-            frontier_level = 1
-
-            for lvl in range(1, 7):
-                total = level_total_counts[lvl]
-                correct = level_correct_counts[lvl]
-
-                if total == 0:
-                    continue
-
-                accuracy = correct / total
-
-                if accuracy < 0.8:
-                    frontier_level = lvl
-                    break
-            else:
-                frontier_level = 6
-
-            # -----------------------------------------------------------------
-            # Final diagnostic submission:
-            # Calculate score and update vocab_score.
-            # -----------------------------------------------------------------
-            if action == "complete_diagnostic":
-                base_score = 1000 * (frontier_level - 1)
-
-                frontier_weighted_total = level_weighted_total[frontier_level]
-                frontier_weighted_correct = level_weighted_correct[frontier_level]
-
-                if frontier_weighted_total > 0:
-                    frontier_weighted_accuracy = (
-                        frontier_weighted_correct / frontier_weighted_total
-                    )
-                else:
-                    frontier_weighted_accuracy = 0.0
-
-                entry_threshold = 0.40
-                mastery_threshold = 0.80
-
-                raw_bonus_progress = (
-                    (frontier_weighted_accuracy - entry_threshold)
-                    / (mastery_threshold - entry_threshold)
+        # Let's organize by diagnostic vs retest to make the code readable
+        if action in diagnostic_actions:
+            # User's vocab score must be -1 to take diagnostic
+            if vocab_score != -1:
+                return JsonResponse(
+                    {"status": "error", "message": "User has already completed diagnostic."},
+                    status=400
                 )
-                raw_bonus_progress = max(0.0, min(1.0, raw_bonus_progress))
-
-                raw_bonus = round(999 * raw_bonus_progress)
-
-                above_frontier_weighted_correct = 0.0
-                above_frontier_weighted_total = 0.0
-
-                # Confidence multiplier from all levels above the frontier.
-                # Higher levels and harder ranks count more.
-                for lvl in range(frontier_level + 1, 7):
-                    level_distance = lvl - frontier_level
-
-                    # frontier + 1 = 1.0x
-                    # frontier + 2 = 1.5x
-                    # frontier + 3 = 2.0x
-                    distance_weight = 1.0 + (0.5 * (level_distance - 1))
-
-                    above_frontier_weighted_correct += (
-                        level_weighted_correct[lvl] * distance_weight
-                    )
-                    above_frontier_weighted_total += (
-                        level_weighted_total[lvl] * distance_weight
-                    )
-
-                if above_frontier_weighted_total > 0:
-                    above_frontier_accuracy = (
-                        above_frontier_weighted_correct
-                        / above_frontier_weighted_total
-                    )
+            # Implement diagnostic actions here
+            if action == "get_questions":
+                if batch == 1:
+                    questions = vitalib.Test.Get(connection, request.user.id, language).any_questions(type="diagnostic", frontier = None, batch=1)
+                elif batch in [2, 3]:
+                    # The data has the answers stored as "previous_answers"
+                    previous_answers = data.get("previous_answers", [])
+                    frontier = vitalib.Test.Get(connection, request.user.id, language).frontier(previous_answers)
+                    questions = vitalib.Test.Get(connection, request.user.id, language).any_questions(type="diagnostic", frontier=frontier, batch=batch)
                 else:
-                    above_frontier_accuracy = 0.0
-
-                # Sample confidence prevents tiny above-frontier samples from
-                # over-influencing the multiplier.
-                sample_confidence = min(1.0, above_frontier_weighted_total / 12.0)
-
-                above_frontier_proof = above_frontier_accuracy * sample_confidence
-
-                # Multiplier range: 0.70 to 1.00.
-                confidence_multiplier = 0.70 + (0.30 * above_frontier_proof)
-
-                bonus = round(raw_bonus * confidence_multiplier)
-
-                score = base_score + bonus
-                score = max(0, min(6000, score))
-
-                vitalib.UserInfo.Update(connection, request.user.id).score(language, score)
-
+                    return JsonResponse(
+                        {"status": "error", "message": "Invalid batch number for action 'get_questions'."},
+                        status=400
+                    )
+                return JsonResponse({
+                    "status": "questions",
+                    "batch": batch,
+                    "questions": questions
+                })
+            if action == "submit_batch":
+                # Get parameter "all_answers" from data
+                all_answers = data.get("all_answers", [])
+                # Get the frontier
+                frontier = vitalib.Test.Get(connection, request.user.id, language).frontier(all_answers)
+                # Get any_questions with type diagnostic, batch, and frontier parameters
+                questions = vitalib.Test.Get(connection, request.user.id, language).any_questions(type="diagnostic", frontier=frontier, batch=batch)
+                return JsonResponse({
+                    "status": "questions",
+                    "batch": batch+1,
+                    "questions": questions
+                })
+            if action == "complete_diagnostic":
+                if batch != 4:
+                    return JsonResponse(
+                        {"status": "error", "message": "Invalid batch number for action 'complete_diagnostic'."},
+                        status=400
+                    )
+                all_answers = data.get("all_answers", [])
+                # Now get an actual score based on the answers
+                score = vitalib.Test.Get(connection, request.user.id, language).score(all_answers)
                 return JsonResponse({
                     "status": "complete",
-                    "score": score,
-                    "frontier_level": frontier_level,
-                    "base_score": base_score,
-                    "raw_bonus": raw_bonus,
-                    "confidence_multiplier": round(confidence_multiplier, 3),
-                    "bonus": bonus
+                    "score": score
                 })
 
-            # -----------------------------------------------------------------
-            # Intermediate diagnostic submission:
-            # Use the frontier level to choose the next adaptive batch.
-            # -----------------------------------------------------------------
-            if action == "submit_batch":
-                if frontier_level == 1:
-                    fetch_counts = {
-                        1: 12,
-                        2: 6,
-                        3: 0,
-                        4: 0,
-                        5: 0,
-                        6: 0,
-                    }
-
-                elif frontier_level == 6:
-                    fetch_counts = {
-                        1: 0,
-                        2: 0,
-                        3: 0,
-                        4: 0,
-                        5: 6,
-                        6: 12,
-                    }
-
+        if action in retest_actions:
+            # User's vocab score must not be -1 to take retest
+            if vocab_score == -1:
+                return JsonResponse(
+                    {"status": "error", "message": "User must complete diagnostic first."},
+                    status=400
+                )
+            # Implement retest actions here
+            if action == "get_retest_questions":
+                # Calculate frontier from vocab_score
+                frontier = min((vocab_score // 1000) + 1, 6)
+                questions = vitalib.Test.Get(connection, request.user.id, language).any_questions(type="retest", frontier=frontier)
+                return JsonResponse({
+                    "status": "questions",
+                    "questions": questions
+                })
+            if action == "complete_retest":
+                # Get parameter "answers" from data
+                answers = data.get("answers", [])
+                # Now get an actual score based on the answers
+                score = vitalib.Test.Get(connection, request.user.id, language).score(answers)
+                # "outcome" options are improved, downgrade_choice, or keep_current
+                if score > vocab_score:
+                    outcome = "improved"
+                elif score//1000 < vocab_score//1000:
+                    outcome = "downgrade_choice"
                 else:
-                    fetch_counts = {
-                        1: 0,
-                        2: 0,
-                        3: 0,
-                        4: 0,
-                        5: 0,
-                        6: 0,
-                    }
-                    fetch_counts[frontier_level] = 10
-                    fetch_counts[frontier_level - 1] = 4
-                    fetch_counts[frontier_level + 1] = 4
+                    outcome = "keep_current"
+                return JsonResponse({
+                    "status": "complete",
+                    "new_score": score,
+                    "outcome": outcome
+                })
+            if action == "resolve_retest_score":
+                # Get parameter "choice"
+                choice = data.get("choice")
+                # If "choice" is "accept_new" update the score
+                if choice == "accept_new":
+                    new_score = data.get("new_score")
+                    # Make sure new_score is lower than the current score
+                    # Don't want people to try to game the system
+                    if new_score >= vocab_score:
+                        return JsonResponse(
+                            {"status": "error", "message": "Nice try. I'd recommend working on your vocabulary rather than trying to game the system."},
+                            status=400
+                        )
+                    else:
+                        vitalib.Database.UserInfo.Update(connection, request.user.id).score(language, new_score)
+                        return JsonResponse({
+                            "status": "ok"
+                        })
+                elif choice == "keep_current":
+                    return JsonResponse({
+                        "status": "ok"
+                    })
+                else:
+                    return JsonResponse(
+                        {"status": "error", "message": "Invalid JSON."},
+                        status=400
+                    )
 
-        else:
-            return JsonResponse(
-                {"status": "error", "message": "Invalid diagnostic request."},
-                status=400
-            )
-
-        # ---------------------------------------------------------------------
-        # Fetch diagnostic questions based on fetch_counts.
-        # ---------------------------------------------------------------------
-        language = data.get("language", "es")
-        questions = vitalib.Test(connection, request.user.username, language).get_questions(fetch_counts)
-
-        return JsonResponse({
-            "status": "questions",
-            "questions": questions
-        })
-
-    # -------------------------------------------------------------------------
-    # GET request page rendering
-    # -------------------------------------------------------------------------
-
-    # Users with no vocab score can always take the free diagnostic,
-    # regardless of subscription status.
-    if vocab_score == -1:
-        return render(request, "vocab_test_diagnostic.html", {
-            "language": language
-            }
-        )
-
-    if is_user_subscribed(request.user):
-        return render(request, "vocab_test_retest.html", {
-            "current_score": vocab_score,
-            "language": language
-        })
-
-    return redirect("/subscribe/")
-
+@registered_logged_in_required
 def flag_question(request):
     if request.method != "POST":
         return JsonResponse(
             {"status": "error", "message": "Invalid request method."},
             status=400
-        )
-
-    if not request.user.is_authenticated:
-        return JsonResponse(
-            {"status": "error", "message": "User not authenticated."},
-            status=401
         )
 
     try:
@@ -998,31 +647,18 @@ def flag_question(request):
             status=400
         )
 
-    with connection.cursor() as cursor:
-        cursor.execute(
-            """
-            INSERT INTO flagged_questions (
-                user_id,
-                question_id,
-                language,
-                flagged_at
-            )
-            VALUES (%s, %s, %s, %s)
-            ON CONFLICT (user_id, question_id, language)
-            DO UPDATE SET flagged_at = EXCLUDED.flagged_at
-            """,
-            [
-                request.user.id,
-                question_id,
-                language,
-                timezone.now()
-            ]
-        )
+    flagged = vitalib.Database.Test.Questions.flag(connection, request.user.username, language, question_id)
 
-    return JsonResponse({
-        "status": "ok",
-        "message": "Question flagged for review."
-    })
+    if flagged["status"] != "flagged":
+        return JsonResponse(
+            {"status": "error", "message": "Failed to flag question."},
+            status=500
+        )
+    else:
+        return JsonResponse({
+            "status": "ok",
+            "message": "Question flagged for review."
+        })
 
 @registered_logged_in_required
 def subscribe(request):
@@ -1031,7 +667,7 @@ def subscribe(request):
         return redirect("home")
     
     # Get user's score and language
-    user_data = vitalib.UserInfo.Get(connection, request.user.id).data()
+    user_data = vitalib.Database.UserInfo.Get(connection, request.user.id).data()
 
     return render(request, "subscribe.html", {
         "stripe_public_key": STRIPE_PUBLIC_KEY,
@@ -1045,12 +681,37 @@ def vocab_builder(request):
 
     if not is_user_subscribed(request.user):
         return redirect("/subscribe/")
-
-    return render(request, "coming_soon.html", {
-        "feature_name": "Vocab Builder",
-        "message": "Vocab Builder is coming soon! In the meantime, you can review and practice the words you've already learned in the Review and Reading Practice sections.",
-        "back_url": "/",
-    })
+    
+    if request.method == "GET":
+        language = request.GET.get("language", "es")
+        return render(request, "vocab_builder.html", {
+            "language": language
+        })
+    if request.method == "POST":
+        # Get the data
+        data = json.loads(request.body.decode("utf-8"))
+        # Get language from data
+        language = data.get("language", "es")
+        action = data.get("action")
+        if action == "load_questions":
+            score = vitalib.Database.UserInfo.Get(connection, request.user.id).score(language)
+            questions = vitalib.Test.Get(connection, request.user.id, language).new_questions("vocab_builder", score)
+            return JsonResponse({
+                "status": "ok",
+                "questions": questions
+            })
+        if action == "submit_answers":
+            answers = data.get("answers", [])
+            # Get results based on answers
+            missed = vitalib.Test.Get(connection, request.user.id, language).missed(answers)
+            # Add all the missed lemmas to the user's vocab list
+            for m in missed:
+                lemma_id = m["lemma"]["id"]
+                vitalib.Database.Vocab.Add(connection, request.user.id).lemma(lemma_id)
+            return JsonResponse({
+                "status": "ok",
+                "missed_questions": missed
+            })
 
 @registered_logged_in_required
 def review(request):

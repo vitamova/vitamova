@@ -1,27 +1,6 @@
-from urllib import request
 import os
 import datetime
 import random
-
-# Create environment variables
-def source_profile(file_path):
-    with open(file_path) as f:
-        for line in f:
-            if line.startswith('export '):
-                # Strip out 'export ' and split by '=' to get the key and value
-                key, value = line[len('export '):].strip().split('=', 1)
-                # Remove surrounding quotes from value if they exist
-                if value.startswith('"') and value.endswith('"'):
-                    value = value[1:-1]
-                elif value.startswith("'") and value.endswith("'"):
-                    value = value[1:-1]
-                os.environ[key] = value
-
-# Use the function to source the profile
-source_profile(os.path.expanduser("~/.profile"))
-# DB password is in ˜/data/db_password.txt
-with open(os.path.expanduser("~/data/db_pw.txt"), "r") as f:
-    DB_PASSWORD = f.read().strip()
 
 # Map language codes to their full names to use for table names
 LANGUAGE_MAP = {
@@ -30,602 +9,485 @@ LANGUAGE_MAP = {
     # Add more languages here as needed
 }
 
-#Retrieve user information
-class UserInfo:
-    ALLOWED_COLUMNS = {
-        "native_language",
-        "target_language",
-        "vocab_score",
-        "subscribed",
-        "subscription_expiration",
-        "stripe_customer_id",
-        "second_target_language",
-        "second_vocab_score"
-    }
-    class Create:
-        def __init__(self, conn, user_id):
-            self.conn = conn
-            self.user_id = user_id
+LEVEL_RANGES = {
+    1: (1, 1500),
+    2: (1501, 3000),
+    3: (3001, 6000),
+    4: (6001, 10000),
+    5: (10001, 15000),
+    6: (15001, None),
+}
 
-        def data(self, **fields):
-            allowed_columns = UserInfo.ALLOWED_COLUMNS | {"user_id"}
+class Database:
+    #Retrieve user information
+    class UserInfo:
+        ALLOWED_COLUMNS = {
+            "native_language",
+            "target_language",
+            "vocab_score",
+            "subscribed",
+            "subscription_expiration",
+            "stripe_customer_id",
+            "second_target_language",
+            "second_vocab_score"
+        }
+        class Create:
+            def __init__(self, conn, user_id):
+                self.conn = conn
+                self.user_id = user_id
 
-            fields["user_id"] = self.user_id
+            def data(self, **fields):
+                allowed_columns = Database.UserInfo.ALLOWED_COLUMNS | {"user_id"}
 
-            invalid_columns = set(fields.keys()) - allowed_columns
-            if invalid_columns:
-                raise ValueError(f"Invalid column name(s): {', '.join(invalid_columns)}")
+                fields["user_id"] = self.user_id
 
-            columns = ", ".join(fields.keys())
-            placeholders = ", ".join(["%s"] * len(fields))
-            values = list(fields.values())
+                invalid_columns = set(fields.keys()) - allowed_columns
+                if invalid_columns:
+                    raise ValueError(f"Invalid column name(s): {', '.join(invalid_columns)}")
 
-            with self.conn.cursor() as cur:
-                query = f"""
-                    INSERT INTO registered_user ({columns})
-                    VALUES ({placeholders})
-                    RETURNING id
-                """
-                cur.execute(query, values)
-                new_registered_user_id = cur.fetchone()[0]
+                columns = ", ".join(fields.keys())
+                placeholders = ", ".join(["%s"] * len(fields))
+                values = list(fields.values())
 
-            self.conn.commit()
-            return new_registered_user_id
-    class Update:
-        def __init__(self, conn, user_id):
-            self.conn = conn
-            self.user_id = user_id
-        def data(self, **fields):
-            if not fields:
-                return
-
-            invalid_columns = set(fields.keys()) - UserInfo.ALLOWED_COLUMNS
-            if invalid_columns:
-                raise ValueError(f"Invalid column name(s): {', '.join(invalid_columns)}")
-
-            set_clause = ", ".join([f"{column} = %s" for column in fields.keys()])
-            values = list(fields.values())
-            values.append(self.user_id)
-
-            with self.conn.cursor() as cur:
-                query = f"""
-                    UPDATE registered_user
-                    SET {set_clause}
-                    WHERE user_id = %s
-                """
-                cur.execute(query, values)
-
-            self.conn.commit()
-        def score(self, language, new_score):
-            language = language.strip().lower()
-
-            with self.conn.cursor() as cur:
-                cur.execute(
-                    """
-                    SELECT target_language, second_target_language
-                    FROM registered_user
-                    WHERE user_id = %s
-                    """,
-                    (self.user_id,)
-                )
-
-                row = cur.fetchone()
-
-            if not row:
-                raise ValueError(f"No registered_user found for user_id {self.user_id}")
-
-            target_language, second_target_language = row
-
-            if target_language and language == target_language.strip().lower():
-                self.data(vocab_score=new_score)
-                return
-
-            if second_target_language and language == second_target_language.strip().lower():
-                self.data(second_vocab_score=new_score)
-                return
-
-            raise ValueError(
-                f"Language '{language}' does not match any target language for user_id {self.user_id}"
-            )
-    class Get:
-        def __init__(self, conn, user_id):
-            self.conn = conn
-            self.user_id = user_id
-        def data(self, *columns):
-            if not columns:
-                columns = tuple(UserInfo.ALLOWED_COLUMNS)
-
-            invalid_columns = set(columns) - UserInfo.ALLOWED_COLUMNS
-            if invalid_columns:
-                raise ValueError(f"Invalid column name(s): {', '.join(invalid_columns)}")
-
-            column_list = ", ".join(columns)
-
-            with self.conn.cursor() as cur:
-                query = f"""
-                    SELECT {column_list}
-                    FROM registered_user
-                    WHERE user_id = %s
-                """
-                cur.execute(query, (self.user_id,))
-                row = cur.fetchone()
-
-            if not row:
-                return None
-
-            return dict(zip(columns, row))
-        def score(self, language):
-            language = language.strip().lower()
-
-            with self.conn.cursor() as cur:
-                cur.execute(
-                    """
-                    SELECT target_language, second_target_language, vocab_score, second_vocab_score
-                    FROM registered_user
-                    WHERE user_id = %s
-                    """,
-                    (self.user_id,)
-                )
-
-                row = cur.fetchone()
-
-            if not row:
-                raise ValueError(f"No registered_user found for user_id {self.user_id}")
-
-            target_language, second_target_language, vocab_score, second_vocab_score = row
-
-            if target_language and language == target_language.strip().lower():
-                return vocab_score
-
-            if second_target_language and language == second_target_language.strip().lower():
-                return second_vocab_score
-
-            raise ValueError(
-                f"Language '{language}' does not match any target language for user_id {self.user_id}"
-            )
-        def languages(self):
-            with self.conn.cursor() as cur:
-                cur.execute("SELECT target_language, second_target_language FROM registered_user WHERE user_id=%s", (self.user_id,))
-                row = cur.fetchone()
-                if row:
-                    return [
-                        {"code": row[0], "name": LANGUAGE_MAP.get(row[0], row[0])},
-                        {"code": row[1], "name": LANGUAGE_MAP.get(row[1], row[1])}
-                    ]
-                return []
-
-class vocabulary:
-    @staticmethod
-    def add(conn, username, word, definition, example):
-        #Get language from username using user_info class
-        language = user_info.get(conn,username).language()
-        vocab_table = "vocabulary"
-        dict_table = "dictionary_"+language
-        #if the word is not in the dictionary, add it with the definition and example
-        with conn.cursor() as cur:
-            cur.execute("SELECT id FROM "+dict_table+" WHERE word=%s", (word,))
-            if cur.fetchone() is None:
-                print("Word", word, "is not in the dictionary, adding it now")
-                cur.execute("INSERT INTO "+dict_table+" (word, definition, example) VALUES (%s, %s, %s)", (word, definition, example))
-            else:
-                print("Word", word, "is already in the dictionary")
-        #Get the id of the word from the dictionary
-        with conn.cursor() as cur:
-            cur.execute("SELECT id FROM "+dict_table+" WHERE word=%s", (word,))
-            word_id = cur.fetchone()[0]
-        #Print the word id
-        print("The word "+word+" has an id of ", word_id)
-        #If the word is in the vocabulary, change the level to 0 and the next review to tomorrow
-        tomorrow = str((datetime.datetime.now() + datetime.timedelta(days=1)).date())
-        with conn.cursor() as cur:
-            cur.execute("SELECT word_id FROM "+vocab_table+" WHERE username=%s AND word_id=%s", (username, word_id))
-            if cur.fetchone() is not None:
-                print("Word", word, "is already in the vocabulary, resetting it now")
-                cur.execute("UPDATE "+vocab_table+" SET level=0, next_review=%s WHERE username=%s AND word_id=%s", (tomorrow, username, word_id))
-            #If the word is not in the vocabulary, add it with level 0 and next review tomorrow
-            else:
-                print("Word", word, "is not in the vocabulary, adding it now")
-                cur.execute("INSERT INTO "+vocab_table+" (username, word_id, level, next_review) VALUES (%s, %s, 0, %s)", (username, word_id, tomorrow))
-    class count:
-        def __init__(self, conn, username):
-            self.username = username
-            self.conn = conn
-            #Get the language from the username using user_info class
-            self.language = user_info.get(self.conn, self.username).language()
-        def all(self):
-            with self.conn.cursor() as cur:
-                cur.execute("SELECT COUNT(*) FROM vocabulary WHERE username=%s", (self.username,))
-                return cur.fetchone()[0]
-        def today(self):
-            #This will return the number of words that need to be reviewed today
-            #These will have a next_review date of today or earlier
-            with self.conn.cursor() as cur:
-                cur.execute("SELECT COUNT(*) FROM vocabulary WHERE username=%s AND next_review<=%s", (self.username, str(datetime.datetime.now().date())))
-                return cur.fetchone()[0]
-    class get:
-        def __init__(self, conn, username):
-            self.username = username
-            self.conn = conn
-            #Get the language from the username using user_info class
-            self.language = user_info.get(self.conn, self.username).language()
-        def all(self):
-            #Get all words in the vocabulary
-            with self.conn.cursor() as cur:
-                cur.execute("SELECT word_id, level, next_review FROM vocabulary WHERE username=%s", (self.username,))
-                return cur.fetchall()
-        def today(self, quantity):
-            #Get all words that need to be reviewed today
-            with self.conn.cursor() as cur:
-                #The quantity parameter will be used to limit the number of words returned
-                #The older words will be returned first
-                cur.execute("SELECT word_id FROM vocabulary WHERE username=%s AND next_review<=%s ORDER BY next_review LIMIT %s", (self.username, str(datetime.datetime.now().date()), quantity))
-                word_list = cur.fetchall()
-            #Now get all the words with matching word_id from the dictionary
-            words = []
-            for word_id in word_list:
                 with self.conn.cursor() as cur:
-                    cur.execute("SELECT id, word, definition, example FROM dictionary_"+self.language+" WHERE id=%s", (word_id,))
-                    result = cur.fetchone()
-                    if result is not None:
-                        words.append({
-                            "id": result[0], #We need to use id instead of word_id because we are getting the id from the dictionary table
-                            "word": result[1],
-                            "definition": result[2],
-                            "example": result[3]
-                        })
-            return words
-
-    class level:
-        def __init__(self, conn, username):
-            self.conn = conn
-            self.username = username
-            #Get the language from the username using user_info class
-            self.language = user_info.get(self.conn, self.username).language()
-        def increase(self, word_id):
-            #We will use the ebbinghaus forgetting curve to determine the next review date
-            #If the current level is 0, increase to 1 and the next review is 3 days from now
-            #If the current level is 1, increase to 2 and the next review is 7 days from now
-            #If the current level is 2, increase to 3 and the next review is 14 days from now
-            #If the current level is 3, increase to 4 and the next review is 30 days from now
-            #If the current level is 4, increase to 5 and the next review is 60 days from now
-            #If the current level is 5, increase to 6 and the next review is in year 3000
-            #6 is the highest level
-            with self.conn.cursor() as cur:
-                cur.execute("SELECT level FROM vocabulary WHERE username=%s AND word_id=%s", (self.username, word_id))
-                level = cur.fetchone()[0]
-            if level == 0:
-                next_review = str((datetime.datetime.now() + datetime.timedelta(days=3)).date())
-                level = 1
-            elif level == 1:
-                next_review = str((datetime.datetime.now() + datetime.timedelta(days=7)).date())
-                level = 2
-            elif level == 2:
-                next_review = str((datetime.datetime.now() + datetime.timedelta(days=14)).date())
-                level = 3
-            elif level == 3:
-                next_review = str((datetime.datetime.now() + datetime.timedelta(days=30)).date())
-                level = 4
-            elif level == 4:
-                next_review = str((datetime.datetime.now() + datetime.timedelta(days=60)).date())
-                level = 5
-            elif level == 5:
-                next_review = "3000-01-01"
-                level = 6
-            with self.conn.cursor() as cur:
-                cur.execute("UPDATE vocabulary SET level=%s, next_review=%s WHERE username=%s AND word_id=%s", (level, next_review, self.username, word_id))
-
-        def reset(self, word_id):
-            #Reset word level to 0 and next review to tomorrow
-            tomorrow = str((datetime.datetime.now() + datetime.timedelta(days=1)).date())
-            with self.conn.cursor() as cur:
-                cur.execute("UPDATE vocabulary SET level=0, next_review=%s WHERE username=%s AND word_id=%s", (tomorrow, self.username, word_id))
-
-class Test:
-    LEVEL_RANGES = {
-        1: (1, 1500),
-        2: (1501, 3000),
-        3: (3001, 6000),
-        4: (6001, 10000),
-        5: (10001, 15000),
-        6: (15001, None),
-    }
-    def __init__(self, conn, username, language):
-        self.conn = conn
-        self.username = username
-        self.language = language
-    def score_result(self, answers):
-        level_correct_counts = {1: 0, 2: 0, 3: 0, 4: 0, 5: 0, 6: 0}
-        level_total_counts = {1: 0, 2: 0, 3: 0, 4: 0, 5: 0, 6: 0}
-
-        level_weighted_correct = {
-            1: 0.0,
-            2: 0.0,
-            3: 0.0,
-            4: 0.0,
-            5: 0.0,
-            6: 0.0,
-        }
-
-        level_weighted_total = {
-            1: 0.0,
-            2: 0.0,
-            3: 0.0,
-            4: 0.0,
-            5: 0.0,
-            6: 0.0,
-        }
-
-        # Score all submitted answers.
-        with self.conn.cursor() as cursor:
-            for answer in answers:
-                question_id = answer.get("question_id")
-                selected_option = answer.get("selected_option")
-
-                if not question_id or selected_option is None:
-                    continue
-
-                cursor.execute(
+                    query = f"""
+                        INSERT INTO registered_user ({columns})
+                        VALUES ({placeholders})
+                        RETURNING id
                     """
-                    SELECT v.correct_answer, l.rank AS lemma_rank
-                    FROM vocab_test_bank v
-                    JOIN lemmas l
-                        ON v.lemma_id = l.id
-                    WHERE v.id = %s
-                    AND l.language = %s
-                    """,
-                    [question_id, self.language]
-                )
-                row = cursor.fetchone()
+                    cur.execute(query, values)
+                    new_registered_user_id = cur.fetchone()[0]
+
+                self.conn.commit()
+                return new_registered_user_id
+        class Update:
+            def __init__(self, conn, user_id):
+                self.conn = conn
+                self.user_id = user_id
+            def data(self, **fields):
+                if not fields:
+                    return
+
+                invalid_columns = set(fields.keys()) - Database.UserInfo.ALLOWED_COLUMNS
+                if invalid_columns:
+                    raise ValueError(f"Invalid column name(s): {', '.join(invalid_columns)}")
+
+                set_clause = ", ".join([f"{column} = %s" for column in fields.keys()])
+                values = list(fields.values())
+                values.append(self.user_id)
+
+                with self.conn.cursor() as cur:
+                    query = f"""
+                        UPDATE registered_user
+                        SET {set_clause}
+                        WHERE user_id = %s
+                    """
+                    cur.execute(query, values)
+
+                self.conn.commit()
+            def score(self, language, new_score):
+                language = language.strip().lower()
+
+                with self.conn.cursor() as cur:
+                    cur.execute(
+                        """
+                        SELECT target_language, second_target_language
+                        FROM registered_user
+                        WHERE user_id = %s
+                        """,
+                        (self.user_id,)
+                    )
+
+                    row = cur.fetchone()
 
                 if not row:
-                    continue
+                    raise ValueError(f"No registered_user found for user_id {self.user_id}")
 
-                correct_answer = row[0]
-                lemma_rank = row[1]
+                target_language, second_target_language = row
 
-                level = None
-                min_rank_for_level = None
-                max_rank_for_level = None
+                if target_language and language == target_language.strip().lower():
+                    self.data(vocab_score=new_score)
+                    return
 
-                # Determine level from lemma_rank.
-                for lvl, (min_rank, max_rank) in self.LEVEL_RANGES.items():
-                    if max_rank is None:
-                        if lemma_rank >= min_rank:
-                            level = lvl
-                            min_rank_for_level = min_rank
+                if second_target_language and language == second_target_language.strip().lower():
+                    self.data(second_vocab_score=new_score)
+                    return
 
-                            # Level 6 has no natural upper bound in LEVEL_RANGES.
-                            # This synthetic bound is only for rank weighting.
-                            max_rank_for_level = min_rank + 5000
-                            break
-
-                    elif min_rank <= lemma_rank <= max_rank:
-                        level = lvl
-                        min_rank_for_level = min_rank
-                        max_rank_for_level = max_rank
-                        break
-
-                if not level:
-                    continue
-
-                # Check correctness once, then reuse it for both normal and weighted scoring.
-                correct_value = int(
-                    str(selected_option).strip().casefold()
-                    == str(correct_answer).strip().casefold()
+                raise ValueError(
+                    f"Language '{language}' does not match any target language for user_id {self.user_id}"
                 )
+        class Get:
+            def __init__(self, conn, user_id):
+                self.conn = conn
+                self.user_id = user_id
+            def data(self, *columns):
+                if not columns:
+                    columns = tuple(Database.UserInfo.ALLOWED_COLUMNS)
 
-                # Rank weight within the level.
-                # Earlier/easier words are around 1.0.
-                # Later/harder words are up to around 2.0.
-                level_span = max_rank_for_level - min_rank_for_level
+                invalid_columns = set(columns) - Database.UserInfo.ALLOWED_COLUMNS
+                if invalid_columns:
+                    raise ValueError(f"Invalid column name(s): {', '.join(invalid_columns)}")
 
-                if level_span <= 0:
-                    rank_position = 0.0
-                else:
-                    rank_position = (lemma_rank - min_rank_for_level) / level_span
-                    rank_position = max(0.0, min(1.0, rank_position))
+                column_list = ", ".join(columns)
 
-                rank_weight = 1.0 + rank_position
+                with self.conn.cursor() as cur:
+                    query = f"""
+                        SELECT {column_list}
+                        FROM registered_user
+                        WHERE user_id = %s
+                    """
+                    cur.execute(query, (self.user_id,))
+                    row = cur.fetchone()
 
-                level_total_counts[level] += 1
-                level_correct_counts[level] += correct_value
+                if not row:
+                    return None
 
-                level_weighted_total[level] += rank_weight
-                level_weighted_correct[level] += correct_value * rank_weight
+                return dict(zip(columns, row))
+            def score(self, language):
+                language = language.strip().lower()
 
-        # Find the first tested level below 80%.
-        # Since the loop stops there, all earlier tested levels were 80%+.
-        frontier_level = 1
-
-        for lvl in range(1, 7):
-            total = level_total_counts[lvl]
-            correct = level_correct_counts[lvl]
-
-            if total == 0:
-                continue
-
-            accuracy = correct / total
-
-            if accuracy < 0.8:
-                frontier_level = lvl
-                break
-        else:
-            frontier_level = 6
-
-        # Calculate plain, unweighted accuracies for reporting/retest downgrade logic.
-        frontier_accuracy = 0.0
-        below_frontier_accuracy = 0.0
-        above_frontier_accuracy_plain = 0.0
-
-        frontier_total = level_total_counts[frontier_level]
-        frontier_correct = level_correct_counts[frontier_level]
-
-        if frontier_total > 0:
-            frontier_accuracy = frontier_correct / frontier_total
-
-        below_correct = 0
-        below_total = 0
-
-        for lvl in range(1, frontier_level):
-            below_correct += level_correct_counts[lvl]
-            below_total += level_total_counts[lvl]
-
-        if below_total > 0:
-            below_frontier_accuracy = below_correct / below_total
-
-        above_correct = 0
-        above_total = 0
-
-        for lvl in range(frontier_level + 1, 7):
-            above_correct += level_correct_counts[lvl]
-            above_total += level_total_counts[lvl]
-
-        if above_total > 0:
-            above_frontier_accuracy_plain = above_correct / above_total
-
-        base_score = 1000 * (frontier_level - 1)
-
-        frontier_weighted_total = level_weighted_total[frontier_level]
-        frontier_weighted_correct = level_weighted_correct[frontier_level]
-
-        if frontier_weighted_total > 0:
-            frontier_weighted_accuracy = (
-                frontier_weighted_correct / frontier_weighted_total
-            )
-        else:
-            frontier_weighted_accuracy = 0.0
-
-        entry_threshold = 0.40
-        mastery_threshold = 0.80
-
-        raw_bonus_progress = (
-            (frontier_weighted_accuracy - entry_threshold)
-            / (mastery_threshold - entry_threshold)
-        )
-        raw_bonus_progress = max(0.0, min(1.0, raw_bonus_progress))
-
-        raw_bonus = round(999 * raw_bonus_progress)
-
-        above_frontier_weighted_correct = 0.0
-        above_frontier_weighted_total = 0.0
-
-        # Confidence multiplier from all levels above the frontier.
-        # Higher levels and harder ranks count more.
-        for lvl in range(frontier_level + 1, 7):
-            level_distance = lvl - frontier_level
-
-            # frontier + 1 = 1.0x
-            # frontier + 2 = 1.5x
-            # frontier + 3 = 2.0x
-            distance_weight = 1.0 + (0.5 * (level_distance - 1))
-
-            above_frontier_weighted_correct += (
-                level_weighted_correct[lvl] * distance_weight
-            )
-            above_frontier_weighted_total += (
-                level_weighted_total[lvl] * distance_weight
-            )
-
-        if above_frontier_weighted_total > 0:
-            above_frontier_accuracy = (
-                above_frontier_weighted_correct
-                / above_frontier_weighted_total
-            )
-        else:
-            above_frontier_accuracy = 0.0
-
-        # Sample confidence prevents tiny above-frontier samples from
-        # over-influencing the multiplier.
-        sample_confidence = min(1.0, above_frontier_weighted_total / 12.0)
-
-        above_frontier_proof = above_frontier_accuracy * sample_confidence
-
-        # Multiplier range: 0.70 to 1.00.
-        confidence_multiplier = 0.70 + (0.30 * above_frontier_proof)
-
-        bonus = round(raw_bonus * confidence_multiplier)
-
-        score = base_score + bonus
-        score = max(0, min(6000, score))
-
-        return {
-            "score": score,
-            "frontier_level": frontier_level,
-            "frontier_accuracy": round(frontier_accuracy, 2),
-            "below_frontier_accuracy": round(below_frontier_accuracy, 2),
-            "above_frontier_accuracy": round(above_frontier_accuracy_plain, 2),
-        }
-
-    def get_questions(self, fetch_counts):
-        questions = []
-        # ---------------------------------------------------------------------
-        # Fetch diagnostic questions based on fetch_counts.
-        # ---------------------------------------------------------------------
-        with self.conn.cursor() as cursor:
-            for level, (min_rank, max_rank) in Test.LEVEL_RANGES.items():
-                count = fetch_counts.get(level, 0)
-
-                if count <= 0:
-                    continue
-
-                if max_rank is None:
-                    cursor.execute(
+                with self.conn.cursor() as cur:
+                    cur.execute(
                         """
-                        SELECT
-                            v.id,
-                            v.question,
-                            v.correct_answer,
-                            v.distractor_1,
-                            v.distractor_2,
-                            v.distractor_3
-                        FROM vocab_test_bank v
-                        JOIN lemmas l
-                            ON v.lemma_id = l.id
-                        WHERE l.language = %s
-                        AND l.rank >= %s
-                        ORDER BY RANDOM()
-                        LIMIT %s
+                        SELECT target_language, second_target_language, vocab_score, second_vocab_score
+                        FROM registered_user
+                        WHERE user_id = %s
                         """,
-                        [self.language, min_rank, count]
+                        (self.user_id,)
                     )
 
+                    row = cur.fetchone()
 
-                else:
+                if not row:
+                    raise ValueError(f"No registered_user found for user_id {self.user_id}")
+
+                target_language, second_target_language, vocab_score, second_vocab_score = row
+
+                if target_language and language == target_language.strip().lower():
+                    return vocab_score
+
+                if second_target_language and language == second_target_language.strip().lower():
+                    return second_vocab_score
+
+                raise ValueError(
+                    f"Language '{language}' does not match any target language for user_id {self.user_id}"
+                )
+            def languages(self):
+                with self.conn.cursor() as cur:
+                    cur.execute("SELECT target_language, second_target_language FROM registered_user WHERE user_id=%s", (self.user_id,))
+                    row = cur.fetchone()
+                    if row:
+                        return [
+                            {"code": row[0], "name": LANGUAGE_MAP.get(row[0], row[0])},
+                            {"code": row[1], "name": LANGUAGE_MAP.get(row[1], row[1])}
+                        ]
+                    return []
+
+    class Vocab:
+        class Get:
+            def __init__(self, conn, user_id, language):
+                self.conn = conn
+                self.user_id = user_id
+                self.language = language
+            def review_count(self):
+                with self.conn.cursor() as cursor:
                     cursor.execute(
                         """
-                        SELECT
-                            v.id,
-                            v.question,
-                            v.correct_answer,
-                            v.distractor_1,
-                            v.distractor_2,
-                            v.distractor_3
-                        FROM vocab_test_bank v
+                        SELECT COUNT(*)
+                        FROM user_vocabulary uv
                         JOIN lemmas l
-                            ON v.lemma_id = l.id
-                        WHERE l.language = %s
-                        AND l.rank BETWEEN %s AND %s
-                        ORDER BY RANDOM()
-                        LIMIT %s
+                            ON uv.lemma_id = l.id
+                        WHERE uv.user_id = %s
+                        AND l.language = %s
+                        AND uv.next_review_at IS NOT NULL
+                        AND uv.next_review_at < %s
                         """,
-                        [self.language, min_rank, max_rank, count]
+                        [
+                            self.user_id,
+                            self.language,
+                            datetime.datetime.now(datetime.timezone.utc)
+                        ]
                     )
+                    review_count = cursor.fetchone()[0]
 
-                rows = cursor.fetchall()
+                return review_count
+            def words():
+                pass
+        class Add:
+            def __init__(self, conn, user_id):
+                self.conn = conn
+                self.user_id = user_id
+            def lemma(self, lemma_id):
+                # Columns are: id, user_id, lemma_id, status, review_stage, 
+                # next_review_at, last_reviewed_at, times_seen, times_correct, times_incorrect
+                # created_at, updated_at
+                # Note lemma_id is unique across languages, so we don't need to specify language here
+                with self.conn.cursor() as cursor:
+                    cursor.execute(
+                        """
+                        SELECT 1
+                        FROM user_vocabulary
+                        WHERE user_id = %s
+                        AND lemma_id = %s
+                        """,
+                        [self.user_id, lemma_id]
+                    )
+                    if cursor.fetchone():
+                        return {"status": "already_exists"}
+                    
+                    # Since we're adding a new lemma, we can set most of these to their initial values.
+                    # Next review will be in 1 day, so we can set next_review_at to now + 1 day
+                    cursor.execute(
+                        """
+                        INSERT INTO user_vocabulary (
+                            user_id,
+                            lemma_id,
+                            status,
+                            review_stage,
+                            next_review_at,
+                            last_reviewed_at,
+                            times_seen,
+                            times_correct,
+                            times_incorrect,
+                            created_at,
+                            updated_at
+                        ) VALUES (%s, %s, 'learning', 0, %s, NULL, 0, 0, 0, %s, %s)
+                        """,
+                        [
+                            self.user_id,
+                            lemma_id,
+                            datetime.datetime.now(datetime.timezone.utc) + datetime.timedelta(days=1),
+                            datetime.datetime.now(datetime.timezone.utc),
+                            datetime.datetime.now(datetime.timezone.utc)
+                        ]
+                    )
+                return {"status": "added"}
 
-                for row in rows:
-                    options = [
-                        row[2],
-                        row[3],
-                        row[4],
-                        row[5],
-                    ]
+    class Test:
+        class Questions:
+            def __init__(self, conn, language):
+                self.conn = conn
+                self.language = language
 
+            def any(self, fetch_counts):
+                questions = []
+
+                with self.conn.cursor() as cursor:
+                    for level, count in fetch_counts.items():
+                        if count <= 0:
+                            continue
+
+                        min_rank, max_rank = LEVEL_RANGES[level]
+
+                        sql = """
+                            SELECT
+                                vtb.id,
+                                vtb.question,
+                                vtb.correct_answer,
+                                vtb.distractor_1,
+                                vtb.distractor_2,
+                                vtb.distractor_3
+                            FROM vocab_test_bank vtb
+                            JOIN lemmas l ON l.id = vtb.lemma_id
+                            WHERE l.language = %s
+                            AND l.rank >= %s
+                        """
+
+                        params = [self.language, min_rank]
+
+                        if max_rank is not None:
+                            sql += " AND l.rank <= %s"
+                            params.append(max_rank)
+
+                        sql += " ORDER BY RANDOM() LIMIT %s"
+                        params.append(count)
+
+                        cursor.execute(sql, params)
+                        questions.extend(cursor.fetchall())
+
+                return questions
+
+            def new(self, user_id, fetch_counts):
+                questions = []
+
+                with self.conn.cursor() as cursor:
+                    for level, count in fetch_counts.items():
+                        if count <= 0:
+                            continue
+
+                        min_rank, max_rank = LEVEL_RANGES[level]
+
+                        sql = """
+                            SELECT
+                                vtb.id,
+                                vtb.question,
+                                vtb.correct_answer,
+                                vtb.distractor_1,
+                                vtb.distractor_2,
+                                vtb.distractor_3
+                            FROM vocab_test_bank vtb
+                            JOIN lemmas l ON l.id = vtb.lemma_id
+                            WHERE l.language = %s
+                            AND l.rank >= %s
+                            AND NOT EXISTS (
+                                SELECT 1
+                                FROM user_vocabulary uv
+                                WHERE uv.user_id = %s
+                                    AND uv.lemma_id = vtb.lemma_id
+                            )
+                        """
+
+                        params = [self.language, min_rank, user_id]
+
+                        if max_rank is not None:
+                            sql += " AND l.rank <= %s"
+                            params.append(max_rank)
+
+                        sql += " ORDER BY RANDOM() LIMIT %s"
+                        params.append(count)
+
+                        cursor.execute(sql, params)
+                        questions.extend(cursor.fetchall())
+
+                return questions
+            
+            def flag(self, user_id, question_id):
+                with self.conn.cursor() as cursor:
+                    cursor.execute(
+                        """
+                        INSERT INTO flagged_questions (
+                            user_id,
+                            question_id,
+                            language,
+                            flagged_at
+                        )
+                        VALUES (%s, %s, %s, %s)
+                        ON CONFLICT (user_id, question_id, language)
+                        DO UPDATE SET flagged_at = EXCLUDED.flagged_at
+                        """,
+                        [
+                            user_id,
+                            question_id,
+                            self.language,
+                            datetime.datetime.now(datetime.timezone.utc)
+                        ]
+                    )
+                return {"status": "flagged"}
+            def append_lemma_rank(self, questions):
+                question_ids = [q["question_id"] for q in questions]
+                if not question_ids:
+                    return questions
+                with self.conn.cursor() as cursor:
+                    cursor.execute(
+                        """
+                        SELECT vtb.id, l.rank
+                        FROM vocab_test_bank vtb
+                        JOIN lemmas l ON vtb.lemma_id = l.id
+                        WHERE vtb.id = ANY(%s)
+                        """,
+                        [question_ids]
+                    )
+                    rank_map = {row[0]: row[1] for row in cursor.fetchall()}
+                for question in questions:
+                    question_id = question["question_id"]
+                    question["lemma_rank"] = rank_map.get(question_id)
+                return questions
+            def append_lemma(self, questions):
+                # For each question ID I want to append the corresponding lemma and its other data
+                # So like "lemma": { "id": ..., "lemma": ..., "translation": ..., "definition": ... }
+                question_ids = [q["question_id"] for q in questions]
+                if not question_ids:
+                    return questions
+                with self.conn.cursor() as cursor:
+                    cursor.execute(
+                        """
+                        SELECT vtb.id, l.lemma, l.translation, l.definition
+                        FROM vocab_test_bank vtb
+                        JOIN lemmas l ON vtb.lemma_id = l.id
+                        WHERE vtb.id = ANY(%s)
+                        """,
+                        [question_ids]
+                    )
+                    lemma_map = {
+                        row[0]: {
+                            "id": row[0],
+                            "lemma": row[1],
+                            "translation": row[2],
+                            "definition": row[3]
+                        }
+                        for row in cursor.fetchall()
+                    }
+                for question in questions:
+                    question_id = question["question_id"]
+                    question["lemma"] = lemma_map.get(question_id)
+                return questions
+            def append_options(self, questions):
+                #Access the database to get the options
+                #Options should be shuffled
+                question_ids = [q["question_id"] for q in questions]
+                if not question_ids:
+                    return questions
+                with self.conn.cursor() as cursor:
+                    cursor.execute(
+                        """
+                        SELECT id, correct_answer, distractor_1, distractor_2, distractor_3
+                        FROM vocab_test_bank
+                        WHERE id = ANY(%s)
+                        """,
+                        [question_ids]
+                    )
+                    options_map = {
+                        row[0]: [row[1], row[2], row[3], row[4]]
+                        for row in cursor.fetchall()
+                    }
+                for question in questions:
+                    question_id = question["question_id"]
+                    options = options_map.get(question_id, [])
                     random.shuffle(options)
+                    question["options"] = options
+                return questions
+            def append_question_text(self, questions):
+                question_ids = [q["question_id"] for q in questions]
+                if not question_ids:
+                    return questions
+                with self.conn.cursor() as cursor:
+                    cursor.execute(
+                        """
+                        SELECT id, question
+                        FROM vocab_test_bank
+                        WHERE id = ANY(%s)
+                        """,
+                        [question_ids]
+                    )
+                    question_map = {row[0]: row[1] for row in cursor.fetchall()}
+                for question in questions:
+                    question_id = question["question_id"]
+                    question["question"] = question_map.get(question_id)
+                return questions
+        class Answers:
+            def __init__(self, conn):
+                self.conn = conn
+            def correct(self, questions):
+                question_ids = [q["question_id"] for q in questions]
 
-                    questions.append({
-                        "question_id": row[0],
-                        "question": row[1],
-                        "options": options,
-                    })    
-        return questions
+                if not question_ids:
+                    return {}
+
+                with self.conn.cursor() as cursor:
+                    cursor.execute(
+                        """
+                        SELECT id, correct_answer
+                        FROM vocab_test_bank
+                        WHERE id = ANY(%s);
+                        """,
+                        [question_ids]
+                    )
+
+                    rows = cursor.fetchall()
+
+                return {
+                    question_id: correct_answer
+                    for question_id, correct_answer in rows
+                }
+
+
