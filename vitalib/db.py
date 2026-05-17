@@ -444,6 +444,24 @@ class Database:
                     random.shuffle(options)
                     question["options"] = options
                 return questions
+            def append_question_text(self, questions):
+                question_ids = [q["question_id"] for q in questions]
+                if not question_ids:
+                    return questions
+                with self.conn.cursor() as cursor:
+                    cursor.execute(
+                        """
+                        SELECT id, question
+                        FROM vocab_test_bank
+                        WHERE id = ANY(%s)
+                        """,
+                        [question_ids]
+                    )
+                    question_map = {row[0]: row[1] for row in cursor.fetchall()}
+                for question in questions:
+                    question_id = question["question_id"]
+                    question["question"] = question_map.get(question_id)
+                return questions
         class Answers:
             def __init__(self, conn):
                 self.conn = conn

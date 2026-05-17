@@ -89,6 +89,7 @@ class Test:
             missed = [r for r in results if not r["is_correct"]]
             missed = vitalib.Database.Test.Questions(self.conn, self.language).append_lemma(missed)
             missed = vitalib.Database.Test.Questions(self.conn, self.language).append_options(missed)
+            missed = vitalib.Database.Test.Questions(self.conn, self.language).append_question_text(missed)
             for m in missed:
                 m["correct_answer"] = m["lemma"]["lemma"]
             return missed
