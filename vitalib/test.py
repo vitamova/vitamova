@@ -77,19 +77,13 @@ class Test:
         def results(self, answers):
             correct_answers = vitalib.Database.Test.Answers(self.conn).correct(answers)
             # For each answer, compare correct to selected
-            results = []
             for answer in answers:
                 question_id = answer["question_id"]
                 selected_option = answer["selected_option"]
                 correct_answer = correct_answers.get(question_id)
                 is_correct = (selected_option == correct_answer)
-                results.append({
-                    "question_id": question_id,
-                    "selected_option": selected_option,
-                    "correct_answer": correct_answer,
-                    "is_correct": is_correct
-                })
-            return results
+                answer["is_correct"] = is_correct
+            return answers
         def missed(self, answers):
             results = self.results(answers)
             missed = [r for r in results if not r["is_correct"]]
