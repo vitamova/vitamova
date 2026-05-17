@@ -391,6 +391,34 @@ class Database:
                     question_id = question["question_id"]
                     question["lemma_rank"] = rank_map.get(question_id)
                 return questions
+            def append_lemma(self, questions):
+                # For each question ID I want to append the corresponding lemma and its other data
+                # So like "lemma": { "id": ..., "lemma": ..., "translation": ..., "definition": ... }
+                question_ids = [q["question_id"] for q in questions]
+                if not question_ids:
+                    return questions
+                with self.conn.cursor() as cursor:
+                    cursor.execute(
+                        """
+                        SELECT vtb.id, l.lemma, l.translation, l.definition
+                        FROM vocab_test_bank vtb
+                        JOIN lemmas l ON vtb.lemma_id = l.id
+                        WHERE vtb.id = ANY(%s)
+                        """,
+                        [question_ids]
+                    )
+                    lemma_map = {
+                        row[0]: {
+                            "lemma": row[1],
+                            "translation": row[2],
+                            "definition": row[3]
+                        }
+                        for row in cursor.fetchall()
+                    }
+                for question in questions:
+                    question_id = question["question_id"]
+                    question["lemma"] = lemma_map.get(question_id)
+                return questions
         class Answers:
             def __init__(self, conn):
                 self.conn = conn

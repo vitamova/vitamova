@@ -702,7 +702,13 @@ def vocab_builder(request):
                 "questions": questions
             })
         if action == "submit_answers":
-            pass
+            answers = data.get("answers", [])
+            # Get results based on answers
+            missed = vitalib.Test.Get(connection, request.user.id, language).missed(answers)
+            return JsonResponse({
+                "status": "ok",
+                "missed_questions": missed
+            })
 
 @registered_logged_in_required
 def review(request):

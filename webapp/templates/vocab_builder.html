@@ -311,7 +311,7 @@
 
     function renderQuestion() {
         const question = questions[currentQuestionIndex];
-        const selectedAnswer = answers[question.question_id] || null;
+        const selectedOption = answers[question.question_id] || null;
 
         questionCounter.textContent = `Question ${currentQuestionIndex + 1} of ${questions.length}`;
         answeredCounter.textContent = `${Object.keys(answers).length} answered`;
@@ -345,7 +345,7 @@
             btn.className = "answer-btn w-full text-left rounded-2xl border border-slate-200 bg-slate-50 px-5 py-4 font-semibold";
             btn.textContent = optionText;
 
-            if (selectedAnswer === optionText) {
+            if (selectedOption === optionText) {
                 btn.classList.add("selected");
             }
 
@@ -387,10 +387,10 @@
         submitBtn.disabled = true;
         submitBtn.textContent = "Submitting...";
 
-        const answerList = Object.entries(answers).map(([questionId, selectedAnswer]) => {
+        const answerList = Object.entries(answers).map(([questionId, selectedOption]) => {
             return {
                 question_id: Number(questionId),
-                selected_answer: selectedAnswer
+                selected_option: selectedOption
             };
         });
 
@@ -470,7 +470,7 @@
             const row = document.createElement("div");
             row.className = "rounded-2xl border border-slate-200 bg-slate-50 px-5 py-4 font-semibold";
 
-            if (optionText === item.selected_answer) {
+            if (optionText === item.selected_option) {
                 row.classList.add("answer-wrong");
             }
 
@@ -489,7 +489,7 @@
 
         explanation.innerHTML = `
             <p class="font-bold text-slate-900">Your answer:</p>
-            <p class="text-red-600 font-semibold mt-1">${item.selected_answer}</p>
+            <p class="text-red-600 font-semibold mt-1">${item.selected_option}</p>
 
             <p class="font-bold text-slate-900 mt-4">Correct answer:</p>
             <p class="text-green-600 font-semibold mt-1">${item.correct_answer}</p>

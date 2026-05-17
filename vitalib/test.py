@@ -90,6 +90,11 @@ class Test:
                     "is_correct": is_correct
                 })
             return results
+        def missed(self, answers):
+            results = self.results(answers)
+            missed = [r for r in results if not r["is_correct"]]
+            missed = vitalib.Database.Test.Questions(self.conn, self.language).append_lemma(missed)
+            return missed
         def frontier(self, answers):
             # All we need to do is find the first level where the user got between 40% and 80% correct
             results = self.results(answers)
