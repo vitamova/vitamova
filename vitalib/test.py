@@ -107,7 +107,7 @@ class Test:
                     frontier = level
                     break
             return frontier
-        def bonus(results, frontier_level):
+        def bonus(self, results, frontier_level):
             level_weighted_total = { i: 0.0 for i in range(1, 7) }
 
             level_weighted_correct = { i: 0.0 for i in range(1, 7) }
