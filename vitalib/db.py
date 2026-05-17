@@ -211,6 +211,8 @@ class Database:
                     review_count = cursor.fetchone()[0]
 
                 return review_count
+            def words():
+                pass
         class Add:
             def __init__(self, conn, user_id):
                 self.conn = conn

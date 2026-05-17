@@ -483,6 +483,14 @@ def vocab_test(request):
         action = data.get("action")
         batch = int(data.get("batch", 1))
 
+        # If the user is not subscribed, their score must be -1
+        if not is_user_subscribed(request.user) and vocab_score != -1:
+            return JsonResponse(
+                {"status": "error", "message": "User must subscribe."},
+                status=400
+            )
+
+        # Ensure the action is valid
         if action not in [
             "get_questions",
             "submit_batch",
@@ -495,465 +503,46 @@ def vocab_test(request):
                 {"status": "error", "message": "Invalid action."},
                 status=400
             )
-        if action == "get_questions" and batch == 1:
-            return vitalib.Test.Get(connection, request.user.id, language).any_questions(type="diagnostic", score=vocab_score, batch=1)
-            
+        
+        # Set the diagnostic and retest actions
 
-    
-    # If the score is not -1 calculate the frontier
-    if vocab_score != -1:
-        frontier = (vocab_score // 1000) + 1
-        frontier = max(1, min(6, frontier))
+        diagnostic_actions = ["get_questions", "submit_batch", "complete_diagnostic"]
+        retest_actions = ["get_retest_questions", "complete_retest", "resolve_retest_score"]
 
-    # -------------------------------------------------------------------------
-    # POST requests are used by the diagnostic/retest frontend XHR flows.
-    # -------------------------------------------------------------------------
-    if request.method == "POST":
-
-        action = data.get("action")
-        batch = str(data.get("batch", "1"))
-        all_answers = data.get("all_answers", [])
-
-        questions = []
-
-        level_ranges = {
-            1: (1, 1500),
-            2: (1501, 3000),
-            3: (3001, 6000),
-            4: (6001, 10000),
-            5: (10001, 15000),
-            6: (15001, None),
-        }
-
-        # ---------------------------------------------------------------------
-        # RETEST ACTION PLACEHOLDERS
-        #
-        # These should probably stay near the top of the POST block because they
-        # are separate flows from the initial diagnostic.
-        # ---------------------------------------------------------------------
-
-        retest_actions = [ "get_retest_questions", "complete_retest", "resolve_retest_score" ]
-
-        if action in retest_actions:
-            #If the user's score is -1 return an error
-            if vocab_score == -1:
+        # Let's organize by diagnostic vs retest to make the code readable
+        if action in diagnostic_actions:
+            # User's vocab score must be -1 to take diagnostic
+            if vocab_score != -1:
                 return JsonResponse(
-                    {"status": "error", "message": "No existing score found for retest."},
+                    {"status": "error", "message": "User has already completed diagnostic."},
                     status=400
                 )
-            language = data.get("language", "es")
-
-            if action == "get_retest_questions":
-                fetch_counts = {
-                    1: 0,
-                    2: 0,
-                    3: 0,
-                    4: 0,
-                    5: 0,
-                    6: 0,
-                }
-                # If the frontier is 2, 3, 4, or 5, 30 questions from the frontier and 10 from the level below.
-                if frontier in [2, 3, 4, 5]:
-                    fetch_counts[frontier] = 30
-                    fetch_counts[frontier - 1] = 10
-                    fetch_counts[frontier + 1] = 10
-                # If the frontier is 1, 35 questions from level 1 and 15 from level 2.
-                elif frontier == 1:
-                    fetch_counts[1] = 35
-                    fetch_counts[2] = 15
-                # If the frontier is 6, 35 questions from level 6 and 15 from level 5.
-                elif frontier == 6:
-                    fetch_counts[6] = 35
-                    fetch_counts[5] = 15
-                questions = vitalib.Database.Test(connection, request.user.username, language).get_questions(fetch_counts)
-                return JsonResponse({
-                    "status": "questions",
-                    "questions": questions,
-                })
-                
-
-            elif action == "complete_retest":
-                example_request = {
-                    "action": "complete_retest",
-                    "current_score": 2730,
-                    "current_frontier": 3,
-                    "answers": [
-                        {
-                        "question_id": 123,
-                        "selected_option": "varias"
-                        }
-                    ],
-                    "total_questions": 50,
-                    "language": "es"
-                    }
-                example_response = {
-                    "status": "complete",
-                    "outcome": "improved",
-                    "current_score": 2730,
-                    "new_score": 3120,
-                    "frontier_accuracy": 0.83,
-                    "below_frontier_accuracy": 0.90,
-                    "above_frontier_accuracy": 0.40
-                    }
-                score_result = vitalib.Database.Test(connection, request.user.username, language).score_result(data.get("answers", []))
-                if score_result["score"] > vocab_score:
-                    outcome = "improved"
-                elif score_result["score"] <= vocab_score:
-                    # If frontier accuracy was less than 0.35 and below frontier acccuracy was less than 0.7
-                    # We outcome is downgrade_choice
-                    # Otherwise outcome is keep_current
-                    if score_result["frontier_accuracy"] < 0.35 and score_result["below_frontier_accuracy"] < 0.7:
-                        outcome = "downgrade_choice"
-                    else:
-                        outcome = "keep_current"
-                return JsonResponse({
-                    "status": "complete",
-                    "outcome": outcome,
-                    "current_score": vocab_score,
-                    "new_score": score_result["score"],
-                    "frontier_accuracy": score_result["frontier_accuracy"],
-                    "below_frontier_accuracy": score_result["below_frontier_accuracy"],
-                    "above_frontier_accuracy": score_result["above_frontier_accuracy"],
-                })
-
-            elif action == "resolve_retest_score":
-                example_request = {
-                    "action": "resolve_retest_score",
-                    "choice": "keep_current",
-                    "current_score": 2730,
-                    "new_score": 1720,
-                    "language": "es"
-                    }
-                example_response = {
-                    "status": "ok"
-                    }
-                # Choice options are keep_current or accept_new
-                choice = data.get("choice")
-                # Keep_current is easy - just return ok without changing anything
-                if choice == "keep_current":
-                    return JsonResponse({
-                        "status": "ok"
-                    })
-                # Accept_new means we want to update the user's score to the new score calculated in complete_retest
-                # Use the db helper function to update the user's score in the database
-                elif choice == "accept_new":
-                    vitalib.Database.UserInfo.Update(connection, request.user.id).score(language, data.get("new_score"))
-                    updated_score = vitalib.Database.UserInfo.Get(connection, request.user.id).score()
-                    if updated_score != data.get("new_score"):
-                        return JsonResponse({
-                            "status": "error",
-                            "message": "Failed to update score."
-                        }, status=500)
-                    else:
-                        return JsonResponse({
-                            "status": "ok"
-                        })
-            # ---------------------------------------------------------------------
-            # DIAGNOSTIC ACTIONS
-            #
-            # Existing supported actions:
-            # - get_questions
-            # - submit_batch
-            # - complete_diagnostic
-            # ---------------------------------------------------------------------
-
-        if action not in [
-            "get_questions",
-            "submit_batch",
-            "complete_diagnostic",
-            "get_retest_questions",
-            "complete_retest",
-            "resolve_retest_score",
-        ]:
-            return JsonResponse(
-                {"status": "error", "message": "Invalid action."},
-                status=400
-            )
-
-        # ---------------------------------------------------------------------
-        # Diagnostic batch 1:
-        # Broad scan, 3 questions from each level.
-        # ---------------------------------------------------------------------
-        if action == "get_questions" and batch == "1":
-            fetch_counts = {
-                1: 3,
-                2: 3,
-                3: 3,
-                4: 3,
-                5: 3,
-                6: 3,
-            }
-
-        # ---------------------------------------------------------------------
-        # Diagnostic batches 2-4:
-        # Score all previous answers and use the frontier level to select the
-        # next adaptive question distribution, or calculate the final score.
-        # ---------------------------------------------------------------------
-        elif action in ["submit_batch", "complete_diagnostic"] and batch in ["1", "2", "3", "4"]:
-            level_correct_counts = {1: 0, 2: 0, 3: 0, 4: 0, 5: 0, 6: 0}
-            level_total_counts = {1: 0, 2: 0, 3: 0, 4: 0, 5: 0, 6: 0}
-
-            level_weighted_correct = {
-                1: 0.0,
-                2: 0.0,
-                3: 0.0,
-                4: 0.0,
-                5: 0.0,
-                6: 0.0,
-            }
-
-            level_weighted_total = {
-                1: 0.0,
-                2: 0.0,
-                3: 0.0,
-                4: 0.0,
-                5: 0.0,
-                6: 0.0,
-            }
-
-            # Score all submitted answers so far.
-            with connection.cursor() as cursor:
-                for answer in all_answers:
-                    question_id = answer.get("question_id")
-                    selected_option = answer.get("selected_option")
-
-                    if not question_id or selected_option is None:
-                        continue
-
-                    cursor.execute(
-                        """
-                        SELECT v.correct_answer, l.rank AS lemma_rank
-                        FROM vocab_test_bank v
-                        JOIN lemmas l
-                            ON v.lemma_id = l.id
-                        WHERE v.id = %s
-                        AND l.language = %s
-                        """,
-                        [question_id, language]
-                    )
-                    row = cursor.fetchone()
-
-                    if not row:
-                        continue
-
-                    correct_answer = row[0]
-                    lemma_rank = row[1]
-
-                    level = None
-                    min_rank_for_level = None
-                    max_rank_for_level = None
-
-                    # Determine level from lemma_rank.
-                    for lvl, (min_rank, max_rank) in level_ranges.items():
-                        if max_rank is None:
-                            if lemma_rank >= min_rank:
-                                level = lvl
-                                min_rank_for_level = min_rank
-
-                                # Level 6 has no natural upper bound in level_ranges.
-                                # This synthetic bound is only for rank weighting.
-                                max_rank_for_level = min_rank + 5000
-                                break
-
-                        elif min_rank <= lemma_rank <= max_rank:
-                            level = lvl
-                            min_rank_for_level = min_rank
-                            max_rank_for_level = max_rank
-                            break
-
-                    if not level:
-                        continue
-
-                    is_correct = (
-                        str(selected_option).strip().casefold()
-                        == str(correct_answer).strip().casefold()
-                    )
-
-                    level_total_counts[level] += 1
-
-                    if is_correct:
-                        level_correct_counts[level] += 1
-
-                    # Rank weight within the level.
-                    # Earlier/easier words are around 1.0.
-                    # Later/harder words are up to around 2.0.
-                    level_span = max_rank_for_level - min_rank_for_level
-
-                    if level_span <= 0:
-                        rank_position = 0.0
-                    else:
-                        rank_position = (lemma_rank - min_rank_for_level) / level_span
-                        rank_position = max(0.0, min(1.0, rank_position))
-
-                    rank_weight = 1.0 + rank_position
-
-                    level_weighted_total[level] += rank_weight
-
-                    if is_correct:
-                        level_weighted_correct[level] += rank_weight
-
-            # Find the first tested level below 80%.
-            # Since the loop stops there, all earlier tested levels were 80%+.
-            frontier_level = 1
-
-            for lvl in range(1, 7):
-                total = level_total_counts[lvl]
-                correct = level_correct_counts[lvl]
-
-                if total == 0:
-                    continue
-
-                accuracy = correct / total
-
-                if accuracy < 0.8:
-                    frontier_level = lvl
-                    break
-            else:
-                frontier_level = 6
-
-            # -----------------------------------------------------------------
-            # Final diagnostic submission:
-            # Calculate score and update vocab_score.
-            # -----------------------------------------------------------------
-            if action == "complete_diagnostic":
-                base_score = 1000 * (frontier_level - 1)
-
-                frontier_weighted_total = level_weighted_total[frontier_level]
-                frontier_weighted_correct = level_weighted_correct[frontier_level]
-
-                if frontier_weighted_total > 0:
-                    frontier_weighted_accuracy = (
-                        frontier_weighted_correct / frontier_weighted_total
-                    )
+            # Implement diagnostic actions here
+            if action == "get_questions":
+                if batch == 1:
+                    return vitalib.Test.Get(connection, request.user.id, language).any_questions(type="diagnostic", score=vocab_score, batch=1)
                 else:
-                    frontier_weighted_accuracy = 0.0
-
-                entry_threshold = 0.40
-                mastery_threshold = 0.80
-
-                raw_bonus_progress = (
-                    (frontier_weighted_accuracy - entry_threshold)
-                    / (mastery_threshold - entry_threshold)
-                )
-                raw_bonus_progress = max(0.0, min(1.0, raw_bonus_progress))
-
-                raw_bonus = round(999 * raw_bonus_progress)
-
-                above_frontier_weighted_correct = 0.0
-                above_frontier_weighted_total = 0.0
-
-                # Confidence multiplier from all levels above the frontier.
-                # Higher levels and harder ranks count more.
-                for lvl in range(frontier_level + 1, 7):
-                    level_distance = lvl - frontier_level
-
-                    # frontier + 1 = 1.0x
-                    # frontier + 2 = 1.5x
-                    # frontier + 3 = 2.0x
-                    distance_weight = 1.0 + (0.5 * (level_distance - 1))
-
-                    above_frontier_weighted_correct += (
-                        level_weighted_correct[lvl] * distance_weight
-                    )
-                    above_frontier_weighted_total += (
-                        level_weighted_total[lvl] * distance_weight
-                    )
-
-                if above_frontier_weighted_total > 0:
-                    above_frontier_accuracy = (
-                        above_frontier_weighted_correct
-                        / above_frontier_weighted_total
-                    )
-                else:
-                    above_frontier_accuracy = 0.0
-
-                # Sample confidence prevents tiny above-frontier samples from
-                # over-influencing the multiplier.
-                sample_confidence = min(1.0, above_frontier_weighted_total / 12.0)
-
-                above_frontier_proof = above_frontier_accuracy * sample_confidence
-
-                # Multiplier range: 0.70 to 1.00.
-                confidence_multiplier = 0.70 + (0.30 * above_frontier_proof)
-
-                bonus = round(raw_bonus * confidence_multiplier)
-
-                score = base_score + bonus
-                score = max(0, min(6000, score))
-
-                vitalib.Database.UserInfo.Update(connection, request.user.id).score(language, score)
-
-                return JsonResponse({
-                    "status": "complete",
-                    "score": score,
-                    "frontier_level": frontier_level,
-                    "base_score": base_score,
-                    "raw_bonus": raw_bonus,
-                    "confidence_multiplier": round(confidence_multiplier, 3),
-                    "bonus": bonus
-                })
-
-            # -----------------------------------------------------------------
-            # Intermediate diagnostic submission:
-            # Use the frontier level to choose the next adaptive batch.
-            # -----------------------------------------------------------------
+                    # I think we can just use the above return with the batch parameter
+                    # Need to look at the function more before implementing
+                    pass
             if action == "submit_batch":
-                if frontier_level == 1:
-                    fetch_counts = {
-                        1: 12,
-                        2: 6,
-                        3: 0,
-                        4: 0,
-                        5: 0,
-                        6: 0,
-                    }
-
-                elif frontier_level == 6:
-                    fetch_counts = {
-                        1: 0,
-                        2: 0,
-                        3: 0,
-                        4: 0,
-                        5: 6,
-                        6: 12,
-                    }
-
-                else:
-                    fetch_counts = {
-                        1: 0,
-                        2: 0,
-                        3: 0,
-                        4: 0,
-                        5: 0,
-                        6: 0,
-                    }
-                    fetch_counts[frontier_level] = 10
-                    fetch_counts[frontier_level - 1] = 4
-                    fetch_counts[frontier_level + 1] = 4
-
-        else:
-            return JsonResponse(
-                {"status": "error", "message": "Invalid diagnostic request."},
-                status=400
-            )
-
-        # ---------------------------------------------------------------------
-        # Fetch diagnostic questions based on fetch_counts.
-        # ---------------------------------------------------------------------
-        questions = []
-
-        return JsonResponse({
-            "status": "questions",
-            "questions": questions
-        })
-
-    # -------------------------------------------------------------------------
-    # GET request page rendering
-    # -------------------------------------------------------------------------
-
-    # Users with no vocab score can always take the free diagnostic,
-    # regardless of subscription status.
-
+                pass
+            if action == "complete_diagnostic":
+                pass
+        if action in retest_actions:
+            # User's vocab score must not be -1 to take retest
+            if vocab_score == -1:
+                return JsonResponse(
+                    {"status": "error", "message": "User must complete diagnostic first."},
+                    status=400
+                )
+            # Implement retest actions here
+            if action == "get_retest_questions":
+                pass
+            if action == "complete_retest":
+                pass
+            if action == "resolve_retest_score":
+                pass
 
 @registered_logged_in_required
 def flag_question(request):
