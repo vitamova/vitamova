@@ -520,15 +520,48 @@ def vocab_test(request):
             # Implement diagnostic actions here
             if action == "get_questions":
                 if batch == 1:
-                    return vitalib.Test.Get(connection, request.user.id, language).any_questions(type="diagnostic", score=vocab_score, batch=1)
+                    questions = vitalib.Test.Get(connection, request.user.id, language).any_questions(type="diagnostic", frontier = None, batch=1)
+                elif batch in [2, 3]:
+                    # The data has the answers stored as "previous_answers"
+                    previous_answers = data.get("previous_answers", [])
+                    frontier = vitalib.Test.Get(connection, request.user.id, language).frontier(previous_answers)
+                    questions = vitalib.Test.Get(connection, request.user.id, language).any_questions(type="diagnostic", frontier=frontier, batch=batch)
                 else:
-                    # I think we can just use the above return with the batch parameter
-                    # Need to look at the function more before implementing
-                    pass
+                    return JsonResponse(
+                        {"status": "error", "message": "Invalid batch number for action 'get_questions'."},
+                        status=400
+                    )
+                return JsonResponse({
+                    "status": "questions",
+                    "batch": batch,
+                    "questions": questions
+                })
             if action == "submit_batch":
-                pass
+                # Get parameter "all_answers" from data
+                all_answers = data.get("all_answers", [])
+                # Get the frontier
+                frontier = vitalib.Test.Get(connection, request.user.id, language).frontier(all_answers)
+                # Get any_questions with type diagnostic, batch, and frontier parameters
+                questions = vitalib.Test.Get(connection, request.user.id, language).any_questions(type="diagnostic", frontier=frontier, batch=batch)
+                return JsonResponse({
+                    "status": "questions",
+                    "batch": batch+1,
+                    "questions": questions
+                })
             if action == "complete_diagnostic":
-                pass
+                if batch != 4:
+                    return JsonResponse(
+                        {"status": "error", "message": "Invalid batch number for action 'complete_diagnostic'."},
+                        status=400
+                    )
+                all_answers = data.get("all_answers", [])
+                # Now get an actual score based on the answers
+                score = vitalib.Test.Get(connection, request.user.id, language).score_result(all_answers)
+                return JsonResponse({
+                    "status": "complete",
+                    "score": score
+                })
+
         if action in retest_actions:
             # User's vocab score must not be -1 to take retest
             if vocab_score == -1:
