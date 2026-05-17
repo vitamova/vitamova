@@ -80,12 +80,12 @@ class Test:
             results = []
             for answer in answers:
                 question_id = answer["question_id"]
-                selected_answer = answer["selected_answer"]
+                selected_option = answer["selected_option"]
                 correct_answer = correct_answers.get(question_id)
-                is_correct = (selected_answer == correct_answer)
+                is_correct = (selected_option == correct_answer)
                 results.append({
                     "question_id": question_id,
-                    "selected_answer": selected_answer,
+                    "selected_option": selected_option,
                     "correct_answer": correct_answer,
                     "is_correct": is_correct
                 })
@@ -202,6 +202,13 @@ class Test:
 
             bonus = self.bonus(results, frontier)
             total_score = base_score + bonus
+
+            # Get user's current score
+            current_score = vitalib.Database.UserInfo.Get(self.conn, self.user_id).score(self.language)
+            # Update user's score if total_score is higher
+            if total_score > current_score:
+                vitalib.Database.UserInfo.Update(self.conn, self.user_id).update_score(self.language, total_score)
+
             return total_score
     class Format:
         @staticmethod
