@@ -372,6 +372,25 @@ class Database:
                         ]
                     )
                 return {"status": "flagged"}
+            def append_lemma_rank(self, questions):
+                question_ids = [q["question_id"] for q in questions]
+                if not question_ids:
+                    return questions
+                with self.conn.cursor() as cursor:
+                    cursor.execute(
+                        """
+                        SELECT vtb.id, l.rank
+                        FROM vocab_test_bank vtb
+                        JOIN lemmas l ON vtb.lemma_id = l.id
+                        WHERE vtb.id = ANY(%s)
+                        """,
+                        [question_ids]
+                    )
+                    rank_map = {row[0]: row[1] for row in cursor.fetchall()}
+                for question in questions:
+                    question_id = question["question_id"]
+                    question["lemma_rank"] = rank_map.get(question_id)
+                return questions
         class Answers:
             def __init__(self, conn):
                 self.conn = conn
