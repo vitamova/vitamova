@@ -519,33 +519,41 @@ class Database:
                     question["lemma_rank"] = rank_map.get(question_id)
                 return questions
             def append_lemma(self, questions):
-                # For each question ID I want to append the corresponding lemma and its other data
-                # So like "lemma": { "id": ..., "lemma": ..., "translation": ..., "definition": ... }
                 question_ids = [q["question_id"] for q in questions]
+
                 if not question_ids:
                     return questions
+
                 with self.conn.cursor() as cursor:
                     cursor.execute(
                         """
-                        SELECT l.id, l.lemma, l.translation, l.definition
+                        SELECT
+                            vtb.id AS question_id,
+                            l.id AS lemma_id,
+                            l.lemma,
+                            l.translation,
+                            l.definition
                         FROM vocab_test_bank vtb
                         JOIN lemmas l ON vtb.lemma_id = l.id
                         WHERE vtb.id = ANY(%s)
                         """,
                         [question_ids]
                     )
+
                     lemma_map = {
                         row[0]: {
-                            "id": row[0],
-                            "lemma": row[1],
-                            "translation": row[2],
-                            "definition": row[3]
+                            "id": row[1],
+                            "lemma": row[2],
+                            "translation": row[3],
+                            "definition": row[4]
                         }
                         for row in cursor.fetchall()
                     }
+
                 for question in questions:
                     question_id = question["question_id"]
                     question["lemma"] = lemma_map.get(question_id)
+
                 return questions
             def append_options(self, questions):
                 #Access the database to get the options
