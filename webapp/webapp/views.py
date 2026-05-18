@@ -462,7 +462,7 @@ def vocab_test(request):
             )
 
         if is_user_subscribed(request.user):
-            return render(request, "vocab_test_retest.html", {
+            return render(request, "modules/vocab_test_retest.html", {
                 "current_score": vocab_score,
                 "language": language
             })
@@ -684,7 +684,7 @@ def vocab_builder(request):
     
     if request.method == "GET":
         language = request.GET.get("language", "es")
-        return render(request, "vocab_builder.html", {
+        return render(request, "modules/vocab_builder.html", {
             "language": language
         })
     if request.method == "POST":
@@ -719,10 +719,7 @@ def review(request):
     if not is_user_subscribed(request.user):
         return redirect("/subscribe/")
 
-    return render(request, "coming_soon.html", {
-        "feature_name": "Review",
-        "message": "Review is coming soon! In the meantime, you can practice the words you've already learned in the Reading Practice section.",
-        "back_url": "/",
+    return render(request, "modules/review.html", {
     })
 
 @registered_logged_in_required
