@@ -527,7 +527,7 @@ class Database:
                 with self.conn.cursor() as cursor:
                     cursor.execute(
                         """
-                        SELECT vtb.id, l.lemma, l.translation, l.definition
+                        SELECT l.id, l.lemma, l.translation, l.definition
                         FROM vocab_test_bank vtb
                         JOIN lemmas l ON vtb.lemma_id = l.id
                         WHERE vtb.id = ANY(%s)
