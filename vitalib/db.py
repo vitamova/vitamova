@@ -256,7 +256,7 @@ class Database:
                         [
                             self.user_id,
                             lemma_id,
-                            datetime.datetime.now(datetime.timezone.utc) + datetime.timedelta(days=1),
+                            datetime.datetime.now(datetime.timezone.utc) + datetime.timedelta(hours = 18),
                             datetime.datetime.now(datetime.timezone.utc),
                             datetime.datetime.now(datetime.timezone.utc)
                         ]
