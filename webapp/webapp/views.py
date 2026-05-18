@@ -718,9 +718,26 @@ def review(request):
 
     if not is_user_subscribed(request.user):
         return redirect("/subscribe/")
+    
+    if request.method == "GET":
+        language = request.GET.get("language", "es")
+        return render(request, "modules/review.html", {
+            "language": language
+        })
+    elif request.method == "POST":
+        data = json.loads(request.body.decode("utf-8"))
+        language = data.get("language", "es")
+        action = data.get("action")
 
-    return render(request, "modules/review.html", {
-    })
+        if action == "load_review_items":
+            review_items = vitalib.Database.Vocab.Get(connection, request.user.id, language).words()
+            return JsonResponse({
+                "status": "ok",
+                "items": review_items
+            })
+        elif action == "submit_review_results":
+            pass
+
 
 @registered_logged_in_required
 def reading_practice(request):

@@ -211,8 +211,40 @@ class Database:
                     review_count = cursor.fetchone()[0]
 
                 return review_count
-            def words():
-                pass
+            def words(self):
+                # Need to get lemma_id, lemma, pronunciation, translation, and definition
+                # Also need to filter by language and user_id
+                # And should only be words that have next_review_at in the past
+                with self.conn.cursor() as cursor:
+                    cursor.execute(
+                        """
+                        SELECT l.id, l.lemma, l.pronunciation, l.translation, l.definition
+                        FROM user_vocabulary uv
+                        JOIN lemmas l
+                            ON uv.lemma_id = l.id
+                        WHERE uv.user_id = %s
+                        AND l.language = %s
+                        AND uv.next_review_at IS NOT NULL
+                        AND uv.next_review_at < %s
+                        """,
+                        [
+                            self.user_id,
+                            self.language,
+                            datetime.datetime.now(datetime.timezone.utc)
+                        ]
+                    )
+                    rows = cursor.fetchall()
+                # Return a list of dicts with all the lemmas that need to be reviewed
+                return [
+                    {
+                        "lemma_id": row[0],
+                        "lemma": row[1],
+                        "pronunciation": row[2],
+                        "translation": row[3],
+                        "definition": row[4]
+                    }
+                    for row in rows
+                ]
         class Add:
             def __init__(self, conn, user_id):
                 self.conn = conn
