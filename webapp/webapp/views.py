@@ -736,8 +736,15 @@ def review(request):
                 "items": review_items
             })
         elif action == "submit_review_results":
-            pass
-
+            lemma_id = data.get("lemma_id")
+            if data.get("remembered_correctly"):
+                updated = vitalib.Database.Vocab.Update(connection, request.user.id).correct(lemma_id)
+            else:
+                updated = vitalib.Database.Vocab.Update(connection, request.user.id).incorrect(lemma_id)
+            assert updated["status"] == "updated", "Failed to update review results."
+            return JsonResponse({
+                "status": "ok"
+            })
 
 @registered_logged_in_required
 def reading_practice(request):
