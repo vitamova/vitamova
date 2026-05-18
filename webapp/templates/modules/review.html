@@ -1,0 +1,502 @@
+{% load static %}
+
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    {% include "partials/head.html" %}
+
+    <title>Vitamova | Vocabulary Review</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+
+    <style>
+        :root {
+            --vita-yellow: #ffd54a;
+            --vita-blue: #1f5eff;
+            --vita-dark: #111827;
+            --vita-soft: #f8fafc;
+        }
+
+        body {
+            background:
+                radial-gradient(circle at top left, rgba(255, 213, 74, 0.22), transparent 32rem),
+                radial-gradient(circle at bottom right, rgba(31, 94, 255, 0.16), transparent 34rem),
+                #f8fafc;
+        }
+
+        .vita-card {
+            background: rgba(255, 255, 255, 0.92);
+            backdrop-filter: blur(16px);
+            border: 1px solid rgba(226, 232, 240, 0.9);
+            box-shadow: 0 24px 70px rgba(15, 23, 42, 0.08);
+        }
+
+        .review-card {
+            min-height: 320px;
+            transition: transform 0.18s ease, box-shadow 0.18s ease;
+        }
+
+        .review-card:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 24px 60px rgba(15, 23, 42, 0.10);
+        }
+
+        .primary-btn {
+            background: var(--vita-blue);
+            color: white;
+        }
+
+        .primary-btn:hover {
+            background: #1748c6;
+        }
+
+        .yellow-btn {
+            background: var(--vita-yellow);
+            color: #111827;
+        }
+
+        .answer-yes {
+            background: #f0fdf4;
+            border-color: #bbf7d0;
+            color: #15803d;
+        }
+
+        .answer-no {
+            background: #fef2f2;
+            border-color: #fecaca;
+            color: #dc2626;
+        }
+    </style>
+</head>
+
+<body class="min-h-screen text-slate-900">
+
+<main class="min-h-screen flex items-center justify-center px-4 py-10">
+    <section class="w-full max-w-3xl vita-card rounded-3xl p-6 md:p-10">
+
+        <div class="flex items-start justify-between gap-4 mb-8">
+            <div>
+                <p class="text-sm font-semibold tracking-wide uppercase text-blue-600">
+                    Vitamova
+                </p>
+                <h1 class="text-3xl md:text-4xl font-black tracking-tight mt-1">
+                    Vocabulary Review
+                </h1>
+                <p class="text-slate-600 mt-2">
+                    Review the words that are ready for practice today.
+                </p>
+            </div>
+
+            <a
+                href="/"
+                class="px-4 py-3 rounded-xl font-bold bg-white border border-slate-200 text-slate-700 hover:bg-slate-50">
+                I’m done reviewing for now
+            </a>
+        </div>
+
+        <input type="hidden" id="language" value="{{ language }}">
+
+        <div id="loading-section" class="text-center py-16">
+            <div class="mx-auto mb-5 h-12 w-12 rounded-full border-4 border-blue-200 border-t-blue-600 animate-spin"></div>
+            <h2 class="text-xl font-bold">Loading your review...</h2>
+            <p class="text-slate-500 mt-2">Finding the words ready for today.</p>
+        </div>
+
+        <div id="review-section" class="hidden">
+            <div class="flex items-center justify-between mb-5">
+                <p id="review-counter" class="text-sm font-semibold text-slate-500"></p>
+                <p id="remaining-counter" class="text-sm font-semibold text-blue-600"></p>
+            </div>
+
+            <div class="w-full bg-slate-200 rounded-full h-2 mb-8 overflow-hidden">
+                <div id="progress-bar" class="h-2 rounded-full bg-blue-600 transition-all" style="width: 0%;"></div>
+            </div>
+
+            <div id="card-container"></div>
+        </div>
+
+        <div id="complete-section" class="hidden text-center py-14">
+            <div class="mx-auto mb-5 h-16 w-16 rounded-2xl flex items-center justify-center"
+                 style="background: var(--vita-yellow);">
+                <span class="text-3xl font-black text-blue-700">✓</span>
+            </div>
+
+            <h2 class="text-3xl font-black">Congratulations!</h2>
+            <p class="text-slate-600 mt-3">
+                You’ve finished reviewing all of your words for today.
+            </p>
+
+            <a
+                href="/"
+                class="inline-block mt-8 px-6 py-3 rounded-xl font-bold yellow-btn hover:opacity-90">
+                Return home
+            </a>
+        </div>
+
+        <div id="empty-section" class="hidden text-center py-14">
+            <div class="mx-auto mb-5 h-16 w-16 rounded-2xl flex items-center justify-center"
+                 style="background: var(--vita-yellow);">
+                <span class="text-3xl font-black text-blue-700">★</span>
+            </div>
+
+            <h2 class="text-3xl font-black">Nothing to review right now.</h2>
+            <p class="text-slate-600 mt-3">
+                You do not have any words ready for review yet.
+            </p>
+
+            <a
+                href="/"
+                class="inline-block mt-8 px-6 py-3 rounded-xl font-bold yellow-btn hover:opacity-90">
+                Return home
+            </a>
+        </div>
+
+        <div id="error-section" class="hidden text-center py-14">
+            <h2 class="text-2xl font-black text-red-600">Something went wrong</h2>
+            <p id="error-message" class="text-slate-600 mt-3"></p>
+
+            <button
+                id="retry-btn"
+                type="button"
+                class="mt-8 px-6 py-3 rounded-xl font-bold text-white primary-btn">
+                Try again
+            </button>
+        </div>
+
+    </section>
+</main>
+
+<script>
+    const VOCAB_REVIEW_URL = "/review/";
+    const language = document.getElementById("language").value;
+
+    let reviewItems = [];
+    let originalReviewCount = 0;
+    let completedReviewCount = 0;
+    let isFlipped = false;
+    let isSubmitting = false;
+
+    const loadingSection = document.getElementById("loading-section");
+    const reviewSection = document.getElementById("review-section");
+    const completeSection = document.getElementById("complete-section");
+    const emptySection = document.getElementById("empty-section");
+    const errorSection = document.getElementById("error-section");
+
+    const reviewCounter = document.getElementById("review-counter");
+    const remainingCounter = document.getElementById("remaining-counter");
+    const progressBar = document.getElementById("progress-bar");
+    const cardContainer = document.getElementById("card-container");
+
+    const errorMessage = document.getElementById("error-message");
+    const retryBtn = document.getElementById("retry-btn");
+
+    function getCookie(name) {
+        let cookieValue = null;
+
+        if (document.cookie && document.cookie !== "") {
+            const cookies = document.cookie.split(";");
+
+            for (let i = 0; i < cookies.length; i++) {
+                const cookie = cookies[i].trim();
+
+                if (cookie.substring(0, name.length + 1) === (name + "=")) {
+                    cookieValue = decodeURIComponent(cookie.substring(name.length + 1));
+                    break;
+                }
+            }
+        }
+
+        return cookieValue;
+    }
+
+    function showSection(section) {
+        loadingSection.classList.add("hidden");
+        reviewSection.classList.add("hidden");
+        completeSection.classList.add("hidden");
+        emptySection.classList.add("hidden");
+        errorSection.classList.add("hidden");
+
+        section.classList.remove("hidden");
+    }
+
+    function showError(message) {
+        errorMessage.textContent = message || "Please try again.";
+        showSection(errorSection);
+    }
+
+    async function postJson(payload) {
+        const response = await fetch(VOCAB_REVIEW_URL, {
+            method: "POST",
+            headers: {
+                "Content-Type": "application/json",
+                "X-CSRFToken": getCookie("csrftoken")
+            },
+            body: JSON.stringify(payload)
+        });
+
+        let data = null;
+
+        try {
+            data = await response.json();
+        } catch (error) {
+            throw new Error("Server returned an invalid JSON response.");
+        }
+
+        if (!response.ok || data.status !== "ok") {
+            throw new Error(data.error || "Request failed.");
+        }
+
+        return data;
+    }
+
+    async function loadReviewItems() {
+        showSection(loadingSection);
+
+        try {
+            const data = await postJson({
+                action: "load_review_items",
+                language: language
+            });
+
+            reviewItems = (data.items || []).map(item => {
+                return {
+                    ...item,
+                    was_missed_this_session: false
+                };
+            });
+
+            if (reviewItems.length === 0) {
+                showSection(emptySection);
+                return;
+            }
+
+            originalReviewCount = reviewItems.length;
+            completedReviewCount = 0;
+            isFlipped = false;
+
+            renderCurrentCard();
+            showSection(reviewSection);
+        } catch (error) {
+            showError(error.message);
+        }
+    }
+
+    function updateProgress() {
+        const total = originalReviewCount;
+        const remaining = reviewItems.length;
+        const percent = total > 0 ? (completedReviewCount / total) * 100 : 0;
+
+        reviewCounter.textContent = `Completed ${completedReviewCount} of ${total}`;
+        remainingCounter.textContent = `${remaining} remaining`;
+        progressBar.style.width = `${percent}%`;
+    }
+
+    function renderCurrentCard() {
+        const item = reviewItems[0];
+
+        if (!item) {
+            progressBar.style.width = "100%";
+            showSection(completeSection);
+            return;
+        }
+
+        updateProgress();
+        cardContainer.innerHTML = "";
+
+        const card = document.createElement("div");
+        card.className = "review-card rounded-3xl border border-slate-200 bg-white p-6 md:p-8";
+
+        if (!isFlipped) {
+            const front = document.createElement("div");
+            front.className = "min-h-[280px] flex flex-col items-center justify-center text-center";
+
+            const label = document.createElement("p");
+            label.className = "text-sm font-bold text-blue-600 uppercase tracking-wide";
+
+            if (item.was_missed_this_session) {
+                label.textContent = "Try this one again";
+            } else {
+                label.textContent = "Do you remember this word?";
+            }
+
+            const lemma = document.createElement("h2");
+            lemma.className = "text-5xl md:text-6xl font-black mt-5";
+            lemma.textContent = item.lemma;
+
+            const pronunciation = document.createElement("p");
+            pronunciation.className = "text-xl md:text-2xl font-bold text-slate-500 mt-3";
+            pronunciation.textContent = item.pronunciation || "";
+
+            const helper = document.createElement("p");
+            helper.className = "text-slate-600 mt-6 max-w-xl";
+
+            if (item.was_missed_this_session) {
+                helper.textContent = "This word is back because you missed it earlier. Try to recall the meaning before flipping the card.";
+            } else {
+                helper.textContent = "Think of the meaning first. Then flip the card to check yourself.";
+            }
+
+            const flipButton = document.createElement("button");
+            flipButton.type = "button";
+            flipButton.className = "mt-8 px-6 py-3 rounded-xl font-bold text-white primary-btn";
+            flipButton.textContent = "Flip card";
+
+            flipButton.addEventListener("click", () => {
+                isFlipped = true;
+                renderCurrentCard();
+            });
+
+            front.appendChild(label);
+            front.appendChild(lemma);
+
+            if (item.pronunciation) {
+                front.appendChild(pronunciation);
+            }
+
+            front.appendChild(helper);
+            front.appendChild(flipButton);
+            card.appendChild(front);
+        } else {
+            const back = document.createElement("div");
+
+            const label = document.createElement("p");
+            label.className = "text-sm font-bold text-blue-600 uppercase tracking-wide text-center";
+            label.textContent = "Check your memory";
+
+            const lemma = document.createElement("h2");
+            lemma.className = "text-4xl md:text-5xl font-black mt-4 text-center";
+            lemma.textContent = item.lemma;
+
+            const translation = document.createElement("p");
+            translation.className = "text-2xl font-bold text-blue-700 mt-3 text-center";
+            translation.textContent = item.translation || "No translation available.";
+
+            const definitionBox = document.createElement("div");
+            definitionBox.className = "rounded-3xl bg-slate-50 border border-slate-200 p-6 mt-8";
+
+            const definitionLabel = document.createElement("p");
+            definitionLabel.className = "text-sm font-bold text-slate-500 uppercase tracking-wide mb-2";
+            definitionLabel.textContent = "Definition";
+
+            const definition = document.createElement("p");
+            definition.className = "text-lg text-slate-700 leading-relaxed";
+            definition.textContent = item.definition || "No definition available.";
+
+            definitionBox.appendChild(definitionLabel);
+            definitionBox.appendChild(definition);
+
+            const prompt = document.createElement("p");
+            prompt.className = "text-center text-slate-600 font-semibold mt-8";
+            prompt.textContent = "Did you remember this word correctly?";
+
+            const actions = document.createElement("div");
+            actions.className = "grid grid-cols-1 md:grid-cols-2 gap-4 mt-5";
+
+            const noButton = document.createElement("button");
+            noButton.type = "button";
+            noButton.className = "rounded-2xl border px-5 py-4 font-black answer-no";
+            noButton.textContent = "No, I missed it";
+
+            const yesButton = document.createElement("button");
+            yesButton.type = "button";
+            yesButton.className = "rounded-2xl border px-5 py-4 font-black answer-yes";
+            yesButton.textContent = "Yes, I remembered";
+
+            noButton.addEventListener("click", () => {
+                markMissedAndMoveToBack();
+            });
+
+            yesButton.addEventListener("click", () => {
+                submitRememberedResult();
+            });
+
+            actions.appendChild(noButton);
+            actions.appendChild(yesButton);
+
+            if (item.was_missed_this_session) {
+                const note = document.createElement("div");
+                note.className = "mt-6 rounded-2xl border border-amber-200 bg-amber-50 p-4 text-amber-800 font-semibold text-center";
+                note.textContent = "Since you missed this word earlier, Vitamova will record it as missed once you finish this card.";
+                back.appendChild(note);
+            }
+
+            back.appendChild(label);
+            back.appendChild(lemma);
+            back.appendChild(translation);
+            back.appendChild(definitionBox);
+            back.appendChild(prompt);
+            back.appendChild(actions);
+
+            card.appendChild(back);
+        }
+
+        cardContainer.appendChild(card);
+    }
+
+    function markMissedAndMoveToBack() {
+        if (isSubmitting) {
+            return;
+        }
+
+        const item = reviewItems.shift();
+
+        if (!item) {
+            showSection(completeSection);
+            return;
+        }
+
+        item.was_missed_this_session = true;
+        reviewItems.push(item);
+
+        isFlipped = false;
+        renderCurrentCard();
+    }
+
+    async function submitRememberedResult() {
+        if (isSubmitting) {
+            return;
+        }
+
+        const item = reviewItems[0];
+
+        if (!item) {
+            showSection(completeSection);
+            return;
+        }
+
+        isSubmitting = true;
+
+        try {
+            const rememberedCorrectlyForBackend = !item.was_missed_this_session;
+
+            await postJson({
+                action: "submit_review_result",
+                language: language,
+                lemma_id: item.lemma_id,
+                remembered_correctly: rememberedCorrectlyForBackend
+            });
+
+            reviewItems.shift();
+            completedReviewCount += 1;
+            isFlipped = false;
+
+            if (reviewItems.length === 0) {
+                progressBar.style.width = "100%";
+                showSection(completeSection);
+                return;
+            }
+
+            renderCurrentCard();
+        } catch (error) {
+            showError(error.message);
+        } finally {
+            isSubmitting = false;
+        }
+    }
+
+    retryBtn.addEventListener("click", loadReviewItems);
+
+    document.addEventListener("DOMContentLoaded", loadReviewItems);
+</script>
+
+</body>
+</html>

@@ -18,6 +18,16 @@ LEVEL_RANGES = {
     6: (15001, None),
 }
 
+REVIEW_STAGE_INTERVALS = {
+    0: datetime.timedelta(hours=18),
+    1: datetime.timedelta(days=2, hours=18),
+    2: datetime.timedelta(days=6, hours=18),
+    3: datetime.timedelta(days=13, hours=18),
+    4: datetime.timedelta(days=29, hours=18),
+    5: datetime.timedelta(days=59, hours=18),
+    6: datetime.timedelta(days=119, hours=18)
+}
+
 class Database:
     #Retrieve user information
     class UserInfo:
@@ -211,8 +221,40 @@ class Database:
                     review_count = cursor.fetchone()[0]
 
                 return review_count
-            def words():
-                pass
+            def words(self):
+                # Need to get lemma_id, lemma, pronunciation, translation, and definition
+                # Also need to filter by language and user_id
+                # And should only be words that have next_review_at in the past
+                with self.conn.cursor() as cursor:
+                    cursor.execute(
+                        """
+                        SELECT l.id, l.lemma, l.pronunciation, l.translation, l.definition
+                        FROM user_vocabulary uv
+                        JOIN lemmas l
+                            ON uv.lemma_id = l.id
+                        WHERE uv.user_id = %s
+                        AND l.language = %s
+                        AND uv.next_review_at IS NOT NULL
+                        AND uv.next_review_at < %s
+                        """,
+                        [
+                            self.user_id,
+                            self.language,
+                            datetime.datetime.now(datetime.timezone.utc)
+                        ]
+                    )
+                    rows = cursor.fetchall()
+                # Return a list of dicts with all the lemmas that need to be reviewed
+                return [
+                    {
+                        "lemma_id": row[0],
+                        "lemma": row[1],
+                        "pronunciation": row[2],
+                        "translation": row[3],
+                        "definition": row[4]
+                    }
+                    for row in rows
+                ]
         class Add:
             def __init__(self, conn, user_id):
                 self.conn = conn
@@ -256,12 +298,96 @@ class Database:
                         [
                             self.user_id,
                             lemma_id,
-                            datetime.datetime.now(datetime.timezone.utc) + datetime.timedelta(days=1),
+                            datetime.datetime.now(datetime.timezone.utc) + datetime.timedelta(hours = 18),
                             datetime.datetime.now(datetime.timezone.utc),
                             datetime.datetime.now(datetime.timezone.utc)
                         ]
                     )
                 return {"status": "added"}
+        class Update:
+            def __init__(self, conn, user_id):
+                self.conn = conn
+                self.user_id = user_id
+            def correct(self, lemma_id):
+                # Need to update the user_vocabulary entry for this lemma_id and user_id
+                # It's correct so we should increment times_seen and times_correct
+                # updated_at and last_reviewed_at should be set to now
+                # review_stage should be incremented by 1 and next_review_at should be set based on the new review_stage
+                with self.conn.cursor() as cursor:
+                    # Let's first get the current review_stage for this lemma_id and user_id
+                    cursor.execute(
+                        """
+                        SELECT review_stage
+                        FROM user_vocabulary
+                        WHERE user_id = %s
+                        AND lemma_id = %s
+                        """,
+                        [self.user_id, lemma_id]
+                    )
+                    row = cursor.fetchone()
+                    if not row:
+                        return {"status": "not_found"}
+                    current_review_stage = row[0]
+
+                    #If the current review stage is 6, keep it at 6 but set status to "learned"
+                    # Otherwise, increment the review stage by 1
+                    if current_review_stage >= 6:
+                        new_review_stage = 6
+                        status = "learned"
+                    else:
+                        new_review_stage = current_review_stage + 1
+                        status = "learning"
+                    cursor.execute(
+                        """
+                        UPDATE user_vocabulary
+                        SET times_seen = times_seen + 1,
+                            times_correct = times_correct + 1,
+                            review_stage = %s,
+                            next_review_at = %s,
+                            last_reviewed_at = %s,
+                            status = %s,
+                            updated_at = %s
+                        WHERE user_id = %s
+                        AND lemma_id = %s
+                        """,
+                        [
+                            new_review_stage,
+                            datetime.datetime.now(datetime.timezone.utc) + REVIEW_STAGE_INTERVALS[new_review_stage],
+                            datetime.datetime.now(datetime.timezone.utc),
+                            status,
+                            datetime.datetime.now(datetime.timezone.utc),
+                            self.user_id,
+                            lemma_id
+                        ]
+                    )
+                return {"status": "updated"}
+            def incorrect(self, lemma_id):
+                # Need to update the user_vocabulary entry for this lemma_id and user_id
+                # It's incorrect so we should increment times_seen and times_incorrect
+                # updated_at and last_reviewed_at should be set to now
+                # review_stage should be set back to 0 and next_review_at should be set to now + 18 hours
+                with self.conn.cursor() as cursor:
+                    cursor.execute(
+                        """
+                        UPDATE user_vocabulary
+                        SET times_seen = times_seen + 1,
+                            times_incorrect = times_incorrect + 1,
+                            review_stage = 0,
+                            next_review_at = %s,
+                            last_reviewed_at = %s,
+                            updated_at = %s
+                        WHERE user_id = %s
+                        AND lemma_id = %s
+                        """,
+                        [
+                            datetime.datetime.now(datetime.timezone.utc) + datetime.timedelta(hours = 18),
+                            datetime.datetime.now(datetime.timezone.utc),
+                            datetime.datetime.now(datetime.timezone.utc),
+                            self.user_id,
+                            lemma_id
+                        ]
+                    )
+                return {"status": "updated"}
 
     class Test:
         class Questions:
@@ -393,33 +519,41 @@ class Database:
                     question["lemma_rank"] = rank_map.get(question_id)
                 return questions
             def append_lemma(self, questions):
-                # For each question ID I want to append the corresponding lemma and its other data
-                # So like "lemma": { "id": ..., "lemma": ..., "translation": ..., "definition": ... }
                 question_ids = [q["question_id"] for q in questions]
+
                 if not question_ids:
                     return questions
+
                 with self.conn.cursor() as cursor:
                     cursor.execute(
                         """
-                        SELECT vtb.id, l.lemma, l.translation, l.definition
+                        SELECT
+                            vtb.id AS question_id,
+                            l.id AS lemma_id,
+                            l.lemma,
+                            l.translation,
+                            l.definition
                         FROM vocab_test_bank vtb
                         JOIN lemmas l ON vtb.lemma_id = l.id
                         WHERE vtb.id = ANY(%s)
                         """,
                         [question_ids]
                     )
+
                     lemma_map = {
                         row[0]: {
-                            "id": row[0],
-                            "lemma": row[1],
-                            "translation": row[2],
-                            "definition": row[3]
+                            "id": row[1],
+                            "lemma": row[2],
+                            "translation": row[3],
+                            "definition": row[4]
                         }
                         for row in cursor.fetchall()
                     }
+
                 for question in questions:
                     question_id = question["question_id"]
                     question["lemma"] = lemma_map.get(question_id)
+
                 return questions
             def append_options(self, questions):
                 #Access the database to get the options

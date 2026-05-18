@@ -462,7 +462,7 @@ def vocab_test(request):
             )
 
         if is_user_subscribed(request.user):
-            return render(request, "vocab_test_retest.html", {
+            return render(request, "modules/vocab_test_retest.html", {
                 "current_score": vocab_score,
                 "language": language
             })
@@ -684,7 +684,7 @@ def vocab_builder(request):
     
     if request.method == "GET":
         language = request.GET.get("language", "es")
-        return render(request, "vocab_builder.html", {
+        return render(request, "modules/vocab_builder.html", {
             "language": language
         })
     if request.method == "POST":
@@ -718,12 +718,39 @@ def review(request):
 
     if not is_user_subscribed(request.user):
         return redirect("/subscribe/")
+    
+    if request.method == "GET":
+        language = request.GET.get("language", "es")
+        return render(request, "modules/review.html", {
+            "language": language
+        })
+    elif request.method == "POST":
+        data = json.loads(request.body.decode("utf-8"))
+        language = data.get("language", "es")
+        action = data.get("action")
 
-    return render(request, "coming_soon.html", {
-        "feature_name": "Review",
-        "message": "Review is coming soon! In the meantime, you can practice the words you've already learned in the Reading Practice section.",
-        "back_url": "/",
-    })
+        if action not in ["load_review_items", "submit_review_result"]:
+            return JsonResponse({
+                "status": "error",
+                "message": "Invalid action."
+            }, status=400)
+
+        if action == "load_review_items":
+            review_items = vitalib.Database.Vocab.Get(connection, request.user.id, language).words()
+            return JsonResponse({
+                "status": "ok",
+                "items": review_items
+            })
+        elif action == "submit_review_result":
+            lemma_id = data.get("lemma_id")
+            if data.get("remembered_correctly"):
+                updated = vitalib.Database.Vocab.Update(connection, request.user.id).correct(lemma_id)
+            else:
+                updated = vitalib.Database.Vocab.Update(connection, request.user.id).incorrect(lemma_id)
+            assert updated["status"] == "updated", "Failed to update review results."
+            return JsonResponse({
+                "status": "ok"
+            })
 
 @registered_logged_in_required
 def reading_practice(request):
