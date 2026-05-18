@@ -170,7 +170,8 @@
     const language = document.getElementById("language").value;
 
     let reviewItems = [];
-    let currentReviewIndex = 0;
+    let originalReviewCount = 0;
+    let completedReviewCount = 0;
     let isFlipped = false;
     let isSubmitting = false;
 
@@ -256,14 +257,20 @@
                 language: language
             });
 
-            reviewItems = data.items || [];
+            reviewItems = (data.items || []).map(item => {
+                return {
+                    ...item,
+                    was_missed_this_session: false
+                };
+            });
 
             if (reviewItems.length === 0) {
                 showSection(emptySection);
                 return;
             }
 
-            currentReviewIndex = 0;
+            originalReviewCount = reviewItems.length;
+            completedReviewCount = 0;
             isFlipped = false;
 
             renderCurrentCard();
@@ -274,20 +281,20 @@
     }
 
     function updateProgress() {
-        const total = reviewItems.length;
-        const completed = currentReviewIndex;
-        const remaining = Math.max(total - currentReviewIndex, 0);
-        const percent = total > 0 ? (completed / total) * 100 : 0;
+        const total = originalReviewCount;
+        const remaining = reviewItems.length;
+        const percent = total > 0 ? (completedReviewCount / total) * 100 : 0;
 
-        reviewCounter.textContent = `Card ${currentReviewIndex + 1} of ${total}`;
+        reviewCounter.textContent = `Completed ${completedReviewCount} of ${total}`;
         remainingCounter.textContent = `${remaining} remaining`;
         progressBar.style.width = `${percent}%`;
     }
 
     function renderCurrentCard() {
-        const item = reviewItems[currentReviewIndex];
+        const item = reviewItems[0];
 
         if (!item) {
+            progressBar.style.width = "100%";
             showSection(completeSection);
             return;
         }
@@ -304,7 +311,12 @@
 
             const label = document.createElement("p");
             label.className = "text-sm font-bold text-blue-600 uppercase tracking-wide";
-            label.textContent = "Do you remember this word?";
+
+            if (item.was_missed_this_session) {
+                label.textContent = "Try this one again";
+            } else {
+                label.textContent = "Do you remember this word?";
+            }
 
             const lemma = document.createElement("h2");
             lemma.className = "text-5xl md:text-6xl font-black mt-5";
@@ -316,7 +328,12 @@
 
             const helper = document.createElement("p");
             helper.className = "text-slate-600 mt-6 max-w-xl";
-            helper.textContent = "Think of the meaning first. Then flip the card to check yourself.";
+
+            if (item.was_missed_this_session) {
+                helper.textContent = "This word is back because you missed it earlier. Try to recall the meaning before flipping the card.";
+            } else {
+                helper.textContent = "Think of the meaning first. Then flip the card to check yourself.";
+            }
 
             const flipButton = document.createElement("button");
             flipButton.type = "button";
@@ -385,15 +402,22 @@
             yesButton.textContent = "Yes, I remembered";
 
             noButton.addEventListener("click", () => {
-                submitReviewResult(false);
+                markMissedAndMoveToBack();
             });
 
             yesButton.addEventListener("click", () => {
-                submitReviewResult(true);
+                submitRememberedResult();
             });
 
             actions.appendChild(noButton);
             actions.appendChild(yesButton);
+
+            if (item.was_missed_this_session) {
+                const note = document.createElement("div");
+                note.className = "mt-6 rounded-2xl border border-amber-200 bg-amber-50 p-4 text-amber-800 font-semibold text-center";
+                note.textContent = "Since you missed this word earlier, Vitamova will record it as missed once you finish this card.";
+                back.appendChild(note);
+            }
 
             back.appendChild(label);
             back.appendChild(lemma);
@@ -408,12 +432,31 @@
         cardContainer.appendChild(card);
     }
 
-    async function submitReviewResult(rememberedCorrectly) {
+    function markMissedAndMoveToBack() {
         if (isSubmitting) {
             return;
         }
 
-        const item = reviewItems[currentReviewIndex];
+        const item = reviewItems.shift();
+
+        if (!item) {
+            showSection(completeSection);
+            return;
+        }
+
+        item.was_missed_this_session = true;
+        reviewItems.push(item);
+
+        isFlipped = false;
+        renderCurrentCard();
+    }
+
+    async function submitRememberedResult() {
+        if (isSubmitting) {
+            return;
+        }
+
+        const item = reviewItems[0];
 
         if (!item) {
             showSection(completeSection);
@@ -423,17 +466,20 @@
         isSubmitting = true;
 
         try {
+            const rememberedCorrectlyForBackend = !item.was_missed_this_session;
+
             await postJson({
                 action: "submit_review_result",
                 language: language,
                 lemma_id: item.lemma_id,
-                remembered_correctly: rememberedCorrectly
+                remembered_correctly: rememberedCorrectlyForBackend
             });
 
-            currentReviewIndex += 1;
+            reviewItems.shift();
+            completedReviewCount += 1;
             isFlipped = false;
 
-            if (currentReviewIndex >= reviewItems.length) {
+            if (reviewItems.length === 0) {
                 progressBar.style.width = "100%";
                 showSection(completeSection);
                 return;
