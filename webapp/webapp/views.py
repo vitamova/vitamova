@@ -729,13 +729,19 @@ def review(request):
         language = data.get("language", "es")
         action = data.get("action")
 
+        if action not in ["load_review_items", "submit_review_result"]:
+            return JsonResponse({
+                "status": "error",
+                "message": "Invalid action."
+            }, status=400)
+
         if action == "load_review_items":
             review_items = vitalib.Database.Vocab.Get(connection, request.user.id, language).words()
             return JsonResponse({
                 "status": "ok",
                 "items": review_items
             })
-        elif action == "submit_review_results":
+        elif action == "submit_review_result":
             lemma_id = data.get("lemma_id")
             if data.get("remembered_correctly"):
                 updated = vitalib.Database.Vocab.Update(connection, request.user.id).correct(lemma_id)
