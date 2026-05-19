@@ -258,6 +258,7 @@ def home(request):
         language = registered_user.get("target_language", "es")
 
     review_count = vitalib.Database.Vocab.Get(connection, request.user.id, language).review_count()
+    vocab_score = vitalib.Database.UserInfo.Get(connection, request.user.id).score(language)
 
     today = date.today()
 
@@ -283,7 +284,8 @@ def home(request):
             "review_count": review_count,
             "language": language,
             "language_options": vitalib.Database.UserInfo.Get(connection, request.user.id).languages(),
-            "dev": settings.SERVER_TYPE == 'dev'
+            "dev": settings.SERVER_TYPE == 'dev',
+            "vocab_score": vocab_score
             })
 
     if vocab_score == -1:
@@ -754,16 +756,5 @@ def reading_practice(request):
     return render(request, "general/coming_soon.html", {
         "feature_name": "Reading Practice",
         "message": "Reading Practice is coming soon! In the meantime, you can review and practice the words you've already learned in the Review section.",
-        "back_url": "/",
-    })
-
-@registered_logged_in_required
-def manage_vocabulary(request):
-    if not is_user_subscribed(request.user):
-        return redirect("/subscribe/")
-
-    return render(request, "general/coming_soon.html", {
-        "feature_name": "Manage Vocabulary",
-        "message": "Manage Vocabulary is coming soon! In the meantime, you can review and practice the words you've already learned in the Review section.",
         "back_url": "/",
     })
