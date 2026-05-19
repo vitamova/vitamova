@@ -43,14 +43,7 @@ SUPPORTED_NATIVE_LANGUAGES = [
     }
 ]
 
-# Get server_type from data/server_type.txt to determine if we're on prod or dev server
-server_type_path = Path.home() / 'data' / 'server_type.txt'
-with open(server_type_path, 'r') as f:
-    server_type = f.read().strip()
-
 # Helper functions
-
-    
 def check_vitamova_subscription_in_stripe(user_email):
     subscribed = False
     subscription_expiration = None
@@ -283,7 +276,7 @@ def home(request):
         )
 
     if subscribed and subscription_expiration and subscription_expiration > today:
-        return render(request, "home.html", {
+        return render(request, "general/home.html", {
             "first_name": request.user.first_name,
             "user_email": request.user.email,
             "has_score": vocab_score != -1,
@@ -302,7 +295,7 @@ def login(request):
     if request.user.is_authenticated:
         return redirect('home')
     else:
-        return render(request, 'login.html')
+        return render(request, 'general/login.html')
 
 def register(request):
     if not request.user.is_authenticated:
@@ -315,7 +308,7 @@ def register(request):
         agree_terms = request.POST.get('agree_terms')
 
         if not agree_terms:
-            return render(request, 'register.html', {
+            return render(request, 'general/register.html', {
                 'first_name': request.user.first_name,
                 'error': 'You must agree to the Terms and Conditions to continue.'
             })
@@ -339,7 +332,7 @@ def register(request):
         return redirect('home')
 
     elif request.method == 'GET':
-        return render(request, 'register.html', {
+        return render(request, 'general/register.html', {
             'first_name': request.user.first_name,
             "native_language_options": SUPPORTED_NATIVE_LANGUAGES,
             "target_language_options": SUPPORTED_LANGUAGES
@@ -437,7 +430,7 @@ def account(request):
             "second_target_language",
             "subscription_expiration",
         )
-        return render(request, "account.html", {
+        return render(request, "general/account.html", {
             "first_name": request.user.first_name,
             "last_name": request.user.last_name,
             "user_email": request.user.email,
@@ -669,7 +662,7 @@ def subscribe(request):
     # Get user's score and language
     user_data = vitalib.Database.UserInfo.Get(connection, request.user.id).data()
 
-    return render(request, "subscribe.html", {
+    return render(request, "general/subscribe.html", {
         "stripe_public_key": STRIPE_PUBLIC_KEY,
         "score": "100",
         "language": "Spanish",
@@ -758,7 +751,7 @@ def reading_practice(request):
     if not is_user_subscribed(request.user):
         return redirect("/subscribe/")
 
-    return render(request, "coming_soon.html", {
+    return render(request, "general/coming_soon.html", {
         "feature_name": "Reading Practice",
         "message": "Reading Practice is coming soon! In the meantime, you can review and practice the words you've already learned in the Review section.",
         "back_url": "/",
