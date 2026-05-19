@@ -31,5 +31,9 @@ urlpatterns = [
     path('vocab-builder/', views.vocab_builder, name='vocab-builder'),
     path('review/', views.review, name='review'),
     path('reading-practice/', views.reading_practice, name='reading-practice'),
-    path('vocabulary/manage/', views.manage_vocabulary, name='manage-vocabulary')
-]
+
+    # New organized sections
+    path("vocabulary/", include("webapp.urls.vocabulary")),
+    path("sentences/", include("webapp.urls.sentences")),
+    path("reading/", include("webapp.urls.reading"))
+    ]
