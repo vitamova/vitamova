@@ -756,3 +756,14 @@ def reading_practice(request):
         "message": "Reading Practice is coming soon! In the meantime, you can review and practice the words you've already learned in the Review section.",
         "back_url": "/",
     })
+
+@registered_logged_in_required
+def manage_vocabulary(request):
+    if not is_user_subscribed(request.user):
+        return redirect("/subscribe/")
+
+    return render(request, "general/coming_soon.html", {
+        "feature_name": "Manage Vocabulary",
+        "message": "Manage Vocabulary is coming soon! In the meantime, you can review and practice the words you've already learned in the Review section.",
+        "back_url": "/",
+    })

@@ -30,5 +30,6 @@ urlpatterns = [
     path('flag-question/', views.flag_question, name='flag-question'),
     path('vocab-builder/', views.vocab_builder, name='vocab-builder'),
     path('review/', views.review, name='review'),
-    path('reading-practice/', views.reading_practice, name='reading-practice')
+    path('reading-practice/', views.reading_practice, name='reading-practice'),
+    path('vocabulary/manage/', views.manage_vocabulary, name='manage-vocabulary')
 ]
