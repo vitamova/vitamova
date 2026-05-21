@@ -30,7 +30,7 @@ def registered_logged_in_required(view_func):
 def subscribed_required(view_func):
     @wraps(view_func)
     def wrapper(request, *args, **kwargs):
-        if not vitalib.User.Subscription(request.user.id, connection).is_active():
+        if not vitalib.User.Subscription(request.user.id, request.user.email, connection).is_active():
             return redirect("/subscribe/")
 
         return view_func(request, *args, **kwargs)
@@ -41,7 +41,7 @@ def noscore_or_subscribed_required(view_func):
     @wraps(view_func)
     def wrapper(request, *args, **kwargs):
 
-        if vitalib.User.Subscription(request.user.id, connection).is_active():
+        if vitalib.User.Subscription(request.user.id, request.user.email, connection).is_active():
             return view_func(request, *args, **kwargs)
         
         else:
