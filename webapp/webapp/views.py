@@ -300,7 +300,7 @@ def vocab_test(request):
         
         else:
             if vitalib.User.Subscription(request.user.id, request.user.email, connection).is_active():
-                return render(request, "vocab_test_retest.html", {
+                return render(request, "modules/vocab_test_retest.html", {
                     "current_score": vocab_score,
                     "language": language
                 })
