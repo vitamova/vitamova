@@ -5,6 +5,11 @@ import os
 
 stripe.api_key = os.environ.get("STRIPE_PRIVATE_KEY")
 
+VITAMOVA_PRICE_MAP = {
+    "price_1TQtOmKOiNtX3Wewk310Ygu5": "Vitamova Monthly",
+    "price_1TQtPSKOiNtX3WewCEePEtQg": "Vitamova Yearly"
+}
+
 class User:
     class Registration:
         def __init__(self, user_id, conn):
