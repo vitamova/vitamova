@@ -38,7 +38,6 @@ def add(request):
         language = data.get("language")
         if action == "search_lemmas":
             query = data.get("query")
-            language = data.get("language")
             lemmas = vitalib.Database.Vocab.Get(connection, request.user.id, language).lemma_starts_with(query)
             return JsonResponse(
                 {
@@ -46,3 +45,31 @@ def add(request):
                     "matches": lemmas
                 }
             )
+        elif action == "add_lemma":
+            lemma_id = data.get("lemma_id")
+            try:
+                added = vitalib.Database.Vocab.Add(connection, request.user.id).lemma(lemma_id)
+                if added["status"] == "added":
+                    return JsonResponse(
+                        {
+                            "status": "success",
+                            "message": "%s has been added to your vocabulary." % added["lemma"],
+                            "lemma": added["lemma"]
+                        }
+                    )
+                elif added["status"] == "already_exists":
+                    return JsonResponse(
+                        {
+                            "status": "error",
+                            "message": "%s is already in your vocabulary." % added["lemma"],
+                            "lemma": added["lemma"]
+                        }
+                    )
+            except:
+                return JsonResponse(
+                    {
+                        "status": "error",
+                        "message": "Something went wrong. Please try again.""
+                    },
+                    status=400
+                )

@@ -152,6 +152,7 @@ class Database:
                     return None
 
                 return dict(zip(columns, row))
+            
             def score(self, language):
                 language = language.strip().lower()
 
@@ -254,6 +255,30 @@ class Database:
                     }
                     for row in rows
                 ]
+            def lemma(self, lemma_id):
+                with self.conn.cursor() as cursor:
+                    cursor.execute(
+                        """
+                        SELECT l.id, l.lemma, l.pronunciation, l.translation, l.definition
+                        FROM lemmas l
+                        WHERE l.id = %s
+                        AND l.language = %s
+                        """,
+                        [
+                            lemma_id,
+                            self.language
+                        ]
+                    )
+                    row = cursor.fetchone()
+                if not row:
+                    return None
+                return {
+                    "lemma_id": row[0],
+                    "lemma": row[1],
+                    "pronunciation": row[2],
+                    "translation": row[3],
+                    "definition": row[4]
+                }
             def lemma_starts_with(self, prefix):
                 # Return up to 5 lemmas that start with the given prefix for the user's target language
                 with self.conn.cursor() as cursor:
@@ -329,7 +354,17 @@ class Database:
                             datetime.datetime.now(datetime.timezone.utc)
                         ]
                     )
-                return {"status": "added"}
+                    # We should also return the lemma that was added to the user's vocabulary
+                    cursor.execute(
+                        """
+                        SELECT lemma
+                        FROM lemmas
+                        WHERE id = %s
+                        """,
+                        [lemma_id]
+                    )
+                    lemma = cursor.fetchone()[0]
+                return {"status": "added", "lemma": lemma}
         class Update:
             def __init__(self, conn, user_id):
                 self.conn = conn
