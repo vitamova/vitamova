@@ -45,7 +45,7 @@ def add(request):
                     "matches": lemmas
                 }
             )
-        elif action == "add_lemma":
+        elif action == "add_word":
             lemma_id = data.get("lemma_id")
             try:
                 added = vitalib.Database.Vocab.Add(connection, request.user.id).lemma(lemma_id)
