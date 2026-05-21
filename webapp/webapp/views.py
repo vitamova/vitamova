@@ -139,7 +139,7 @@ def home(request):
 
     today = date.today()
 
-    if vitalib.User.Subscription(request.user.id, connection).is_active():
+    if vitalib.User.Subscription(request.user.id, request.user.email, connection).is_active():
         return render(request, "general/home.html", {
             "first_name": request.user.first_name,
             "user_email": request.user.email,
@@ -180,7 +180,7 @@ def register(request):
                 'error': 'You must agree to the Terms and Conditions to continue.'
             })
 
-        subscription_info = vitalib.User.Subscription(request.user.id, connection).check_stripe(request.user.email)
+        subscription_info = vitalib.User.Subscription(request.user.id, request.user.email, connection).check_stripe()
 
         # vitalib.Database.Test(connection, request.user.username, "es").score_result(data.get("answers", []))
         vitalib.Database.UserInfo.Create(connection, request.user.id).data(
@@ -282,7 +282,7 @@ def account(request):
             "second_target_language": user_data.get("second_target_language"),
             "native_language_options": SUPPORTED_NATIVE_LANGUAGES,
             "target_language_options": SUPPORTED_LANGUAGES,
-            "subscribed": vitalib.User.Subscription(request.user.id, connection).is_active(),
+            "subscribed": vitalib.User.Subscription(request.user.id, request.user.email, connection).is_active(),
             "subscription_expiration": user_data.get("subscription_expiration"),
         })
 
@@ -299,7 +299,7 @@ def vocab_test(request):
             )
         
         else:
-            if vitalib.User.Subscription(request.user.id, connection).is_active():
+            if vitalib.User.Subscription(request.user.id, request.user.email, connection).is_active():
                 return render(request, "vocab_test_retest.html", {
                     "current_score": vocab_score,
                     "language": language
@@ -495,7 +495,7 @@ def flag_question(request):
 @registered_logged_in_required
 def subscribe(request):
 
-    if vitalib.User.Subscription(request.user.id, connection).is_active():
+    if vitalib.User.Subscription(request.user.id, request.user.email, connection).is_active():
         return redirect("home")
     
     # Get user's score and language

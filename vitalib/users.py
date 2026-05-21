@@ -16,8 +16,9 @@ class User:
             return user_info is not None
     
     class Subscription:
-        def __init__(self, user_id, conn):
+        def __init__(self, user_id, email, conn):
             self.user_id = user_id
+            self.email = email
             self.conn = conn
 
         def is_active(self):
@@ -27,8 +28,7 @@ class User:
             ).data(
                 "subscribed",
                 "subscription_expiration",
-                "stripe_customer_id",
-                "email",
+                "stripe_customer_id"
             )
 
             today = datetime.datetime.now(datetime.timezone.utc).date()
@@ -41,12 +41,12 @@ class User:
             ):
                 return True
 
-            user_email = subscription_info.get("email") if subscription_info else None
+            user_email = self.email
 
             if not user_email:
                 return False
 
-            stripe_status = self.check_stripe(user_email)
+            stripe_status = self.check_stripe()
 
             vitalib.Database.UserInfo.Update(
                 self.conn,
@@ -66,12 +66,14 @@ class User:
                 and stripe_status["subscription_expiration"] > today
             )
 
-        def check_stripe(self, user_email):
+        def check_stripe(self):
             result = {
                 "subscribed": False,
                 "subscription_expiration": None,
                 "stripe_customer_id": None,
             }
+
+            user_email = self.email
 
             customers = stripe.Customer.list(email=user_email, limit=10).data
 
