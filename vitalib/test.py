@@ -23,20 +23,20 @@ class Test:
                 # Batch must be provided for diagnostic questions
                 if batch is None:
                     raise ValueError("Batch must be provided for diagnostic questions")
-                # If batch is 1, fetch_counts should be 3 each
+                # If batch is 1, fetch_counts should be 2 each
                 if batch == 1:
-                    fetch_counts = {i: 3 for i in range(1, 7)}
+                    fetch_counts = {i: 2 for i in range(1, 7)}
                 else:
                     if frontier == 1:
-                        fetch_counts[1] = 12
-                        fetch_counts[2] = 6
+                        fetch_counts[1] = 8
+                        fetch_counts[2] = 4
                     elif frontier == 6:
-                        fetch_counts[5] = 6
-                        fetch_counts[6] = 12
+                        fetch_counts[5] = 4
+                        fetch_counts[6] = 8
                     else:
-                        fetch_counts[frontier - 1] = 4
-                        fetch_counts[frontier] = 10
-                        fetch_counts[frontier + 1] = 4
+                        fetch_counts[frontier - 1] = 2
+                        fetch_counts[frontier] = 8
+                        fetch_counts[frontier + 1] = 2
             elif type == "retest":
                 # Get 50 questions total with a 30/10/10 split or 35/15 split if frontier is 1 or 6
                 if frontier == 1:
