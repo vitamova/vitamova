@@ -25,32 +25,31 @@ class Test:
                     raise ValueError("Batch must be provided for diagnostic questions")
                 # If batch is 1, fetch_counts should be 2 each
                 if batch == 1:
-                    fetch_counts[1] = 3
-                    fetch_counts[2] = 1
-                    fetch_counts[3] = 1
+                    # It'll be 3 each
+                    fetch_counts = { i : 3 for i in range(1, 7) }
                 else:
                     if frontier == 1:
-                        fetch_counts[1] = 3
-                        fetch_counts[2] = 2
+                        fetch_counts[1] = 12
+                        fetch_counts[2] = 6
                     elif frontier == 6:
-                        fetch_counts[5] = 2
-                        fetch_counts[6] = 3
+                        fetch_counts[5] = 6
+                        fetch_counts[6] = 12
                     else:
-                        fetch_counts[frontier - 1] = 1
-                        fetch_counts[frontier] = 3
-                        fetch_counts[frontier + 1] = 1
+                        fetch_counts[frontier - 1] = 4
+                        fetch_counts[frontier] = 10
+                        fetch_counts[frontier + 1] = 4
             elif type == "retest":
                 # Get 50 questions total with a 30/10/10 split or 35/15 split if frontier is 1 or 6
                 if frontier == 1:
-                    fetch_counts[1] = 20
-                    fetch_counts[2] = 10
+                    fetch_counts[1] = 35
+                    fetch_counts[2] = 15
                 elif frontier == 6:
-                    fetch_counts[5] = 10
-                    fetch_counts[6] = 20
+                    fetch_counts[5] = 15
+                    fetch_counts[6] = 35
                 else:
-                    fetch_counts[frontier - 1] = 5
-                    fetch_counts[frontier] = 20
-                    fetch_counts[frontier + 1] = 5
+                    fetch_counts[frontier - 1] = 10
+                    fetch_counts[frontier] = 30
+                    fetch_counts[frontier + 1] = 10
             
             # Now it's simple, just get the questions and return them formatted
             questions = vitalib.Database.Test.Questions(self.conn, self.language).any(fetch_counts)
