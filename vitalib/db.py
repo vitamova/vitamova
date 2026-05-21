@@ -254,6 +254,33 @@ class Database:
                     }
                     for row in rows
                 ]
+            def lemma_starts_with(self, prefix):
+                # Return up to 5 lemmas that start with the given prefix for the user's target language
+                with self.conn.cursor() as cursor:
+                    cursor.execute(
+                        """
+                        SELECT id, lemma, pos, definition
+                        FROM lemmas
+                        WHERE language = %s
+                        AND lemma ILIKE %s
+                        ORDER BY rank ASC
+                        LIMIT 5
+                        """,
+                        [
+                            self.language,
+                            prefix + '%'
+                        ]
+                    )
+                    rows = cursor.fetchall()
+                return [
+                    {
+                        "lemma_id": row[0],
+                        "lemma": row[1],
+                        "part_of_speech": row[2],
+                        "definition": row[3]
+                    }
+                    for row in rows
+                ]
         class Add:
             def __init__(self, conn, user_id):
                 self.conn = conn

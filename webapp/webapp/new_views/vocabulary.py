@@ -1,9 +1,10 @@
 from django.shortcuts import render, redirect
 from webapp.decorators import registered_logged_in_required, subscribed_required
 from django.db import connection
-from datetime import date
 import stripe
 from django.conf import settings
+import json
+import vitalib
 
 stripe.api_key = settings.STRIPE_PRIVATE_KEY
 
@@ -25,5 +26,22 @@ def manage(request):
 @registered_logged_in_required
 @subscribed_required
 def add(request):
-    return render(request, "modules/vocabulary_add.html", {
-    })
+    if request.method == "GET":
+        language = request.GET.get("language", "es")
+        return render(request, "modules/vocabulary_add.html", {
+            "language": language
+        })
+    elif request.method == "POST":
+        data = json.loads(request.body)
+        action = data.get("action")
+        language = data.get("language")
+        if action == "search_lemmas":
+            query = data.get("query")
+            language = data.get("language")
+            lemmas = vitalib.Database.Vocab.Get(connection, request.user.id, language).lemma_starts_with(query)
+            return json.dumps(
+                {
+                    "status": "success",
+                    "matches": lemmas
+                }
+            )
