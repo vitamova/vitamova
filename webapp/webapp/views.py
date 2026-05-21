@@ -379,11 +379,6 @@ def vocab_test(request):
                     "questions": questions
                 })
             if action == "complete_diagnostic":
-                if batch != 4:
-                    return JsonResponse(
-                        {"status": "error", "message": "Invalid batch number for action 'complete_diagnostic'."},
-                        status=400
-                    )
                 all_answers = data.get("all_answers", [])
                 # Now get an actual score based on the answers
                 score = vitalib.Test.Get(connection, request.user.id, language).score(all_answers)
