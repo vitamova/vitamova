@@ -25,8 +25,5 @@ def manage(request):
 @registered_logged_in_required
 @subscribed_required
 def add(request):
-    return render(request, "general/coming_soon.html", {
-        "feature_name": "Add Vocabulary",
-        "message": "Add Vocabulary is coming soon! In the meantime, you can review and practice the words you've already learned in the Review section.",
-        "back_url": "/",
+    return render(request, "modules/vocabulary_add.html", {
     })
