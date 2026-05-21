@@ -69,7 +69,7 @@ def add(request):
                 return JsonResponse(
                     {
                         "status": "error",
-                        "message": "Something went wrong. Please try again.""
+                        "message": "Something went wrong. Please try again."
                     },
                     status=400
                 )
