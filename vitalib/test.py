@@ -42,15 +42,15 @@ class Test:
             elif type == "retest":
                 # Get 50 questions total with a 30/10/10 split or 35/15 split if frontier is 1 or 6
                 if frontier == 1:
-                    fetch_counts[1] = 35
-                    fetch_counts[2] = 15
+                    fetch_counts[1] = 20
+                    fetch_counts[2] = 10
                 elif frontier == 6:
-                    fetch_counts[5] = 15
-                    fetch_counts[6] = 35
+                    fetch_counts[5] = 10
+                    fetch_counts[6] = 20
                 else:
-                    fetch_counts[frontier - 1] = 10
-                    fetch_counts[frontier] = 30
-                    fetch_counts[frontier + 1] = 10
+                    fetch_counts[frontier - 1] = 5
+                    fetch_counts[frontier] = 20
+                    fetch_counts[frontier + 1] = 5
             
             # Now it's simple, just get the questions and return them formatted
             questions = vitalib.Database.Test.Questions(self.conn, self.language).any(fetch_counts)
