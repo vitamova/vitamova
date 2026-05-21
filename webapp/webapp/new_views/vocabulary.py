@@ -35,6 +35,14 @@ def add(request):
     elif request.method == "POST":
         data = json.loads(request.body)
         action = data.get("action")
+        if action != "search_lemmas" and action != "add_word":
+            return JsonResponse(
+                {
+                    "status": "error",
+                    "message": "Invalid action."
+                },
+                status=400
+            )
         language = data.get("language")
         if action == "search_lemmas":
             query = data.get("query")
