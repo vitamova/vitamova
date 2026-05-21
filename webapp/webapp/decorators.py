@@ -5,6 +5,7 @@ from django.http import HttpResponseForbidden, JsonResponse
 from django.conf import settings
 from pathlib import Path
 import vitalib
+import json
 
 server_type = settings.SERVER_TYPE
 
@@ -16,6 +17,16 @@ def registered_logged_in_required(view_func):
 
         if not vitalib.User.Registration(request.user.id, connection).is_valid():
             return redirect("/register/")
+        
+        # Let's make sure the user is submitting a valid language
+        lanuages = vitalib.Database.UserInfo.Get(connection, request.user.id).data("target_language", "second_target_language")
+        if request.method == "GET":
+            language = request.GET.get("language")
+        elif request.method == "POST":
+            data = json.loads(request.body)
+            language = data.get("language")
+        if language and language not in lanuages.values():
+            return HttpResponseForbidden("Invalid language.")
         
         # Check the server_type whether this server is prod or dev
         # If it's dev only staff users can access the view
