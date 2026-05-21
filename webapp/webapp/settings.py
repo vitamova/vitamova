@@ -12,6 +12,7 @@ https://docs.djangoproject.com/en/5.0/ref/settings/
 
 from pathlib import Path
 import json
+import os
 
 # Build paths inside the project like this: BASE_DIR / 'subdir'.
 BASE_DIR = Path(__file__).resolve().parent.parent
@@ -26,6 +27,8 @@ with open(data_path, 'r') as f:
 SERVER_TYPE = data.get("server_type", "dev")
 STRIPE_PRIVATE_KEY = data.get("stripe_private_key")
 
+# Set the Stripe Private Key as a system environment variable so that it can be accessed in users.py
+os.environ["STRIPE_PRIVATE_KEY"] = STRIPE_PRIVATE_KEY
 
 SECRET_KEY = data.get("django_secret")
 # SECURITY WARNING: don't run with debug turned on in production!
