@@ -1,8 +1,9 @@
 from django.shortcuts import render, redirect
 from webapp.decorators import registered_logged_in_required, subscribed_required
 from django.db import connection
-import stripe
 from django.conf import settings
+from django.http import JsonResponse
+import stripe
 import json
 import vitalib
 
@@ -39,7 +40,7 @@ def add(request):
             query = data.get("query")
             language = data.get("language")
             lemmas = vitalib.Database.Vocab.Get(connection, request.user.id, language).lemma_starts_with(query)
-            return json.dumps(
+            return JsonResponse(
                 {
                     "status": "success",
                     "matches": lemmas
