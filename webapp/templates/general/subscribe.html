@@ -462,7 +462,7 @@
             <li>Targeted {{ language|default:"language" }} learning path</li>
           </ul>
 
-          <form method="POST" action="subscribe/create-checkout-session/">
+          <form method="POST" action="/subscribe/create-checkout-session/">
             {% csrf_token %}
             <input type="hidden" name="price_id" value="price_1TQtOmKOiNtX3Wewk310Ygu5">
             <button class="btn btn-secondary" type="submit">
@@ -491,7 +491,7 @@
             <li>Stay focused on consistent learning</li>
           </ul>
 
-          <form method="POST" action="subscribe/create-checkout-session/">
+          <form method="POST" action="/subscribe/create-checkout-session/">
             {% csrf_token %}
             <input type="hidden" name="price_id" value="price_1TQtPSKOiNtX3WewCEePEtQg">
             <button class="btn btn-primary" type="submit">
@@ -539,7 +539,7 @@
         button.textContent = "Redirecting...";
 
         try {
-          const response = await fetch("subscribe/create-checkout-session/", {
+          const response = await fetch("/subscribe/create-checkout-session/", {
             method: "POST",
             headers: {
               "Content-Type": "application/json",
