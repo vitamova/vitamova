@@ -193,6 +193,7 @@ class Database:
                 self.conn = conn
                 self.user_id = user_id
                 self.language = language
+                self.native_language = Database.UserInfo.Get(conn, user_id).data("native_language")["native_language"]
             def review_count(self):
                 with self.conn.cursor() as cursor:
                     cursor.execute(
@@ -222,16 +223,25 @@ class Database:
                 with self.conn.cursor() as cursor:
                     cursor.execute(
                         """
-                        SELECT l.id, l.lemma, l.pronunciation, l.translation, l.definition
+                        SELECT
+                            l.id,
+                            l.lemma,
+                            l.pronunciation,
+                            lt.translation,
+                            l.definition
                         FROM user_vocabulary uv
                         JOIN lemmas l
                             ON uv.lemma_id = l.id
+                        LEFT JOIN lemma_translations lt
+                            ON lt.lemma_id = l.id
+                        AND lt.native_language = %s
                         WHERE uv.user_id = %s
                         AND l.language = %s
                         AND uv.next_review_at IS NOT NULL
                         AND uv.next_review_at < %s
                         """,
                         [
+                            self.native_language,
                             self.user_id,
                             self.language,
                             datetime.datetime.now(datetime.timezone.utc)
@@ -253,12 +263,21 @@ class Database:
                 with self.conn.cursor() as cursor:
                     cursor.execute(
                         """
-                        SELECT l.id, l.lemma, l.pronunciation, l.translation, l.definition
+                        SELECT
+                            l.id,
+                            l.lemma,
+                            l.pronunciation,
+                            lt.translation,
+                            l.definition
                         FROM lemmas l
+                        LEFT JOIN lemma_translations lt
+                            ON lt.lemma_id = l.id
+                        AND lt.native_language = %s
                         WHERE l.id = %s
                         AND l.language = %s
                         """,
                         [
+                            self.native_language,
                             lemma_id,
                             self.language
                         ]
@@ -586,13 +605,20 @@ class Database:
                             vtb.id AS question_id,
                             l.id AS lemma_id,
                             l.lemma,
-                            l.translation,
+                            lt.translation,
                             l.definition
                         FROM vocab_test_bank vtb
-                        JOIN lemmas l ON vtb.lemma_id = l.id
+                        JOIN lemmas l
+                            ON vtb.lemma_id = l.id
+                        LEFT JOIN lemma_translations lt
+                            ON lt.lemma_id = l.id
+                        AND lt.native_language = %s
                         WHERE vtb.id = ANY(%s)
                         """,
-                        [question_ids]
+                        [
+                            self.native_language,
+                            question_ids
+                        ]
                     )
 
                     lemma_map = {
