@@ -597,8 +597,6 @@
     const QUESTIONS_PER_BATCH = 18;
     const TOTAL_QUESTIONS = TOTAL_BATCHES * QUESTIONS_PER_BATCH;
 
-    const FLAG_QUESTION_URL = "/flag-question/";
-
     let currentBatch = 1;
     let currentBatchQuestions = [];
     let currentQuestionIndex = 0;
@@ -622,6 +620,7 @@
     const scoreValue = document.getElementById("scoreValue");
     const scoreSummary = document.getElementById("scoreSummary");
     const wordRange = document.getElementById("wordRange");
+    const vocabularyContext = document.getElementById("vocabularyContext");
 
     function getCookie(name) {
       const cookies = document.cookie ? document.cookie.split(";") : [];
@@ -723,7 +722,7 @@
     }
 
     async function postFlagQuestion(payload) {
-      return postJson(FLAG_QUESTION_URL, payload);
+      return postDiagnostic(payload);
     }
 
     function normalizeOptions(options) {
@@ -854,15 +853,21 @@
       flagButton.textContent = "Flagging...";
 
       try {
-        await postFlagQuestion({
+        const data = await postFlagQuestion({
+          action: "flag_question",
           question_id: Number(question.question_id),
           question: question.question,
           options: normalizeOptions(question.options || []),
           selected_option: selectedAnswerForCurrentQuestion ? selectedAnswerForCurrentQuestion.selected_option : null,
           diagnostic_batch: currentBatch,
           question_number: allAnswers.length + currentBatchAnswers.length + 1,
+          language: "{{ language }}",
           reason: "user_flagged"
         });
+
+        if (data.status !== "flagged") {
+          throw new Error("The server did not confirm the flagged question.");
+        }
 
         flaggedQuestionIds.add(Number(question.question_id));
         flagButton.classList.add("is-flagged");
@@ -1005,11 +1010,6 @@
 
       const estimatedCenter = bandStart + progressWithinLevel * (bandEnd - bandStart);
 
-      /*
-        Give the user a range instead of a false-precision exact number.
-        The range gets wider at higher levels because vocabulary size estimates
-        naturally become less precise as word frequency decreases.
-      */
       const marginByLevel = {
         1: 150,
         2: 250,

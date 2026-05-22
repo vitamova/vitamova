@@ -251,6 +251,7 @@ def vocab_test(request):
             "get_retest_questions",
             "complete_retest",
             "resolve_retest_score",
+            "flag_question"
         ]:
             return JsonResponse(
                 {"status": "error", "message": "Invalid action."},
@@ -370,45 +371,27 @@ def vocab_test(request):
                         {"status": "error", "message": "Invalid JSON."},
                         status=400
                     )
+        if action == "flag_question":
+            question_id = data.get("question_id")
+            language = data.get("language", "es")
 
-@registered_logged_in_required
-@noscore_or_subscribed_required
-def flag_question(request):
-    if request.method != "POST":
-        return JsonResponse(
-            {"status": "error", "message": "Invalid request method."},
-            status=400
-        )
+            if not question_id:
+                return JsonResponse(
+                    {"status": "error", "message": "Missing question_id."},
+                    status=400
+                )
 
-    try:
-        data = json.loads(request.body.decode("utf-8"))
-    except json.JSONDecodeError:
-        return JsonResponse(
-            {"status": "error", "message": "Invalid JSON."},
-            status=400
-        )
+            flagged = vitalib.Database.Test.Questions.flag(connection, request.user.username, language, question_id)
 
-    question_id = data.get("question_id")
-    language = data.get("language", "es")
-
-    if not question_id:
-        return JsonResponse(
-            {"status": "error", "message": "Missing question_id."},
-            status=400
-        )
-
-    flagged = vitalib.Database.Test.Questions.flag(connection, request.user.username, language, question_id)
-
-    if flagged["status"] != "flagged":
-        return JsonResponse(
-            {"status": "error", "message": "Failed to flag question."},
-            status=500
-        )
-    else:
-        return JsonResponse({
-            "status": "ok",
-            "message": "Question flagged for review."
-        })
+            if flagged["status"] != "flagged":
+                return JsonResponse(
+                    {"status": "error", "message": "Unable to flag question."},
+                    status=500
+                )
+            else:
+                return JsonResponse({
+                    "status": "flagged"
+                })
 
 @registered_logged_in_required
 @subscribed_required
