@@ -1,18 +1,9 @@
-from django.shortcuts import render, redirect
+from django.shortcuts import render
 from webapp.decorators import registered_logged_in_required, subscribed_required
 from django.db import connection
-from django.conf import settings
 from django.http import JsonResponse
-import stripe
 import json
 import vitalib
-
-stripe.api_key = settings.STRIPE_PRIVATE_KEY
-
-VITAMOVA_PRICE_MAP = {
-    "price_1TQtOmKOiNtX3Wewk310Ygu5": "Vitamova Monthly",
-    "price_1TQtPSKOiNtX3WewCEePEtQg": "Vitamova Yearly"
-}
 
 
 @registered_logged_in_required

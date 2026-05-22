@@ -1,0 +1,326 @@
+{% load static %}
+
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  {% include "partials/head.html" %}
+
+  <title>Subscription Successful | Vitamova</title>
+
+  <!-- Event snippet for Page view (1) conversion page -->
+  <script>
+    gtag('event', 'conversion', {'send_to': 'AW-17768480715/RI13CMT9-cobEMv_1ZhC'});
+  </script>
+
+  <style>
+    :root {
+      --vita-yellow: #ffd54a;
+      --vita-blue: #1f5eff;
+      --vita-dark: #101426;
+      --vita-soft: #f7f9ff;
+      --vita-card: rgba(255, 255, 255, 0.92);
+      --vita-text: #182033;
+      --vita-muted: #5b6478;
+    }
+
+    * {
+      box-sizing: border-box;
+    }
+
+    body {
+      margin: 0;
+      min-height: 100vh;
+      font-family: system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+      background:
+        radial-gradient(circle at top left, rgba(255, 213, 74, 0.45), transparent 32%),
+        radial-gradient(circle at bottom right, rgba(31, 94, 255, 0.35), transparent 36%),
+        linear-gradient(135deg, #f8fbff 0%, #eef3ff 100%);
+      color: var(--vita-text);
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      padding: 32px 18px;
+    }
+
+    .page {
+      width: 100%;
+      max-width: 980px;
+      position: relative;
+    }
+
+    .success-card {
+      background: var(--vita-card);
+      border: 1px solid rgba(31, 94, 255, 0.12);
+      border-radius: 32px;
+      box-shadow: 0 24px 70px rgba(16, 20, 38, 0.14);
+      overflow: hidden;
+      position: relative;
+    }
+
+    .top-ribbon {
+      background: linear-gradient(90deg, var(--vita-blue), #5b7cff);
+      color: white;
+      text-align: center;
+      padding: 13px 20px;
+      font-weight: 800;
+      letter-spacing: 0.03em;
+      text-transform: uppercase;
+      font-size: 0.78rem;
+    }
+
+    .content {
+      padding: 58px 34px 46px;
+      text-align: center;
+    }
+
+    .badge {
+      width: 88px;
+      height: 88px;
+      margin: 0 auto 24px;
+      border-radius: 999px;
+      background: linear-gradient(135deg, var(--vita-yellow), #fff2a8);
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      box-shadow: 0 16px 35px rgba(255, 213, 74, 0.4);
+      font-size: 42px;
+    }
+
+    h1 {
+      margin: 0;
+      font-size: clamp(2.35rem, 6vw, 4.6rem);
+      line-height: 0.98;
+      letter-spacing: -0.06em;
+      color: var(--vita-dark);
+    }
+
+    .highlight {
+      color: var(--vita-blue);
+    }
+
+    .subtitle {
+      max-width: 720px;
+      margin: 24px auto 0;
+      font-size: clamp(1.05rem, 2vw, 1.35rem);
+      line-height: 1.6;
+      color: var(--vita-muted);
+    }
+
+    .subtitle strong {
+      color: var(--vita-dark);
+    }
+
+    .encouragement-grid {
+      margin: 38px auto 0;
+      display: grid;
+      grid-template-columns: repeat(3, 1fr);
+      gap: 16px;
+      max-width: 820px;
+    }
+
+    .mini-card {
+      background: white;
+      border: 1px solid rgba(31, 94, 255, 0.1);
+      border-radius: 22px;
+      padding: 22px 18px;
+      box-shadow: 0 12px 28px rgba(16, 20, 38, 0.07);
+    }
+
+    .mini-card .icon {
+      font-size: 28px;
+      margin-bottom: 10px;
+    }
+
+    .mini-card h2 {
+      margin: 0 0 8px;
+      font-size: 1rem;
+      color: var(--vita-dark);
+    }
+
+    .mini-card p {
+      margin: 0;
+      color: var(--vita-muted);
+      font-size: 0.94rem;
+      line-height: 1.45;
+    }
+
+    .cta-zone {
+      margin: 46px auto 0;
+      max-width: 680px;
+      padding: 30px;
+      border-radius: 28px;
+      background:
+        linear-gradient(135deg, rgba(255, 213, 74, 0.35), rgba(31, 94, 255, 0.12)),
+        white;
+      border: 1px solid rgba(31, 94, 255, 0.12);
+    }
+
+    .cta-zone h2 {
+      margin: 0;
+      font-size: clamp(1.45rem, 3vw, 2.2rem);
+      letter-spacing: -0.035em;
+      color: var(--vita-dark);
+    }
+
+    .cta-zone p {
+      margin: 12px auto 24px;
+      color: var(--vita-muted);
+      font-size: 1.05rem;
+      line-height: 1.55;
+    }
+
+    .button {
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      gap: 10px;
+      min-height: 56px;
+      padding: 0 28px;
+      border-radius: 999px;
+      background: var(--vita-blue);
+      color: white;
+      text-decoration: none;
+      font-weight: 900;
+      font-size: 1.02rem;
+      box-shadow: 0 18px 35px rgba(31, 94, 255, 0.32);
+      transition: transform 160ms ease, box-shadow 160ms ease, background 160ms ease;
+    }
+
+    .button:hover {
+      transform: translateY(-2px);
+      background: #174be0;
+      box-shadow: 0 22px 42px rgba(31, 94, 255, 0.38);
+    }
+
+    .footer-note {
+      margin-top: 28px;
+      color: var(--vita-muted);
+      font-size: 0.92rem;
+    }
+
+    .confetti {
+      position: absolute;
+      inset: 0;
+      pointer-events: none;
+      overflow: hidden;
+    }
+
+    .confetti span {
+      position: absolute;
+      width: 10px;
+      height: 18px;
+      border-radius: 3px;
+      opacity: 0.75;
+      animation: float 7s ease-in-out infinite;
+    }
+
+    .confetti span:nth-child(1) { left: 8%; top: 18%; background: var(--vita-yellow); animation-delay: 0s; }
+    .confetti span:nth-child(2) { left: 18%; top: 72%; background: var(--vita-blue); animation-delay: 0.8s; }
+    .confetti span:nth-child(3) { left: 82%; top: 20%; background: var(--vita-yellow); animation-delay: 1.2s; }
+    .confetti span:nth-child(4) { left: 72%; top: 78%; background: var(--vita-blue); animation-delay: 0.4s; }
+    .confetti span:nth-child(5) { left: 50%; top: 10%; background: #ff9f43; animation-delay: 1.7s; }
+    .confetti span:nth-child(6) { left: 92%; top: 54%; background: #20c997; animation-delay: 0.2s; }
+
+    @keyframes float {
+      0%, 100% {
+        transform: translateY(0) rotate(0deg);
+      }
+
+      50% {
+        transform: translateY(-18px) rotate(16deg);
+      }
+    }
+
+    @media (max-width: 760px) {
+      .content {
+        padding: 44px 22px 34px;
+      }
+
+      .encouragement-grid {
+        grid-template-columns: 1fr;
+      }
+
+      .cta-zone {
+        padding: 24px 18px;
+      }
+    }
+  </style>
+</head>
+
+<body>
+  <main class="page">
+    <section class="success-card">
+      <div class="confetti" aria-hidden="true">
+        <span></span>
+        <span></span>
+        <span></span>
+        <span></span>
+        <span></span>
+        <span></span>
+      </div>
+
+      <div class="top-ribbon">
+        Subscription activated
+      </div>
+
+      <div class="content">
+        <div class="badge" aria-hidden="true">
+          🚀
+        </div>
+
+        <h1>
+          You’re in{% if first_name %}, {{ first_name }}{% endif %}.<br>
+          <span class="highlight">Let’s level up.</span>
+        </h1>
+
+        <p class="subtitle">
+          Your Vitamova subscription is active, and your language-learning journey just got a serious upgrade.
+          {% if language %}
+            Get ready to build stronger vocabulary, sharper reading skills, and real confidence in <strong>{{ language }}</strong>.
+          {% else %}
+            Get ready to build stronger vocabulary, sharper reading skills, and real confidence one session at a time.
+          {% endif %}
+        </p>
+
+        <div class="encouragement-grid">
+          <div class="mini-card">
+            <div class="icon" aria-hidden="true">🎯</div>
+            <h2>Train with purpose</h2>
+            <p>Focus on the words and skills that actually move you forward.</p>
+          </div>
+
+          <div class="mini-card">
+            <div class="icon" aria-hidden="true">📈</div>
+            <h2>Track your growth</h2>
+            <p>Use your results to understand where you are and what to practice next.</p>
+          </div>
+
+          <div class="mini-card">
+            <div class="icon" aria-hidden="true">🔥</div>
+            <h2>Build momentum</h2>
+            <p>Small daily wins become major progress faster than you think.</p>
+          </div>
+        </div>
+
+        <div class="cta-zone">
+          <h2>
+            Start your journey to advanced language skills today.
+          </h2>
+
+          <p>
+            Your next breakthrough starts with one click. Jump back into Vitamova and keep building.
+          </p>
+
+          <a class="button" href="/">
+            Start learning now →
+          </a>
+        </div>
+
+        <p class="footer-note">
+          Thanks for joining Vitamova. We’re excited to be part of your progress.
+        </p>
+      </div>
+    </section>
+  </main>
+</body>
+</html>

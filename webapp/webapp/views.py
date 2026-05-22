@@ -66,7 +66,7 @@ def create_checkout_session(request):
             mode="subscription",
             allow_promotion_codes=True,
             payment_method_collection="if_required",
-            success_url=request.build_absolute_uri("/"),
+            success_url=request.build_absolute_uri("/subscribe/success/"),
             cancel_url=request.build_absolute_uri("/"),
             metadata={
                 "user_id": str(request.user.id),
