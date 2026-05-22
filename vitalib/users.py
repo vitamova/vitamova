@@ -123,64 +123,57 @@ class User:
                         }
 
             return result
-            today = datetime.datetime.now(datetime.timezone.utc).date()
+        def recent(self):
+            # First check if user is subscribed at all with is_active
+            if not self.is_active():
+                return False
 
-            customers = stripe.Customer.list(email=user_email, limit=10).data
-
-            for customer in customers:
-                customer_id = customer.get("id")
-
-                if not customer_id:
-                    continue
-
-                subscriptions = stripe.Subscription.list(
-                    customer=customer_id,
-                    status="all",
-                    limit=100,
-                ).data
-
-                for sub in subscriptions:
-                    if sub.get("status") not in ["active", "trialing"]:
-                        continue
-
-                    for item in sub.get("items", {}).get("data", []):
-                        price_id = item.get("price", {}).get("id")
-
-                        if price_id not in VITAMOVA_PRICE_MAP:
-                            continue
-
-                        current_period_end = (
-                            sub.get("current_period_end")
-                            or item.get("current_period_end")
-                        )
-
-                        subscription_expiration = None
-
-                        if current_period_end:
-                            subscription_expiration = datetime.date.fromtimestamp(
-                                current_period_end
-                            )
-
-                        vitalib.Database.UserInfo.Update(
-                            self.conn,
-                            self.user_id
-                        ).data(
-                            subscribed=True,
-                            subscription_expiration=subscription_expiration,
-                            stripe_customer_id=customer_id,
-                        )
-
-                        return bool(
-                            subscription_expiration
-                            and subscription_expiration > today
-                        )
-
-            vitalib.Database.UserInfo.Update(
+            # Ok get the stripe_customer_id from the database
+            subscription_info = vitalib.Database.UserInfo.Get(
                 self.conn,
                 self.user_id
             ).data(
-                subscribed=False,
-                subscription_expiration=None,
+                "stripe_customer_id"
             )
 
-            return False
+            stripe_customer_id = subscription_info.get("stripe_customer_id")
+
+            if not stripe_customer_id:
+                return False
+
+            # Now query stripe to see their latest subscription using VITAMOVA_PRICE_MAP
+            # to filter for only our subscriptions
+            subscriptions = stripe.Subscription.list(
+                customer=stripe_customer_id,
+                status="all",
+                limit=100,
+            ).data
+
+            vitamova_price_ids = set(VITAMOVA_PRICE_MAP.values())
+
+            latest_vitamova_subscription = None
+
+            for subscription in subscriptions:
+                for item in subscription.get("items", {}).get("data", []):
+                    price_id = item.get("price", {}).get("id")
+
+                    if price_id in vitamova_price_ids:
+                        if latest_vitamova_subscription is None:
+                            latest_vitamova_subscription = subscription
+                        elif subscription.get("created", 0) > latest_vitamova_subscription.get("created", 0):
+                            latest_vitamova_subscription = subscription
+
+                        break
+
+            if latest_vitamova_subscription is None:
+                return False
+
+            created_timestamp = latest_vitamova_subscription.get("created")
+
+            if not created_timestamp:
+                return False
+
+            created_at = datetime.datetime.fromtimestamp(created_timestamp, tz=datetime.timezone.utc)
+            now = datetime.datetime.now(datetime.timezone.utc)
+
+            return now - created_at <= datetime.timedelta(minutes=10)
