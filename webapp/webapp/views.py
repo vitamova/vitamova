@@ -3,7 +3,7 @@ from django.db import connection
 from django.views.decorators.http import require_POST
 from django.http import JsonResponse
 from django.conf import settings
-from .decorators import registered_logged_in_required
+from .decorators import registered_logged_in_required, subscribed_required, noscore_or_subscribed_required
 import stripe
 from datetime import date
 from pathlib import Path
@@ -43,136 +43,6 @@ SUPPORTED_NATIVE_LANGUAGES = [
     }
 ]
 
-# Get server_type from data/server_type.txt to determine if we're on prod or dev server
-server_type_path = Path.home() / 'data' / 'server_type.txt'
-with open(server_type_path, 'r') as f:
-    server_type = f.read().strip()
-
-# Helper functions
-
-    
-def check_vitamova_subscription_in_stripe(user_email):
-    subscribed = False
-    subscription_expiration = None
-    stripe_customer_id = None
-    subscription_id = None
-
-    customers = stripe.Customer.list(
-        email=user_email,
-        limit=10
-    ).data
-
-    for customer in customers:
-        customer_id = customer.get("id")
-
-        if not customer_id:
-            continue
-
-        subscriptions = stripe.Subscription.list(
-            customer=customer_id,
-            status="all",
-            limit=100
-        ).data
-
-        for sub in subscriptions:
-            sub_status = sub.get("status")
-
-            if sub_status not in ["active", "trialing"]:
-                continue
-
-            items = sub.get("items", {}).get("data", [])
-
-            for item in items:
-                price_id = item.get("price", {}).get("id")
-
-                # Only count Vitamova subscriptions.
-                # This prevents another Evenstar product from granting Vitamova access.
-                if price_id in VITAMOVA_PRICE_MAP:
-                    subscribed = True
-                    stripe_customer_id = customer_id
-                    subscription_id = sub.get("id")
-                    current_period_end = sub.get("current_period_end")
-
-                    if not current_period_end:
-                        items = sub.get("items", {}).get("data", [])
-                        if items:
-                            current_period_end = items[0].get("current_period_end")
-
-                    if current_period_end:
-                        subscription_expiration = date.fromtimestamp(current_period_end)
-
-                    return {
-                        "subscribed": subscribed,
-                        "subscription_expiration": subscription_expiration,
-                        "stripe_customer_id": stripe_customer_id,
-                        "subscription_id": subscription_id,
-                    }
-
-    return {
-        "subscribed": subscribed,
-        "subscription_expiration": subscription_expiration,
-        "stripe_customer_id": stripe_customer_id,
-        "subscription_id": subscription_id,
-    }
-
-def is_user_subscribed(user, check_stripe_if_stale=True):
-    if not user or not user.is_authenticated:
-        return False
-
-    with connection.cursor() as cursor:
-        cursor.execute(
-            """
-            SELECT subscribed, subscription_expiration
-            FROM registered_user
-            WHERE user_id = %s
-            LIMIT 1
-            """,
-            [user.id]
-        )
-        row = cursor.fetchone()
-
-    if not row:
-        return False
-
-    subscribed = row[0]
-    subscription_expiration = row[1]
-    today = date.today()
-
-    if subscribed and subscription_expiration and subscription_expiration > today:
-        return True
-
-    if not check_stripe_if_stale:
-        return False
-
-    stripe_status = check_vitamova_subscription_in_stripe(user.email)
-
-    subscribed = stripe_status["subscribed"]
-    subscription_expiration = stripe_status["subscription_expiration"]
-    stripe_customer_id = stripe_status["stripe_customer_id"]
-
-    with connection.cursor() as cursor:
-        cursor.execute(
-            """
-            UPDATE registered_user
-            SET subscribed = %s,
-                subscription_expiration = %s,
-                stripe_customer_id = COALESCE(%s, stripe_customer_id)
-            WHERE user_id = %s
-            """,
-            [
-                subscribed,
-                subscription_expiration,
-                stripe_customer_id,
-                user.id,
-            ]
-        )
-
-    return bool(
-        subscribed
-        and subscription_expiration
-        and subscription_expiration > today
-    )
-
 # Views
     
 @require_POST
@@ -196,7 +66,7 @@ def create_checkout_session(request):
             mode="subscription",
             allow_promotion_codes=True,
             payment_method_collection="if_required",
-            success_url=request.build_absolute_uri("/"),
+            success_url=request.build_absolute_uri("/subscribe/success/"),
             cancel_url=request.build_absolute_uri("/"),
             metadata={
                 "user_id": str(request.user.id),
@@ -265,48 +135,38 @@ def home(request):
         language = registered_user.get("target_language", "es")
 
     review_count = vitalib.Database.Vocab.Get(connection, request.user.id, language).review_count()
+    vocab_score = vitalib.Database.UserInfo.Get(connection, request.user.id).score(language)
 
     today = date.today()
 
-    # If the local table says the user is unsubscribed or expired
-    if not subscribed or not subscription_expiration or subscription_expiration <= today:
-        # check Stripe again before showing the unsubscribed page.
-        stripe_status = check_vitamova_subscription_in_stripe(request.user.email)
-
-        subscribed = stripe_status["subscribed"]
-        subscription_expiration = stripe_status["subscription_expiration"]
-
-        vitalib.Database.UserInfo.Update(connection, request.user.id).data(
-            subscribed=subscribed,
-            subscription_expiration=subscription_expiration,
-            stripe_customer_id=stripe_status["stripe_customer_id"]
-        )
-
-    if subscribed and subscription_expiration and subscription_expiration > today:
-        return render(request, "home.html", {
+    if vitalib.User.Subscription(request.user.id, request.user.email, connection).is_active():
+        return render(request, "general/home.html", {
             "first_name": request.user.first_name,
             "user_email": request.user.email,
             "has_score": vocab_score != -1,
             "review_count": review_count,
             "language": language,
             "language_options": vitalib.Database.UserInfo.Get(connection, request.user.id).languages(),
-            "dev": settings.SERVER_TYPE == 'dev'
+            "dev": settings.SERVER_TYPE == 'dev',
+            "vocab_score": vocab_score
             })
-
-    if vocab_score == -1:
-        return render(request, "home_unsubscribed_noscore.html")
-
-    return redirect("/subscribe/")
+    else:
+        # Not subscribed but can still take the test
+        if vocab_score == -1:
+            return render(request, "home_unsubscribed_noscore.html")
+        else:
+            # Otherwise, they gotta subscribe
+            return redirect("/subscribe/")
 
 def login(request):
     if request.user.is_authenticated:
-        return redirect('home')
+        return redirect('/')
     else:
-        return render(request, 'login.html')
+        return render(request, 'general/login.html')
 
 def register(request):
     if not request.user.is_authenticated:
-        return redirect('login')
+        return redirect('/login/')
 
     if request.method == 'POST':
         native_language = request.POST.get('native_language')
@@ -315,31 +175,27 @@ def register(request):
         agree_terms = request.POST.get('agree_terms')
 
         if not agree_terms:
-            return render(request, 'register.html', {
+            return render(request, 'general/register.html', {
                 'first_name': request.user.first_name,
                 'error': 'You must agree to the Terms and Conditions to continue.'
             })
 
-        stripe_status = check_vitamova_subscription_in_stripe(request.user.email)
-
-        subscribed = stripe_status["subscribed"]
-        subscription_expiration = stripe_status["subscription_expiration"]
-        stripe_customer_id = stripe_status["stripe_customer_id"]
+        subscription_info = vitalib.User.Subscription(request.user.id, request.user.email, connection).check_stripe()
 
         # vitalib.Database.Test(connection, request.user.username, "es").score_result(data.get("answers", []))
         vitalib.Database.UserInfo.Create(connection, request.user.id).data(
             native_language=native_language,
             target_language=target_language,
             second_target_language=second_target_language,
-            subscribed=subscribed,
-            subscription_expiration=subscription_expiration,
-            stripe_customer_id=stripe_customer_id,
+            subscribed=subscription_info["subscribed"],
+            subscription_expiration=subscription_info["subscription_expiration"],
+            stripe_customer_id=subscription_info["stripe_customer_id"],
         )
 
-        return redirect('home')
+        return redirect('/')
 
     elif request.method == 'GET':
-        return render(request, 'register.html', {
+        return render(request, 'general/register.html', {
             'first_name': request.user.first_name,
             "native_language_options": SUPPORTED_NATIVE_LANGUAGES,
             "target_language_options": SUPPORTED_LANGUAGES
@@ -347,27 +203,7 @@ def register(request):
     
 @registered_logged_in_required
 def account(request):
-
     if request.method == 'POST':
-        example_request = {
-            "first_name": "Wesley",
-            "last_name": "Belleman",
-            "native_language": "en",
-            "target_language": "es",
-            "second_target_language": "ru"
-            }
-        example_response = {
-            "success": True,
-            "message": "Account updated successfully.",
-            "account": {
-                "email": "wesley@example.com",
-                "first_name": "Wesley",
-                "last_name": "Belleman",
-                "native_language": "en",
-                "target_language": "es",
-                "second_target_language": "ru"
-            }
-        }
         # We'll start with error checking. All fields are required except second_target_language
         data = json.loads(request.body.decode("utf-8"))
         first_name = data.get("first_name")
@@ -435,9 +271,9 @@ def account(request):
             "native_language",
             "target_language",
             "second_target_language",
-            "subscription_expiration",
+            "subscription_expiration"
         )
-        return render(request, "account.html", {
+        return render(request, "general/account.html", {
             "first_name": request.user.first_name,
             "last_name": request.user.last_name,
             "user_email": request.user.email,
@@ -446,11 +282,12 @@ def account(request):
             "second_target_language": user_data.get("second_target_language"),
             "native_language_options": SUPPORTED_NATIVE_LANGUAGES,
             "target_language_options": SUPPORTED_LANGUAGES,
-            "subscribed": is_user_subscribed(request.user),
+            "subscribed": vitalib.User.Subscription(request.user.id, request.user.email, connection).is_active(),
             "subscription_expiration": user_data.get("subscription_expiration"),
         })
 
 @registered_logged_in_required
+@noscore_or_subscribed_required
 def vocab_test(request):
     if request.method == "GET":
         language = request.GET.get("language", "es")
@@ -460,14 +297,15 @@ def vocab_test(request):
                 "language": language
                 }
             )
-
-        if is_user_subscribed(request.user):
-            return render(request, "modules/vocab_test_retest.html", {
-                "current_score": vocab_score,
-                "language": language
-            })
-
-        return redirect("/subscribe/")
+        
+        else:
+            if vitalib.User.Subscription(request.user.id, request.user.email, connection).is_active():
+                return render(request, "modules/vocab_test_retest.html", {
+                    "current_score": vocab_score,
+                    "language": language
+                })
+            else:
+                return redirect("/subscribe/")
     
     if request.method == "POST":
         try:
@@ -481,13 +319,6 @@ def vocab_test(request):
         vocab_score = vitalib.Database.UserInfo.Get(connection, request.user.id).score(language)
         action = data.get("action")
         batch = int(data.get("batch", 1))
-
-        # If the user is not subscribed, their score must be -1
-        if not is_user_subscribed(request.user) and vocab_score != -1:
-            return JsonResponse(
-                {"status": "error", "message": "User must subscribe."},
-                status=400
-            )
 
         # Ensure the action is valid
         if action not in [
@@ -548,11 +379,6 @@ def vocab_test(request):
                     "questions": questions
                 })
             if action == "complete_diagnostic":
-                if batch != 4:
-                    return JsonResponse(
-                        {"status": "error", "message": "Invalid batch number for action 'complete_diagnostic'."},
-                        status=400
-                    )
                 all_answers = data.get("all_answers", [])
                 # Now get an actual score based on the answers
                 score = vitalib.Test.Get(connection, request.user.id, language).score(all_answers)
@@ -623,6 +449,7 @@ def vocab_test(request):
                     )
 
 @registered_logged_in_required
+@noscore_or_subscribed_required
 def flag_question(request):
     if request.method != "POST":
         return JsonResponse(
@@ -663,13 +490,13 @@ def flag_question(request):
 @registered_logged_in_required
 def subscribe(request):
 
-    if is_user_subscribed(request.user):
+    if vitalib.User.Subscription(request.user.id, request.user.email, connection).is_active():
         return redirect("home")
     
     # Get user's score and language
     user_data = vitalib.Database.UserInfo.Get(connection, request.user.id).data()
 
-    return render(request, "subscribe.html", {
+    return render(request, "general/subscribe.html", {
         "stripe_public_key": STRIPE_PUBLIC_KEY,
         "score": "100",
         "language": "Spanish",
@@ -677,10 +504,8 @@ def subscribe(request):
     })
 
 @registered_logged_in_required
+@subscribed_required
 def vocab_builder(request):
-
-    if not is_user_subscribed(request.user):
-        return redirect("/subscribe/")
     
     if request.method == "GET":
         language = request.GET.get("language", "es")
@@ -714,10 +539,8 @@ def vocab_builder(request):
             })
 
 @registered_logged_in_required
+@subscribed_required
 def review(request):
-
-    if not is_user_subscribed(request.user):
-        return redirect("/subscribe/")
     
     if request.method == "GET":
         language = request.GET.get("language", "es")
@@ -753,12 +576,10 @@ def review(request):
             })
 
 @registered_logged_in_required
+@subscribed_required
 def reading_practice(request):
 
-    if not is_user_subscribed(request.user):
-        return redirect("/subscribe/")
-
-    return render(request, "coming_soon.html", {
+    return render(request, "general/coming_soon.html", {
         "feature_name": "Reading Practice",
         "message": "Reading Practice is coming soon! In the meantime, you can review and practice the words you've already learned in the Review section.",
         "back_url": "/",

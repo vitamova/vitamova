@@ -1,0 +1,748 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  {% include "partials/head.html" %}
+
+  <title>Vitamova | Add Words</title>
+
+  <style>
+    :root {
+      --vita-yellow: #ffd54a;
+      --vita-yellow-dark: #f4bf20;
+      --vita-blue: #1f5eff;
+      --vita-blue-dark: #1748c6;
+      --bg-soft: #f7f9ff;
+      --text-dark: #1a1f36;
+      --text-muted: #667085;
+      --card: #ffffff;
+      --border: #e6eaf2;
+      --shadow: 0 18px 45px rgba(24, 42, 100, 0.12);
+      --success: #12b76a;
+      --warning: #f79009;
+      --danger: #d92d20;
+    }
+
+    * {
+      box-sizing: border-box;
+    }
+
+    body {
+      margin: 0;
+      font-family: Inter, ui-sans-serif, system-ui, -apple-system, Segoe UI, Roboto, Helvetica, Arial, sans-serif;
+      color: var(--text-dark);
+      background:
+        radial-gradient(circle at 10% 10%, rgba(255, 213, 74, 0.25), transparent 40%),
+        radial-gradient(circle at 90% 20%, rgba(31, 94, 255, 0.20), transparent 42%),
+        linear-gradient(180deg, #fdfefe 0%, var(--bg-soft) 100%);
+      min-height: 100vh;
+      padding: 24px;
+    }
+
+    .page {
+      width: 100%;
+      max-width: 960px;
+      margin: 0 auto;
+      display: grid;
+      gap: 22px;
+    }
+
+    .topbar {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 16px;
+    }
+
+    .brand {
+      display: flex;
+      align-items: center;
+      gap: 10px;
+      font-weight: 800;
+      font-size: 1.15rem;
+      letter-spacing: 0.2px;
+      color: var(--text-dark);
+      text-decoration: none;
+    }
+
+    .brand-badge {
+      width: 42px;
+      height: 42px;
+      border-radius: 12px;
+      overflow: hidden;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      box-shadow: 0 8px 20px rgba(20, 27, 52, 0.08);
+      background: white;
+    }
+
+    .brand-icon {
+      width: 100%;
+      height: 100%;
+      object-fit: cover;
+      display: block;
+    }
+
+    .back-link {
+      color: var(--vita-blue);
+      font-weight: 850;
+      text-decoration: none;
+      background: rgba(31, 94, 255, 0.08);
+      border: 1px solid rgba(31, 94, 255, 0.12);
+      border-radius: 999px;
+      padding: 10px 14px;
+      transition: background 0.15s ease, transform 0.15s ease;
+    }
+
+    .back-link:hover {
+      background: rgba(31, 94, 255, 0.12);
+      transform: translateY(-1px);
+    }
+
+    .hero {
+      background: linear-gradient(160deg, var(--vita-blue) 0%, #3d7dff 55%, #6aa0ff 100%);
+      color: white;
+      border-radius: 28px;
+      padding: 34px 32px;
+      position: relative;
+      overflow: hidden;
+      box-shadow: var(--shadow);
+    }
+
+    .hero::before {
+      content: "";
+      position: absolute;
+      width: 250px;
+      height: 250px;
+      border-radius: 999px;
+      background: rgba(255, 213, 74, 0.35);
+      top: -95px;
+      right: -55px;
+      filter: blur(2px);
+    }
+
+    .hero-content {
+      position: relative;
+      z-index: 1;
+      max-width: 720px;
+    }
+
+    .hero h1 {
+      margin: 0 0 12px;
+      font-size: clamp(2rem, 4vw, 3rem);
+      line-height: 1.05;
+      letter-spacing: -0.04em;
+    }
+
+    .hero p {
+      margin: 0;
+      color: rgba(255, 255, 255, 0.92);
+      max-width: 66ch;
+      line-height: 1.55;
+      font-size: 1.05rem;
+    }
+
+    .search-panel {
+      background: var(--card);
+      border: 1px solid var(--border);
+      border-radius: 28px;
+      box-shadow: 0 12px 32px rgba(24, 42, 100, 0.08);
+      padding: 26px;
+      display: grid;
+      gap: 18px;
+    }
+
+    .input-header h2 {
+      margin: 0;
+      font-size: 1.4rem;
+      letter-spacing: -0.03em;
+    }
+
+    .input-header p {
+      margin: 8px 0 0;
+      color: var(--text-muted);
+      line-height: 1.5;
+    }
+
+    .word-input {
+      width: 100%;
+      min-height: 86px;
+      resize: vertical;
+      border: 1px solid var(--border);
+      border-radius: 22px;
+      padding: 18px 20px;
+      font: inherit;
+      font-size: 1.25rem;
+      font-weight: 750;
+      color: var(--text-dark);
+      background: #fbfcff;
+      outline: none;
+      transition: border-color 0.15s ease, box-shadow 0.15s ease, background 0.15s ease;
+    }
+
+    .word-input:focus {
+      border-color: rgba(31, 94, 255, 0.42);
+      background: white;
+      box-shadow: 0 0 0 4px rgba(31, 94, 255, 0.12);
+    }
+
+    .helper-row {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 12px;
+      color: var(--text-muted);
+      font-size: 0.92rem;
+      line-height: 1.4;
+    }
+
+    .status-text {
+      font-weight: 750;
+      white-space: nowrap;
+    }
+
+    .status-text.loading {
+      color: var(--vita-blue);
+    }
+
+    .status-text.error {
+      color: var(--danger);
+    }
+
+    .results {
+      display: grid;
+      gap: 10px;
+    }
+
+    .result-card {
+      width: 100%;
+      border: 1px solid var(--border);
+      border-radius: 20px;
+      background: white;
+      padding: 16px;
+      text-align: left;
+      cursor: pointer;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 16px;
+      font: inherit;
+      color: var(--text-dark);
+      box-shadow: 0 8px 18px rgba(24, 42, 100, 0.05);
+      transition: transform 0.15s ease, border-color 0.15s ease, box-shadow 0.15s ease;
+    }
+
+    .result-card:hover {
+      transform: translateY(-2px);
+      border-color: rgba(31, 94, 255, 0.30);
+      box-shadow: 0 14px 28px rgba(24, 42, 100, 0.10);
+    }
+
+    .result-main {
+      min-width: 0;
+    }
+
+    .result-word {
+      font-size: 1.15rem;
+      font-weight: 900;
+      letter-spacing: -0.02em;
+      margin: 0;
+    }
+
+    .result-meta {
+      margin: 5px 0 0;
+      color: var(--text-muted);
+      font-size: 0.9rem;
+      line-height: 1.4;
+    }
+
+    .rank-pill {
+      flex-shrink: 0;
+      background: rgba(31, 94, 255, 0.08);
+      color: var(--vita-blue);
+      border-radius: 999px;
+      padding: 7px 10px;
+      font-size: 0.78rem;
+      font-weight: 900;
+      white-space: nowrap;
+    }
+
+    .empty-state {
+      display: none;
+      border: 1px dashed rgba(102, 112, 133, 0.35);
+      border-radius: 22px;
+      padding: 20px;
+      background: rgba(255, 255, 255, 0.68);
+      color: var(--text-muted);
+      line-height: 1.55;
+    }
+
+    .empty-state strong {
+      color: var(--text-dark);
+    }
+
+    .message-box {
+      display: none;
+      border-radius: 18px;
+      padding: 14px 16px;
+      line-height: 1.45;
+      font-weight: 750;
+    }
+
+    .message-box.success {
+      display: block;
+      background: rgba(18, 183, 106, 0.10);
+      color: #067647;
+      border: 1px solid rgba(18, 183, 106, 0.18);
+    }
+
+    .message-box.warning {
+      display: block;
+      background: rgba(247, 144, 9, 0.10);
+      color: #b54708;
+      border: 1px solid rgba(247, 144, 9, 0.18);
+    }
+
+    .message-box.error {
+      display: block;
+      background: rgba(217, 45, 32, 0.10);
+      color: #b42318;
+      border: 1px solid rgba(217, 45, 32, 0.18);
+    }
+
+    .modal-backdrop {
+      display: none;
+      position: fixed;
+      inset: 0;
+      background: rgba(16, 24, 40, 0.48);
+      z-index: 100;
+      align-items: center;
+      justify-content: center;
+      padding: 20px;
+    }
+
+    .modal-backdrop.is-open {
+      display: flex;
+    }
+
+    .modal {
+      width: 100%;
+      max-width: 440px;
+      background: white;
+      border-radius: 26px;
+      box-shadow: 0 24px 70px rgba(16, 24, 40, 0.30);
+      padding: 24px;
+      border: 1px solid rgba(255, 255, 255, 0.45);
+    }
+
+    .modal h2 {
+      margin: 0;
+      font-size: 1.4rem;
+      letter-spacing: -0.03em;
+    }
+
+    .modal p {
+      margin: 10px 0 0;
+      color: var(--text-muted);
+      line-height: 1.5;
+    }
+
+    .modal-word {
+      color: var(--vita-blue);
+      font-weight: 950;
+    }
+
+    .modal-actions {
+      display: flex;
+      justify-content: flex-end;
+      gap: 10px;
+      margin-top: 22px;
+    }
+
+    .btn {
+      border: none;
+      border-radius: 999px;
+      padding: 11px 15px;
+      font: inherit;
+      font-weight: 900;
+      cursor: pointer;
+      transition: transform 0.15s ease, background 0.15s ease, opacity 0.15s ease;
+    }
+
+    .btn:hover {
+      transform: translateY(-1px);
+    }
+
+    .btn-secondary {
+      background: #f2f4f7;
+      color: var(--text-dark);
+    }
+
+    .btn-primary {
+      background: var(--vita-blue);
+      color: white;
+      box-shadow: 0 10px 22px rgba(31, 94, 255, 0.24);
+    }
+
+    .btn-primary:hover {
+      background: var(--vita-blue-dark);
+    }
+
+    .btn:disabled {
+      opacity: 0.62;
+      cursor: wait;
+      transform: none;
+    }
+
+    @media (max-width: 640px) {
+      body {
+        padding: 18px;
+      }
+
+      .topbar {
+        align-items: flex-start;
+      }
+
+      .hero {
+        padding: 28px 22px;
+      }
+
+      .search-panel {
+        padding: 20px;
+      }
+
+      .helper-row {
+        display: block;
+      }
+
+      .status-text {
+        display: block;
+        margin-top: 8px;
+      }
+
+      .result-card {
+        align-items: flex-start;
+        flex-direction: column;
+      }
+
+      .modal-actions {
+        flex-direction: column-reverse;
+      }
+
+      .btn {
+        width: 100%;
+      }
+    }
+  </style>
+</head>
+
+<body>
+  <main class="page">
+    <header class="topbar">
+      <a class="brand" href="/">
+        <div class="brand-badge">
+          <img src="/static/icon.png" alt="Vitamova icon" class="brand-icon">
+        </div>
+        <span>Vitamova</span>
+      </a>
+
+      <a class="back-link" href="/">← Dashboard</a>
+    </header>
+
+    <section class="hero" aria-label="Add words introduction">
+      <div class="hero-content">
+        <h1>Add words to your vocabulary</h1>
+        <p>
+          Search for a word you want to study, choose the matching lemma, and add it to your personalized review queue.
+        </p>
+      </div>
+    </section>
+
+    <section class="search-panel" aria-label="Word search">
+      <div class="input-header">
+        <h2>Find a word</h2>
+        <p>
+          Enter the word you want to add. Vitamova will suggest matching lemmas from the most useful words in the language.
+        </p>
+      </div>
+
+      <textarea
+        id="wordInput"
+        class="word-input"
+        placeholder="Enter the word that you want to add..."
+        autocomplete="off"
+        autocapitalize="none"
+        spellcheck="false"
+      ></textarea>
+
+      <div class="helper-row">
+        <span>
+          Tip: try the dictionary form, like <strong>hablar</strong> instead of <strong>hablé</strong>.
+        </span>
+        <span id="statusText" class="status-text"></span>
+      </div>
+
+      <div id="messageBox" class="message-box"></div>
+
+      <div id="results" class="results"></div>
+
+      <div id="emptyState" class="empty-state">
+        <strong>No matching lemmas found.</strong>
+        <br>
+        This word may not be one of the top 40,000 words in Vitamova, or it may not be a lemma.
+        A lemma is the base dictionary form of a word. For example, <strong>hablar</strong> is a lemma,
+        while <strong>hablé</strong>, <strong>hablando</strong>, and <strong>hablamos</strong> are forms of that lemma.
+      </div>
+    </section>
+  </main>
+
+  <div id="confirmModal" class="modal-backdrop" role="dialog" aria-modal="true" aria-labelledby="modalTitle">
+    <div class="modal">
+      <h2 id="modalTitle">Add this word?</h2>
+      <p>
+        Add <span id="modalWord" class="modal-word"></span> to your vocabulary so it can appear in your future reviews?
+      </p>
+
+      <div class="modal-actions">
+        <button id="cancelAddButton" class="btn btn-secondary" type="button">Cancel</button>
+        <button id="confirmAddButton" class="btn btn-primary" type="button">Add to vocabulary</button>
+      </div>
+    </div>
+  </div>
+
+  <script>
+    const LANGUAGE = "{{ language }}";
+    const ADD_URL = "/vocabulary/add/";
+
+    const wordInput = document.getElementById("wordInput");
+    const statusText = document.getElementById("statusText");
+    const results = document.getElementById("results");
+    const emptyState = document.getElementById("emptyState");
+    const messageBox = document.getElementById("messageBox");
+
+    const confirmModal = document.getElementById("confirmModal");
+    const modalWord = document.getElementById("modalWord");
+    const cancelAddButton = document.getElementById("cancelAddButton");
+    const confirmAddButton = document.getElementById("confirmAddButton");
+
+    let searchTimer = null;
+    let activeSearchController = null;
+    let selectedLemma = null;
+
+    function getCSRFToken() {
+      const cookieValue = document.cookie
+        .split("; ")
+        .find(row => row.startsWith("csrftoken="));
+
+      return cookieValue ? decodeURIComponent(cookieValue.split("=")[1]) : "";
+    }
+
+    function setStatus(text, className = "") {
+      statusText.textContent = text;
+      statusText.className = "status-text";
+
+      if (className) {
+        statusText.classList.add(className);
+      }
+    }
+
+    function showMessage(text, type) {
+      messageBox.textContent = text;
+      messageBox.className = `message-box ${type}`;
+    }
+
+    function clearMessage() {
+      messageBox.textContent = "";
+      messageBox.className = "message-box";
+    }
+
+    function clearResults() {
+      results.innerHTML = "";
+      emptyState.style.display = "none";
+    }
+
+    function renderResults(matches) {
+      clearResults();
+
+      if (!matches || matches.length === 0) {
+        emptyState.style.display = "block";
+        return;
+      }
+
+      matches.forEach(match => {
+        const button = document.createElement("button");
+        button.type = "button";
+        button.className = "result-card";
+
+        const main = document.createElement("div");
+        main.className = "result-main";
+
+        const word = document.createElement("p");
+        word.className = "result-word";
+        word.textContent = match.lemma;
+
+        const meta = document.createElement("p");
+        meta.className = "result-meta";
+
+        const details = [];
+
+        if (match.part_of_speech) {
+          details.push(match.part_of_speech);
+        }
+
+        if (match.definition) {
+          details.push(match.definition);
+        }
+
+        meta.textContent = details.join(" · ") || "Lemma match";
+
+        const rank = document.createElement("span");
+        rank.className = "rank-pill";
+        rank.textContent = match.rank ? `Rank ${match.rank}` : "Lemma";
+
+        main.appendChild(word);
+        main.appendChild(meta);
+
+        button.appendChild(main);
+        button.appendChild(rank);
+
+        button.addEventListener("click", () => {
+          openConfirmModal(match);
+        });
+
+        results.appendChild(button);
+      });
+    }
+
+    function postToAdd(payload, signal = null) {
+      return fetch(ADD_URL, {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+          "X-CSRFToken": getCSRFToken(),
+        },
+        body: JSON.stringify(payload),
+        signal: signal,
+      }).then(response => response.json());
+    }
+
+    function searchLemmas() {
+      const query = wordInput.value.trim();
+
+      clearMessage();
+
+      if (query.length === 0) {
+        clearResults();
+        setStatus("");
+        return;
+      }
+
+      if (activeSearchController) {
+        activeSearchController.abort();
+      }
+
+      activeSearchController = new AbortController();
+
+      setStatus("Searching...", "loading");
+
+      postToAdd({
+        action: "search_lemmas",
+        query: query,
+        language: LANGUAGE,
+      }, activeSearchController.signal)
+        .then(data => {
+          if (data.status !== "success") {
+            clearResults();
+            setStatus(data.message || "Search failed.", "error");
+            return;
+          }
+
+          renderResults(data.matches || []);
+          setStatus("");
+        })
+        .catch(error => {
+          if (error.name === "AbortError") {
+            return;
+          }
+
+          clearResults();
+          setStatus("Search failed.", "error");
+        });
+    }
+
+    function scheduleSearch() {
+      clearTimeout(searchTimer);
+
+      searchTimer = setTimeout(() => {
+        searchLemmas();
+      }, 180);
+    }
+
+    function openConfirmModal(match) {
+      selectedLemma = match;
+      modalWord.textContent = match.lemma;
+      confirmModal.classList.add("is-open");
+      confirmAddButton.disabled = false;
+      cancelAddButton.focus();
+    }
+
+    function closeConfirmModal() {
+      confirmModal.classList.remove("is-open");
+      selectedLemma = null;
+    }
+
+    function addSelectedLemma() {
+      if (!selectedLemma) {
+        return;
+      }
+
+      confirmAddButton.disabled = true;
+
+      postToAdd({
+        action: "add_word",
+        lemma_id: selectedLemma.lemma_id,
+        language: LANGUAGE,
+      })
+        .then(data => {
+          closeConfirmModal();
+
+          if (data.status === "success") {
+            showMessage(data.message || "Word added to your vocabulary.", "success");
+            wordInput.value = "";
+            clearResults();
+            setStatus("");
+            return;
+          }
+
+          if (data.status === "already_exists") {
+            showMessage(data.message || "This word is already in your vocabulary.", "warning");
+            return;
+          }
+
+          showMessage(data.message || "Something went wrong. Please try again.", "error");
+        })
+        .catch(() => {
+          closeConfirmModal();
+          showMessage("Something went wrong. Please try again.", "error");
+        });
+    }
+
+    wordInput.addEventListener("input", scheduleSearch);
+
+    cancelAddButton.addEventListener("click", closeConfirmModal);
+    confirmAddButton.addEventListener("click", addSelectedLemma);
+
+    confirmModal.addEventListener("click", event => {
+      if (event.target === confirmModal) {
+        closeConfirmModal();
+      }
+    });
+
+    document.addEventListener("keydown", event => {
+      if (event.key === "Escape" && confirmModal.classList.contains("is-open")) {
+        closeConfirmModal();
+      }
+    });
+  </script>
+</body>
+</html>

@@ -1,7 +1,7 @@
 <!DOCTYPE html>
 <html lang="en">
 <head>
-  {% include "partials/header.html" %}
+  {% include "partials/head.html" %}
 
   <title>Vitamova | Sign In</title>
   <style>
@@ -241,6 +241,16 @@
       font-size: 0.85rem;
     }
 
+    .small-note a {
+      color: var(--vita-blue);
+      font-weight: 700;
+      text-decoration: none;
+    }
+
+    .small-note a:hover {
+      text-decoration: underline;
+    }
+
     .highlight {
       color: var(--vita-blue);
       font-weight: 700;
@@ -313,6 +323,11 @@
 
         <div class="small-note">
           Secure sign-in powered by Google
+          <br>
+          By signing in, you agree to Vitamova's
+          <a href="https://www.vitamova.com/#terms" target="_blank" rel="noopener noreferrer">Terms & Conditions</a>
+          and acknowledge our
+          <a href="https://www.vitamova.com/#privacy-policy" target="_blank" rel="noopener noreferrer">Privacy Policy</a>.
         </div>
       </div>
     </section>

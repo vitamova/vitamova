@@ -1,15 +1,13 @@
 from functools import wraps
 from django.shortcuts import redirect
 from django.db import connection
-from django.http import HttpResponseForbidden
+from django.http import HttpResponseForbidden, JsonResponse
+from django.conf import settings
 from pathlib import Path
 import vitalib
+import json
 
-BASE_DIR = Path(__file__).resolve().parent.parent
-# Save server_type as a global variable
-server_type_path = Path.home() / 'data' / 'server_type.txt'
-with open(server_type_path, 'r') as f:
-    server_type = f.read().strip()
+server_type = settings.SERVER_TYPE
 
 def registered_logged_in_required(view_func):
     @wraps(view_func)
@@ -20,12 +18,60 @@ def registered_logged_in_required(view_func):
         if not vitalib.User.Registration(request.user.id, connection).is_valid():
             return redirect("/register/")
         
-        # Check in ˜/data/server_type whether this server is prod or dev
+        # Let's make sure the user is submitting a valid language
+        lanuages = vitalib.Database.UserInfo.Get(connection, request.user.id).data("target_language", "second_target_language")
+        if request.method == "GET":
+            language = request.GET.get("language")
+        elif request.method == "POST":
+            data = json.loads(request.body)
+            language = data.get("language")
+        if language and language not in lanuages.values():
+            return HttpResponseForbidden("Invalid language.")
+        
+        # Check the server_type whether this server is prod or dev
         # If it's dev only staff users can access the view
         # So if not staff, return 403 Forbidden
         if server_type == 'dev' and not request.user.is_staff:
             return HttpResponseForbidden("You are not allowed to access this page. Please go to app.vitamova.com to access the production version of the site.")
        
         return view_func(request, *args, **kwargs)
+
+    return wrapper
+
+def subscribed_required(view_func):
+    @wraps(view_func)
+    def wrapper(request, *args, **kwargs):
+        if not vitalib.User.Subscription(request.user.id, request.user.email, connection).is_active():
+            return redirect("/subscribe/")
+
+        return view_func(request, *args, **kwargs)
+
+    return wrapper
+
+def noscore_or_subscribed_required(view_func):
+    @wraps(view_func)
+    def wrapper(request, *args, **kwargs):
+
+        if vitalib.User.Subscription(request.user.id, request.user.email, connection).is_active():
+            return view_func(request, *args, **kwargs)
+        
+        else:
+            user_info = vitalib.Database.UserInfo.Get(
+                connection,
+                request.user.id
+            ).data("vocab_score")
+
+            vocab_score = user_info.get("vocab_score") if user_info else None
+
+            if vocab_score == -1:
+                return view_func(request, *args, **kwargs)
+            else:
+                if request.method == "GET":
+                    return redirect("/subscribe/")
+                elif request.method == "POST":
+                    return JsonResponse(
+                        {"status": "error", "message": "User must subscribe."},
+                        status=400,
+                    )
 
     return wrapper

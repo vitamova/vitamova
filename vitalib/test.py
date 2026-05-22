@@ -23,9 +23,10 @@ class Test:
                 # Batch must be provided for diagnostic questions
                 if batch is None:
                     raise ValueError("Batch must be provided for diagnostic questions")
-                # If batch is 1, fetch_counts should be 3 each
+                # If batch is 1, fetch_counts should be 2 each
                 if batch == 1:
-                    fetch_counts = {i: 3 for i in range(1, 7)}
+                    # It'll be 3 each
+                    fetch_counts = { i : 3 for i in range(1, 7) }
                 else:
                     if frontier == 1:
                         fetch_counts[1] = 12
