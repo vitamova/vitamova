@@ -64,7 +64,8 @@ def create_checkout_session(request):
                     "user_id": str(request.user.id),
                     "product": "vitamova",
                     "price_id": price_id,
-                }
+                },
+                "trial_period_days": 30  # 30 day free trial
             },
         )
 
