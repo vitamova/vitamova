@@ -1,12 +1,6 @@
 import datetime
 import random
-
-# Map language codes to their full names to use for table names
-LANGUAGE_MAP = {
-    "es": "Spanish",
-    "ru": "Russian",
-    # Add more languages here as needed
-}
+import vitalib
 
 LEVEL_RANGES = {
     1: (1, 1500),
@@ -188,8 +182,8 @@ class Database:
                     row = cur.fetchone()
                     if row:
                         return [
-                            {"code": row[0], "name": LANGUAGE_MAP.get(row[0], row[0])},
-                            {"code": row[1], "name": LANGUAGE_MAP.get(row[1], row[1])}
+                            {"code": row[0], "name": vitalib.Transform.Language(row[0]).code_to_name()},
+                            {"code": row[1], "name": vitalib.Transform.Language(row[1]).code_to_name()}
                         ]
                     return []
 
