@@ -4,24 +4,10 @@ from django.views.decorators.http import require_POST
 from django.http import JsonResponse
 from django.conf import settings
 from .decorators import registered_logged_in_required, subscribed_required, noscore_or_subscribed_required
-import stripe
 from datetime import date
 from pathlib import Path
 import json
 import vitalib
-
-# Build paths inside the project like this: BASE_DIR / 'subdir'.
-BASE_DIR = Path(__file__).resolve().parent.parent
-
-VITAMOVA_PRICE_MAP = {
-    "price_1TQtOmKOiNtX3Wewk310Ygu5": "Vitamova Monthly",
-    "price_1TQtPSKOiNtX3WewCEePEtQg": "Vitamova Yearly"
-}
-
-STRIPE_PUBLIC_KEY= "pk_live_51RIChJKOiNtX3WewnOeHxiL99XltNWm2TluZew2fn6fzcmuHJ3R2x7EuLbbNpb74k1gnHlSRPHOoFJsFTEd5z8fp00rYr00NmV"
-# Stripe key is a variable from settings.py
-stripe.api_key = settings.STRIPE_PRIVATE_KEY
-
 
 # Define supported target languages
 SUPPORTED_LANGUAGES = [
@@ -44,69 +30,6 @@ SUPPORTED_NATIVE_LANGUAGES = [
 ]
 
 # Views
-    
-@require_POST
-@registered_logged_in_required
-def create_checkout_session(request):
-
-    price_id = request.POST.get("price_id")
-
-    if price_id not in VITAMOVA_PRICE_MAP:
-        return redirect("/subscribe/")
-
-    try:
-        checkout_session = stripe.checkout.Session.create(
-            customer_email=request.user.email,
-            line_items=[
-                {
-                    "price": price_id,
-                    "quantity": 1,
-                }
-            ],
-            mode="subscription",
-            allow_promotion_codes=True,
-            payment_method_collection="if_required",
-            success_url=request.build_absolute_uri("/subscribe/success/"),
-            cancel_url=request.build_absolute_uri("/"),
-            metadata={
-                "user_id": str(request.user.id),
-                "product": "vitamova",
-                "price_id": price_id,
-            },
-            subscription_data={
-                "metadata": {
-                    "user_id": str(request.user.id),
-                    "product": "vitamova",
-                    "price_id": price_id,
-                }
-            },
-        )
-
-        return redirect(checkout_session.url)
-
-    except Exception as e:
-        print(f"Error creating Stripe checkout session: {e}")
-        return redirect("/subscribe/")
-    
-@require_POST
-@registered_logged_in_required
-def create_customer_portal_session(request):
-    user_data = vitalib.Database.UserInfo.Get(connection, request.user.id).data(
-        "stripe_customer_id"
-    )
-
-    stripe_customer_id = user_data.get("stripe_customer_id")
-
-    if not stripe_customer_id:
-        return redirect("/subscribe/")
-
-    portal_session = stripe.billing_portal.Session.create(
-        customer=stripe_customer_id,
-        configuration="bpc_1TUd3xKOiNtX3WewK8WfAXcK",
-        return_url=request.build_absolute_uri("/")
-    )
-
-    return redirect(portal_session.url)
 
 @registered_logged_in_required
 def home(request):
