@@ -74,8 +74,9 @@ class Test:
                     fetch_counts[frontier + 1] = 1
             # Fetch questions based on fetch_counts
             questions = vitalib.Database.Test.Questions(self.conn, self.language).new(self.user_id, fetch_counts)
+            questions = Test.Format.questions(questions)
             questions = vitalib.Database.Test.Questions(self.conn, self.language).append_lemma(questions)
-            return Test.Format.questions(questions)
+            return questions
         def results(self, answers):
             correct_answers = vitalib.Database.Test.Answers(self.conn).correct(answers)
             # For each answer, compare correct to selected
