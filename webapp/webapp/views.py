@@ -381,7 +381,7 @@ def vocab_test(request):
                     status=400
                 )
 
-            flagged = vitalib.Database.Test.Questions.flag(connection, request.user.username, language, question_id)
+            flagged = vitalib.Database.Test.Questions(connection, language).flag(request.user.id, question_id)
 
             if flagged["status"] != "flagged":
                 return JsonResponse(
