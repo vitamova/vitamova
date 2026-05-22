@@ -653,6 +653,20 @@ class Database:
                     question_id = question["question_id"]
                     question["question"] = question_map.get(question_id)
                 return questions
+            def get_lemma_id(self, question_id):
+                with self.conn.cursor() as cursor:
+                    cursor.execute(
+                        """
+                        SELECT lemma_id
+                        FROM vocab_test_bank
+                        WHERE id = %s
+                        """,
+                        [question_id]
+                    )
+                    row = cursor.fetchone()
+                if not row:
+                    return None
+                return row[0]
         class Answers:
             def __init__(self, conn):
                 self.conn = conn

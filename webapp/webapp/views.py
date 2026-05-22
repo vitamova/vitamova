@@ -429,7 +429,8 @@ def vocab_builder(request):
                 "missed_questions": missed
             })
         if action == "add_to_bank":
-            lemma_id = data.get("lemma_id")
+            question_id = data.get("question_id")
+            lemma_id = vitalib.Database.Test.Questions(connection, language).get_lemma_id(question_id)
             vitalib.Database.Vocab.Add(connection, request.user.id).lemma(lemma_id)
             return JsonResponse({
                 "status": "ok",
