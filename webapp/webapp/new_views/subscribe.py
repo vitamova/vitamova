@@ -1,6 +1,8 @@
 from webapp.decorators import registered_logged_in_required, subscribed_required
 from django.shortcuts import render, redirect
 from django.db import connection
+from django.conf import settings
+from django.views.decorators.http import require_POST
 import stripe
 import vitalib
 
