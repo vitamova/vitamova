@@ -408,6 +408,11 @@ def vocab_builder(request):
         # Get language from data
         language = data.get("language", "es")
         action = data.get("action")
+        if action not in [ "load_questions", "submit_answers", "add_to_bank"]:
+            return JsonResponse({
+                "status": "error",
+                "message": "Invalid action."
+            }, status=400)
         if action == "load_questions":
             score = vitalib.Database.UserInfo.Get(connection, request.user.id).score(language)
             questions = vitalib.Test.Get(connection, request.user.id, language).new_questions("vocab_builder", score)
@@ -419,13 +424,16 @@ def vocab_builder(request):
             answers = data.get("answers", [])
             # Get results based on answers
             missed = vitalib.Test.Get(connection, request.user.id, language).missed(answers)
-            # Add all the missed lemmas to the user's vocab list
-            for m in missed:
-                lemma_id = m["lemma"]["id"]
-                vitalib.Database.Vocab.Add(connection, request.user.id).lemma(lemma_id)
             return JsonResponse({
                 "status": "ok",
                 "missed_questions": missed
+            })
+        if action == "add_to_bank":
+            lemma_id = data.get("lemma_id")
+            vitalib.Database.Vocab.Add(connection, request.user.id).lemma(lemma_id)
+            return JsonResponse({
+                "status": "ok",
+                "added": True
             })
 
 @registered_logged_in_required
