@@ -59,6 +59,7 @@ def home(request):
 
     review_count = vitalib.Database.Vocab.Get(connection, request.user.id, language).review_count()
     vocab_score = vitalib.Database.UserInfo.Get(connection, request.user.id).score(language)
+    language_name = vitalib.Transform.Language(language).code_to_name()
 
     today = date.today()
 
@@ -69,6 +70,7 @@ def home(request):
             "has_score": vocab_score != -1,
             "review_count": review_count,
             "language": language,
+            "language_name": language_name,
             "language_options": vitalib.Database.UserInfo.Get(connection, request.user.id).languages(),
             "dev": settings.SERVER_TYPE == 'dev',
             "vocab_score": vocab_score
