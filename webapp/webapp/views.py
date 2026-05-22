@@ -488,22 +488,6 @@ def flag_question(request):
         })
 
 @registered_logged_in_required
-def subscribe(request):
-
-    if vitalib.User.Subscription(request.user.id, request.user.email, connection).is_active():
-        return redirect("home")
-    
-    # Get user's score and language
-    user_data = vitalib.Database.UserInfo.Get(connection, request.user.id).data()
-
-    return render(request, "general/subscribe.html", {
-        "stripe_public_key": STRIPE_PUBLIC_KEY,
-        "score": "100",
-        "language": "Spanish",
-        "first_name": "Wesley"
-    })
-
-@registered_logged_in_required
 @subscribed_required
 def vocab_builder(request):
     
