@@ -19,13 +19,13 @@ def registered_logged_in_required(view_func):
             return redirect("/register/")
         
         # Let's make sure the user is submitting a valid language
-        lanuages = vitalib.Database.UserInfo.Get(connection, request.user.id).data("target_language", "second_target_language")
+        languages = vitalib.Database.UserInfo.Get(connection, request.user.id).data("target_language", "second_target_language")
         if request.method == "GET":
-            language = request.GET.get("language")
+            language = request.GET.get("language", None)
         elif request.method == "POST":
-            data = json.loads(request.body)
-            language = data.get("language")
-        if language and language not in lanuages.values():
+            data = json.loads(request.body) if request.body else {}
+            language = data.get("language", None)
+        if language and language not in languages.values():
             return HttpResponseForbidden("Invalid language.")
         
         # Check the server_type whether this server is prod or dev
