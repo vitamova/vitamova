@@ -3,7 +3,6 @@ from django.shortcuts import redirect
 from django.db import connection
 from django.http import HttpResponseForbidden, JsonResponse
 from django.conf import settings
-from pathlib import Path
 import vitalib
 import json
 
@@ -17,16 +16,6 @@ def registered_logged_in_required(view_func):
 
         if not vitalib.User.Registration(request.user.id, connection).is_valid():
             return redirect("/register/")
-        
-        # Let's make sure the user is submitting a valid language
-        languages = vitalib.Database.UserInfo.Get(connection, request.user.id).data("target_language", "second_target_language")
-        if request.method == "GET":
-            language = request.GET.get("language", None)
-        elif request.method == "POST":
-            data = json.loads(request.body) if request.body else {}
-            language = data.get("language", None)
-        if language and language not in languages.values():
-            return HttpResponseForbidden("Invalid language.")
         
         # Check the server_type whether this server is prod or dev
         # If it's dev only staff users can access the view
@@ -73,5 +62,54 @@ def noscore_or_subscribed_required(view_func):
                         {"status": "error", "message": "User must subscribe."},
                         status=400,
                     )
+
+    return wrapper
+
+def valid_language(view_func):
+    @wraps(view_func)
+    def wrapper(request, *args, **kwargs):
+        connection = getattr(request, "conn", None)
+
+        if connection is None:
+            connection = vitalib.Database.Connection()
+
+        # Let's make sure the user is submitting a valid language
+        languages = vitalib.Database.UserInfo.Get(
+            connection,
+            request.user.id
+        ).data(
+            "target_language",
+            "second_target_language"
+        )
+
+        language = None
+
+        if request.method == "GET":
+            language = request.GET.get("language", None)
+
+        elif request.method == "POST":
+            content_type = request.headers.get("Content-Type", "")
+
+            if "application/json" in content_type:
+                try:
+                    data = json.loads(request.body) if request.body else {}
+                except json.JSONDecodeError:
+                    return HttpResponseForbidden("Invalid JSON.")
+
+                language = data.get("language", None)
+
+            else:
+                language = request.POST.get("language", None)
+
+        valid_languages = [
+            value.strip()
+            for value in languages.values()
+            if value and value.strip()
+        ]
+
+        if language and language.strip() not in valid_languages:
+            return HttpResponseForbidden("Invalid language.")
+
+        return view_func(request, *args, **kwargs)
 
     return wrapper
