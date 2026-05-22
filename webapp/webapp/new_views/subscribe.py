@@ -3,4 +3,6 @@ from django.shortcuts import render
 
 @registered_logged_in_required
 def success(request):
-    return render(request, "general/subscribe_success.html", {})
+    return render(request, "general/subscribe_success.html", {
+        "first_name": request.user.first_name
+    })
