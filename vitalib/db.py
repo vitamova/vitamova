@@ -508,7 +508,7 @@ class Database:
 
                 return questions
 
-            def new(self, user_id, fetch_counts):
+            def new(self, fetch_counts):
                 questions = []
 
                 with self.conn.cursor() as cursor:
@@ -538,7 +538,7 @@ class Database:
                             )
                         """
 
-                        params = [self.language, min_rank, user_id]
+                        params = [self.language, min_rank, self.user_id]
 
                         if max_rank is not None:
                             sql += " AND l.rank <= %s"
