@@ -1,11 +1,9 @@
 from django.shortcuts import render, redirect
 from django.db import connection
-from django.views.decorators.http import require_POST
 from django.http import JsonResponse
 from django.conf import settings
 from .decorators import registered_logged_in_required, subscribed_required, noscore_or_subscribed_required
 from datetime import date
-from pathlib import Path
 import json
 import vitalib
 
@@ -34,28 +32,12 @@ SUPPORTED_NATIVE_LANGUAGES = [
 @registered_logged_in_required
 def home(request):
 
-    registered_user = vitalib.Database.UserInfo.Get(connection, request.user.id).data(
-        "subscribed",
-        "subscription_expiration",
-        "stripe_customer_id",
-        "vocab_score",
-        "target_language",
-        "second_target_language"
-        )
-
-    subscribed, subscription_expiration, stripe_customer_id, vocab_score = (
-        registered_user.get("subscribed"),
-        registered_user.get("subscription_expiration"),
-        registered_user.get("stripe_customer_id"),
-        registered_user.get("vocab_score"),
-    )
-
     #See if language is specified as a query parameter
     language = request.GET.get("language")
 
     #Get target_language value from registered_user table to pass to template
     if not language:
-        language = registered_user.get("target_language", "es")
+        language = vitalib.Database.UserInfo.Get(connection, request.user.id).data("target_language")["target_language"] or "es"
 
     review_count = vitalib.Database.Vocab.Get(connection, request.user.id, language).review_count()
     vocab_score = vitalib.Database.UserInfo.Get(connection, request.user.id).score(language)
