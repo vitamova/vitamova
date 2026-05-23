@@ -29,7 +29,7 @@ urlpatterns = [
     path('reading-practice/', views.reading_practice, name='reading-practice'),
 
     # New organized sections
-    path("vocabulary/", include("new_urls.vocabulary")),
+    path("vocabulary/", include("webapp.new_urls.vocabulary")),
     path("subscribe/", include("webapp.new_urls.subscribe")),
     #path("sentences/", include("webapp.urls.sentences")),
     #path("reading/", include("webapp.urls.reading"))
