@@ -465,10 +465,11 @@ class Database:
 
     class Test:
         class Questions:
-            def __init__(self, conn, language):
+            def __init__(self, conn, user_id,language):
                 self.conn = conn
+                self.user_id = user_id
                 self.language = language
-
+                self.native_language = Database.UserInfo.Get(conn, user_id).data("native_language")
             def any(self, fetch_counts):
                 questions = []
 
