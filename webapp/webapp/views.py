@@ -29,8 +29,8 @@ SUPPORTED_NATIVE_LANGUAGES = [
 
 # Views
 
-@registered_logged_in_required
 @prepare_page
+@registered_logged_in_required
 def home(request):
 
     #See if language is specified as a query parameter
