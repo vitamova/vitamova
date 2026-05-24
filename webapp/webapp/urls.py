@@ -23,11 +23,7 @@ urlpatterns = [
     path('accounts/', include('allauth.urls')),
     path('register/', views.register, name='register'),
     path('account/', views.account, name='account'),
-    path('create-checkout-session/', views.create_checkout_session, name='create-checkout-session'),
-    path('create-customer-portal-session/', views.create_customer_portal_session, name='create-customer-portal-session'),
     path('vocab-test/', views.vocab_test, name='vocab-test'),
-    path('subscribe/', views.subscribe, name='subscribe'),
-    path('flag-question/', views.flag_question, name='flag-question'),
     path('vocab-builder/', views.vocab_builder, name='vocab-builder'),
     path('review/', views.review, name='review'),
     path('reading-practice/', views.reading_practice, name='reading-practice'),
@@ -35,6 +31,7 @@ urlpatterns = [
     # New organized sections
     path("vocabulary/", include("webapp.new_urls.vocabulary")),
     path("subscribe/", include("webapp.new_urls.subscribe")),
+    path("general/", include("webapp.new_urls.general")),
     #path("sentences/", include("webapp.urls.sentences")),
     #path("reading/", include("webapp.urls.reading"))
     ]

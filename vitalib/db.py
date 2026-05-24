@@ -1,12 +1,6 @@
 import datetime
 import random
-
-# Map language codes to their full names to use for table names
-LANGUAGE_MAP = {
-    "es": "Spanish",
-    "ru": "Russian",
-    # Add more languages here as needed
-}
+import vitalib
 
 LEVEL_RANGES = {
     1: (1, 1500),
@@ -28,6 +22,44 @@ REVIEW_STAGE_INTERVALS = {
 }
 
 class Database:
+    class Status:
+        def __init__(self, conn):
+            self.conn = conn
+
+        def get(self):
+            try:
+                with self.conn.cursor() as cursor:
+                    cursor.execute("SET LOCAL statement_timeout = 1500;")
+                    cursor.execute("SELECT 1;")
+                    result = cursor.fetchone()
+
+                return result is not None and result[0] == 1
+
+            except Exception:
+                return False
+
+        def start(self):
+            try:
+                with self.conn.cursor() as cursor:
+                    cursor.execute("SELECT 1;")
+                    result = cursor.fetchone()
+
+                if result is not None and result[0] == 1:
+                    return {
+                        "status": "ok",
+                        "message": "Database start successful."
+                    }
+
+                return {
+                    "status": "error",
+                    "error": "Database did not return the expected response."
+                }
+
+            except Exception as error:
+                return {
+                    "status": "error",
+                    "error": str(error)
+                }
     #Retrieve user information
     class UserInfo:
         ALLOWED_COLUMNS = {
@@ -188,8 +220,8 @@ class Database:
                     row = cur.fetchone()
                     if row:
                         return [
-                            {"code": row[0], "name": LANGUAGE_MAP.get(row[0], row[0])},
-                            {"code": row[1], "name": LANGUAGE_MAP.get(row[1], row[1])}
+                            {"code": row[0], "name": vitalib.Transform.Language(row[0]).code_to_name()},
+                            {"code": row[1], "name": vitalib.Transform.Language(row[1]).code_to_name()}
                         ]
                     return []
 
@@ -199,6 +231,7 @@ class Database:
                 self.conn = conn
                 self.user_id = user_id
                 self.language = language
+                self.native_language = Database.UserInfo.Get(conn, user_id).data("native_language")["native_language"]
             def review_count(self):
                 with self.conn.cursor() as cursor:
                     cursor.execute(
@@ -228,16 +261,25 @@ class Database:
                 with self.conn.cursor() as cursor:
                     cursor.execute(
                         """
-                        SELECT l.id, l.lemma, l.pronunciation, l.translation, l.definition
+                        SELECT
+                            l.id,
+                            l.lemma,
+                            l.pronunciation,
+                            lt.translation,
+                            l.definition
                         FROM user_vocabulary uv
                         JOIN lemmas l
                             ON uv.lemma_id = l.id
+                        LEFT JOIN lemma_translations lt
+                            ON lt.lemma_id = l.id
+                        AND lt.native_language = %s
                         WHERE uv.user_id = %s
                         AND l.language = %s
                         AND uv.next_review_at IS NOT NULL
                         AND uv.next_review_at < %s
                         """,
                         [
+                            self.native_language,
                             self.user_id,
                             self.language,
                             datetime.datetime.now(datetime.timezone.utc)
@@ -259,12 +301,21 @@ class Database:
                 with self.conn.cursor() as cursor:
                     cursor.execute(
                         """
-                        SELECT l.id, l.lemma, l.pronunciation, l.translation, l.definition
+                        SELECT
+                            l.id,
+                            l.lemma,
+                            l.pronunciation,
+                            lt.translation,
+                            l.definition
                         FROM lemmas l
+                        LEFT JOIN lemma_translations lt
+                            ON lt.lemma_id = l.id
+                        AND lt.native_language = %s
                         WHERE l.id = %s
                         AND l.language = %s
                         """,
                         [
+                            self.native_language,
                             lemma_id,
                             self.language
                         ]
@@ -452,10 +503,11 @@ class Database:
 
     class Test:
         class Questions:
-            def __init__(self, conn, language):
+            def __init__(self, conn, user_id, language):
                 self.conn = conn
+                self.user_id = user_id
                 self.language = language
-
+                self.native_language = Database.UserInfo.Get(conn, user_id).data("native_language")["native_language"]
             def any(self, fetch_counts):
                 questions = []
 
@@ -494,7 +546,7 @@ class Database:
 
                 return questions
 
-            def new(self, user_id, fetch_counts):
+            def new(self, fetch_counts):
                 questions = []
 
                 with self.conn.cursor() as cursor:
@@ -524,7 +576,7 @@ class Database:
                             )
                         """
 
-                        params = [self.language, min_rank, user_id]
+                        params = [self.language, min_rank, self.user_id]
 
                         if max_rank is not None:
                             sql += " AND l.rank <= %s"
@@ -592,13 +644,20 @@ class Database:
                             vtb.id AS question_id,
                             l.id AS lemma_id,
                             l.lemma,
-                            l.translation,
+                            lt.translation,
                             l.definition
                         FROM vocab_test_bank vtb
-                        JOIN lemmas l ON vtb.lemma_id = l.id
+                        JOIN lemmas l
+                            ON vtb.lemma_id = l.id
+                        LEFT JOIN lemma_translations lt
+                            ON lt.lemma_id = l.id
+                        AND lt.native_language = %s
                         WHERE vtb.id = ANY(%s)
                         """,
-                        [question_ids]
+                        [
+                            self.native_language,
+                            question_ids
+                        ]
                     )
 
                     lemma_map = {
@@ -659,6 +718,20 @@ class Database:
                     question_id = question["question_id"]
                     question["question"] = question_map.get(question_id)
                 return questions
+            def get_lemma_id(self, question_id):
+                with self.conn.cursor() as cursor:
+                    cursor.execute(
+                        """
+                        SELECT lemma_id
+                        FROM vocab_test_bank
+                        WHERE id = %s
+                        """,
+                        [question_id]
+                    )
+                    row = cursor.fetchone()
+                if not row:
+                    return None
+                return row[0]
         class Answers:
             def __init__(self, conn):
                 self.conn = conn

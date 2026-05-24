@@ -55,6 +55,11 @@
             border-color: #bbf7d0;
             background: #f0fdf4;
         }
+
+        .counter-card {
+            border: 1px solid rgba(226, 232, 240, 0.9);
+            background: rgba(248, 250, 252, 0.9);
+        }
     </style>
 </head>
 
@@ -72,7 +77,8 @@
                     Vocabulary Builder
                 </h1>
                 <p class="text-slate-600 mt-2">
-                    Answer 10 questions, then review the words you missed.
+                    Build your vocabulary one word at a time. Answer a question, review the result,
+                    then decide whether to add the word to your vocabulary bank.
                 </p>
             </div>
 
@@ -84,75 +90,111 @@
 
         <input type="hidden" id="language" value="{{ language }}">
 
+        <div class="grid grid-cols-2 gap-3 mb-8">
+            <div class="counter-card rounded-2xl p-4">
+                <p class="text-xs font-black uppercase tracking-wide text-slate-500">
+                    Questions reviewed
+                </p>
+                <p id="questions-reviewed-count" class="text-3xl font-black text-blue-700 mt-1">
+                    0
+                </p>
+            </div>
+
+            <div class="counter-card rounded-2xl p-4">
+                <p class="text-xs font-black uppercase tracking-wide text-slate-500">
+                    Words added to bank
+                </p>
+                <p id="words-added-count" class="text-3xl font-black text-blue-700 mt-1">
+                    0
+                </p>
+            </div>
+        </div>
+
         <div id="loading-section" class="text-center py-16">
             <div class="mx-auto mb-5 h-12 w-12 rounded-full border-4 border-blue-200 border-t-blue-600 animate-spin"></div>
-            <h2 class="text-xl font-bold">Loading your questions...</h2>
-            <p class="text-slate-500 mt-2">Building a quick vocabulary practice set.</p>
+            <h2 class="text-xl font-bold">Loading your next question...</h2>
+            <p class="text-slate-500 mt-2">Finding a useful word for you to practice.</p>
         </div>
 
         <div id="quiz-section" class="hidden">
-            <div class="flex items-center justify-between mb-5">
-                <p id="question-counter" class="text-sm font-semibold text-slate-500"></p>
-                <p id="answered-counter" class="text-sm font-semibold text-blue-600"></p>
-            </div>
-
-            <div class="w-full bg-slate-200 rounded-full h-2 mb-8 overflow-hidden">
-                <div id="progress-bar" class="h-2 rounded-full bg-blue-600 transition-all" style="width: 0%;"></div>
+            <div class="mb-6">
+                <p id="question-label" class="text-sm font-semibold text-slate-500"></p>
+                <h2 class="text-2xl md:text-3xl font-black mt-1">
+                    Choose the best answer
+                </h2>
             </div>
 
             <div id="question-container"></div>
 
-            <div class="flex items-center justify-between mt-8">
+            <div class="flex justify-end mt-8">
                 <button
-                    id="prev-btn"
+                    id="submit-answer-btn"
                     type="button"
-                    class="px-5 py-3 rounded-xl font-bold bg-white border border-slate-200 text-slate-700 hover:bg-slate-50 disabled:opacity-40 disabled:cursor-not-allowed">
-                    Previous
-                </button>
-
-                <button
-                    id="next-btn"
-                    type="button"
-                    class="px-5 py-3 rounded-xl font-bold text-white bg-blue-600 hover:bg-blue-700 disabled:opacity-40 disabled:cursor-not-allowed">
-                    Next
-                </button>
-
-                <button
-                    id="submit-btn"
-                    type="button"
-                    class="hidden px-5 py-3 rounded-xl font-bold text-slate-950 hover:opacity-90 disabled:opacity-40 disabled:cursor-not-allowed"
-                    style="background: var(--vita-yellow);">
-                    Submit Answers
+                    class="px-5 py-3 rounded-xl font-bold text-white bg-blue-600 hover:bg-blue-700 disabled:opacity-40 disabled:cursor-not-allowed"
+                    disabled>
+                    Submit answer
                 </button>
             </div>
         </div>
 
-        <div id="review-section" class="hidden">
+        <div id="answer-review-section" class="hidden">
             <div class="mb-6">
-                <p id="review-counter" class="text-sm font-semibold text-slate-500"></p>
-                <h2 class="text-2xl md:text-3xl font-black mt-1">Review Missed Words</h2>
-                <p class="text-slate-600 mt-2">
-                    First review the question, then learn the word we added to your vocabulary bank.
+                <p class="text-sm font-semibold text-slate-500">Answer review</p>
+                <h2 id="answer-review-title" class="text-2xl md:text-3xl font-black mt-1">
+                    Review your answer
+                </h2>
+                <p id="answer-review-helper" class="text-slate-600 mt-2">
+                    The answer you selected is shown in red. The correct answer is shown in green.
                 </p>
             </div>
 
-            <div id="review-container"></div>
+            <div id="answer-review-container"></div>
 
             <div class="flex justify-end mt-8">
                 <button
-                    id="review-next-btn"
+                    id="answer-review-next-btn"
                     type="button"
                     class="px-5 py-3 rounded-xl font-bold text-white bg-blue-600 hover:bg-blue-700">
                     Next
                 </button>
+            </div>
+        </div>
 
-                <a
-                    id="home-btn"
-                    href="/"
-                    class="hidden px-5 py-3 rounded-xl font-bold text-slate-950 hover:opacity-90"
+        <div id="lemma-section" class="hidden">
+            <div class="mb-6">
+                <p class="text-sm font-semibold text-slate-500">Vocabulary bank</p>
+                <h2 class="text-2xl md:text-3xl font-black mt-1">Learn this word</h2>
+                <p class="text-slate-600 mt-2">
+                    Review the word, then choose whether to add it to your vocabulary bank.
+                </p>
+            </div>
+
+            <div id="lemma-container"></div>
+
+            <div id="lemma-helper-text" class="hidden mt-5 rounded-2xl border border-blue-100 bg-blue-50 px-5 py-4 text-blue-800 font-semibold"></div>
+
+            <div class="grid gap-3 sm:grid-cols-3 mt-8">
+                <button
+                    id="already-know-btn"
+                    type="button"
+                    class="px-5 py-3 rounded-xl font-bold bg-white border border-slate-200 text-slate-700 hover:bg-slate-50 disabled:opacity-40 disabled:cursor-not-allowed">
+                    I already know this word
+                </button>
+
+                <button
+                    id="keep-building-btn"
+                    type="button"
+                    class="px-5 py-3 rounded-xl font-bold text-white bg-blue-600 hover:bg-blue-700 disabled:opacity-40 disabled:cursor-not-allowed">
+                    Keep Building Vocabulary
+                </button>
+
+                <button
+                    id="return-home-btn"
+                    type="button"
+                    class="px-5 py-3 rounded-xl font-bold text-slate-950 hover:opacity-90 disabled:opacity-40 disabled:cursor-not-allowed"
                     style="background: var(--vita-yellow);">
                     Return Home
-                </a>
+                </button>
             </div>
         </div>
 
@@ -163,14 +205,25 @@
             </div>
 
             <h2 class="text-3xl font-black">Great work.</h2>
-            <p id="complete-message" class="text-slate-600 mt-3"></p>
+            <p id="complete-message" class="text-slate-600 mt-3">
+                You completed this vocabulary practice session.
+            </p>
 
-            <a
-                href="/"
-                class="inline-block mt-8 px-6 py-3 rounded-xl font-bold text-slate-950 hover:opacity-90"
-                style="background: var(--vita-yellow);">
-                Return Home
-            </a>
+            <div class="flex flex-col sm:flex-row justify-center gap-3 mt-8">
+                <button
+                    id="continue-after-complete-btn"
+                    type="button"
+                    class="px-6 py-3 rounded-xl font-bold text-white bg-blue-600 hover:bg-blue-700">
+                    Keep Building Vocabulary
+                </button>
+
+                <a
+                    href="/"
+                    class="inline-block px-6 py-3 rounded-xl font-bold text-slate-950 hover:opacity-90"
+                    style="background: var(--vita-yellow);">
+                    Return Home
+                </a>
+            </div>
         </div>
 
         <div id="error-section" class="hidden text-center py-14">
@@ -190,39 +243,52 @@
 
 <script>
     const VOCAB_BUILDER_URL = "/vocab-builder/";
+    const VOCAB_TEST_URL = "/vocab-test/";
+    const BATCH_SIZE = 10;
 
     const language = document.getElementById("language").value;
 
     let questions = [];
-    let currentQuestionIndex = 0;
-    let answers = {};
-    let missedQuestions = [];
-    let currentReviewIndex = 0;
-    let currentReviewStep = "question";
+    let currentQuestion = null;
+    let selectedOption = null;
+    let currentReviewItem = null;
+    let currentAnswerWasCorrect = false;
+
+    let questionsReviewedCount = 0;
+    let wordsAddedCount = 0;
+    let batchNumber = 0;
+    let isLoadingMoreQuestions = false;
 
     const loadingSection = document.getElementById("loading-section");
     const quizSection = document.getElementById("quiz-section");
-    const reviewSection = document.getElementById("review-section");
+    const answerReviewSection = document.getElementById("answer-review-section");
+    const lemmaSection = document.getElementById("lemma-section");
     const completeSection = document.getElementById("complete-section");
     const errorSection = document.getElementById("error-section");
 
+    const questionsReviewedCountEl = document.getElementById("questions-reviewed-count");
+    const wordsAddedCountEl = document.getElementById("words-added-count");
+
+    const questionLabel = document.getElementById("question-label");
     const questionContainer = document.getElementById("question-container");
-    const questionCounter = document.getElementById("question-counter");
-    const answeredCounter = document.getElementById("answered-counter");
-    const progressBar = document.getElementById("progress-bar");
+    const submitAnswerBtn = document.getElementById("submit-answer-btn");
 
-    const prevBtn = document.getElementById("prev-btn");
-    const nextBtn = document.getElementById("next-btn");
-    const submitBtn = document.getElementById("submit-btn");
+    const answerReviewTitle = document.getElementById("answer-review-title");
+    const answerReviewHelper = document.getElementById("answer-review-helper");
+    const answerReviewContainer = document.getElementById("answer-review-container");
+    const answerReviewNextBtn = document.getElementById("answer-review-next-btn");
 
-    const reviewContainer = document.getElementById("review-container");
-    const reviewCounter = document.getElementById("review-counter");
-    const reviewNextBtn = document.getElementById("review-next-btn");
-    const homeBtn = document.getElementById("home-btn");
+    const lemmaContainer = document.getElementById("lemma-container");
+    const lemmaHelperText = document.getElementById("lemma-helper-text");
+    const alreadyKnowBtn = document.getElementById("already-know-btn");
+    const keepBuildingBtn = document.getElementById("keep-building-btn");
+    const returnHomeBtn = document.getElementById("return-home-btn");
+
+    const completeMessage = document.getElementById("complete-message");
+    const continueAfterCompleteBtn = document.getElementById("continue-after-complete-btn");
 
     const errorMessage = document.getElementById("error-message");
     const retryBtn = document.getElementById("retry-btn");
-    const completeMessage = document.getElementById("complete-message");
 
     function getCookie(name) {
         let cookieValue = null;
@@ -246,7 +312,8 @@
     function showSection(section) {
         loadingSection.classList.add("hidden");
         quizSection.classList.add("hidden");
-        reviewSection.classList.add("hidden");
+        answerReviewSection.classList.add("hidden");
+        lemmaSection.classList.add("hidden");
         completeSection.classList.add("hidden");
         errorSection.classList.add("hidden");
 
@@ -258,8 +325,29 @@
         showSection(errorSection);
     }
 
-    async function postJson(payload) {
-        const response = await fetch(VOCAB_BUILDER_URL, {
+    function updateCounters() {
+        questionsReviewedCountEl.textContent = questionsReviewedCount;
+        wordsAddedCountEl.textContent = wordsAddedCount;
+    }
+
+    function showLemmaHelper(message) {
+        lemmaHelperText.textContent = message;
+        lemmaHelperText.classList.remove("hidden");
+    }
+
+    function clearLemmaHelper() {
+        lemmaHelperText.textContent = "";
+        lemmaHelperText.classList.add("hidden");
+    }
+
+    function setLemmaButtonsDisabled(disabled) {
+        alreadyKnowBtn.disabled = disabled;
+        keepBuildingBtn.disabled = disabled;
+        returnHomeBtn.disabled = disabled;
+    }
+
+    async function postJson(url, payload) {
+        const response = await fetch(url, {
             method: "POST",
             headers: {
                 "Content-Type": "application/json",
@@ -276,50 +364,132 @@
             throw new Error("Server returned an invalid JSON response.");
         }
 
-        if (!response.ok || data.status !== "ok") {
+        if (!response.ok) {
             throw new Error(data.error || "Request failed.");
         }
 
         return data;
     }
 
+    async function postVocabBuilder(payload) {
+        const data = await postJson(VOCAB_BUILDER_URL, payload);
+
+        if (data.status !== "ok") {
+            throw new Error(data.error || "Request failed.");
+        }
+
+        return data;
+    }
+
+    async function postVocabTest(payload) {
+        return postJson(VOCAB_TEST_URL, payload);
+    }
+
+    function normalizeOptions(options) {
+        if (!Array.isArray(options)) {
+            return [];
+        }
+
+        return options.map((option) => {
+            if (typeof option === "string") {
+                return option;
+            }
+
+            return option.text;
+        });
+    }
+
+    function getCurrentQuestionSelectedReviewItem() {
+        return {
+            question_id: Number(currentQuestion.question_id),
+            question: currentQuestion.question,
+            context: currentQuestion.context || null,
+            options: normalizeOptions(currentQuestion.options || []),
+            selected_option: selectedOption,
+            correct_answer: selectedOption,
+            is_correct: true,
+            lemma: null
+        };
+    }
+
+    function getMissedReviewItem(data) {
+        if (!Array.isArray(data.missed_questions)) {
+            throw new Error("Server did not return missed_questions.");
+        }
+
+        if (data.missed_questions.length === 0) {
+            return null;
+        }
+
+        return data.missed_questions[0];
+    }
+
     async function loadQuestions() {
+        if (isLoadingMoreQuestions) {
+            return;
+        }
+
+        isLoadingMoreQuestions = true;
         showSection(loadingSection);
 
         try {
-            const data = await postJson({
+            batchNumber += 1;
+
+            const data = await postVocabBuilder({
                 action: "load_questions",
                 language: language,
-                count: 10
+                count: BATCH_SIZE,
+                batch: batchNumber
             });
 
-            questions = data.questions || [];
+            const newQuestions = data.questions || [];
 
-            if (questions.length === 0) {
-                showError("No questions were returned.");
+            if (newQuestions.length === 0) {
+                if (questionsReviewedCount === 0) {
+                    showError("No questions were returned.");
+                    return;
+                }
+
+                completeMessage.textContent = "You have completed the available vocabulary questions for now.";
+                showSection(completeSection);
                 return;
             }
 
-            currentQuestionIndex = 0;
-            answers = {};
+            questions = questions.concat(newQuestions);
 
-            renderQuestion();
-            showSection(quizSection);
+            await showNextQuestion();
         } catch (error) {
             showError(error.message);
+        } finally {
+            isLoadingMoreQuestions = false;
         }
     }
-    
+
+    async function showNextQuestion() {
+        clearLemmaHelper();
+        setLemmaButtonsDisabled(false);
+
+        currentReviewItem = null;
+        currentAnswerWasCorrect = false;
+        selectedOption = null;
+
+        if (questions.length === 0) {
+            await loadQuestions();
+            return;
+        }
+
+        currentQuestion = questions.shift();
+        renderQuestion();
+        showSection(quizSection);
+    }
 
     function renderQuestion() {
-        const question = questions[currentQuestionIndex];
-        const selectedOption = answers[question.question_id] || null;
+        if (!currentQuestion) {
+            showError("Unable to load the current question.");
+            return;
+        }
 
-        questionCounter.textContent = `Question ${currentQuestionIndex + 1} of ${questions.length}`;
-        answeredCounter.textContent = `${Object.keys(answers).length} answered`;
-
-        const percent = ((currentQuestionIndex + 1) / questions.length) * 100;
-        progressBar.style.width = `${percent}%`;
+        questionLabel.textContent = `Question ${questionsReviewedCount + 1}`;
 
         questionContainer.innerHTML = "";
 
@@ -328,20 +498,24 @@
 
         const prompt = document.createElement("h2");
         prompt.className = "text-2xl font-black leading-tight";
-        prompt.textContent = question.question;
+        prompt.textContent = currentQuestion.question;
         card.appendChild(prompt);
 
-        if (question.context) {
+        if (currentQuestion.context) {
             const context = document.createElement("p");
             context.className = "mt-4 text-slate-600 leading-relaxed";
-            context.textContent = question.context;
+            context.textContent = currentQuestion.context;
             card.appendChild(context);
         }
 
         const answersWrapper = document.createElement("div");
         answersWrapper.className = "mt-7 grid gap-3";
 
-        const displayedOptions = [...question.options, "I don't know"];
+        const displayedOptions = normalizeOptions(currentQuestion.options || []);
+
+        if (!displayedOptions.includes("I don't know")) {
+            displayedOptions.push("I don't know");
+        }
 
         displayedOptions.forEach(optionText => {
             const btn = document.createElement("button");
@@ -354,7 +528,8 @@
             }
 
             btn.addEventListener("click", () => {
-                answers[question.question_id] = optionText;
+                selectedOption = optionText;
+                submitAnswerBtn.disabled = false;
                 renderQuestion();
             });
 
@@ -364,266 +539,383 @@
         card.appendChild(answersWrapper);
         questionContainer.appendChild(card);
 
-        prevBtn.disabled = currentQuestionIndex === 0;
-
-        const isLastQuestion = currentQuestionIndex === questions.length - 1;
-        nextBtn.classList.toggle("hidden", isLastQuestion);
-        submitBtn.classList.toggle("hidden", !isLastQuestion);
-
-        submitBtn.disabled = Object.keys(answers).length < questions.length;
+        submitAnswerBtn.disabled = !selectedOption;
+        submitAnswerBtn.textContent = "Submit answer";
     }
 
-    function goNextQuestion() {
-        if (currentQuestionIndex < questions.length - 1) {
-            currentQuestionIndex += 1;
-            renderQuestion();
+    async function submitCurrentAnswer() {
+        if (!currentQuestion || !selectedOption) {
+            return;
         }
-    }
 
-    function goPreviousQuestion() {
-        if (currentQuestionIndex > 0) {
-            currentQuestionIndex -= 1;
-            renderQuestion();
-        }
-    }
-
-    async function submitAnswers() {
-        submitBtn.disabled = true;
-        submitBtn.textContent = "Submitting...";
-
-        const answerList = Object.entries(answers).map(([questionId, selectedOption]) => {
-            return {
-                question_id: Number(questionId),
-                selected_option: selectedOption
-            };
-        });
+        submitAnswerBtn.disabled = true;
+        submitAnswerBtn.textContent = "Submitting...";
 
         try {
-            const data = await postJson({
+            const data = await postVocabBuilder({
                 action: "submit_answers",
                 language: language,
-                answers: answerList
+                answers: [
+                    {
+                        question_id: Number(currentQuestion.question_id),
+                        selected_option: selectedOption
+                    }
+                ]
             });
 
-            missedQuestions = data.missed_questions || [];
+            const missedReviewItem = getMissedReviewItem(data);
 
-            if (missedQuestions.length === 0) {
-                completeMessage.textContent = "You got all 10 questions correct.";
-                showSection(completeSection);
+            questionsReviewedCount += 1;
+            updateCounters();
+
+            if (!missedReviewItem) {
+                currentAnswerWasCorrect = true;
+                currentReviewItem = getCurrentQuestionSelectedReviewItem();
+
+                renderAnswerReview();
+                showSection(answerReviewSection);
                 return;
             }
 
-            currentReviewIndex = 0;
-            currentReviewStep = "question";
-            renderReviewQuestion();
-            showSection(reviewSection);
+            currentAnswerWasCorrect = false;
+            currentReviewItem = missedReviewItem;
+
+            renderAnswerReview();
+            showSection(answerReviewSection);
         } catch (error) {
+            submitAnswerBtn.disabled = false;
+            submitAnswerBtn.textContent = "Submit answer";
             showError(error.message);
-        } finally {
-            submitBtn.disabled = false;
-            submitBtn.textContent = "Submit Answers";
         }
     }
 
-    function renderReviewQuestion() {
-        const item = missedQuestions[currentReviewIndex];
+    function renderAnswerReview() {
+        if (!currentReviewItem) {
+            showError("Unable to show answer review.");
+            return;
+        }
 
-        reviewContainer.innerHTML = "";
+        answerReviewContainer.innerHTML = "";
 
-        const isQuestionStep = currentReviewStep === "question";
-        const isLemmaStep = currentReviewStep === "lemma";
-
-        reviewCounter.textContent = `Missed word ${currentReviewIndex + 1} of ${missedQuestions.length}`;
+        if (currentAnswerWasCorrect) {
+            answerReviewTitle.textContent = "That’s correct.";
+            answerReviewHelper.textContent = "Nice work. Your selected answer is shown below.";
+            answerReviewNextBtn.textContent = "Next";
+        } else {
+            answerReviewTitle.textContent = "Review your answer";
+            answerReviewHelper.textContent = "The answer you selected is shown in red. The correct answer is shown in green.";
+            answerReviewNextBtn.textContent = "Review word";
+        }
 
         const card = document.createElement("div");
         card.className = "rounded-3xl border border-slate-200 bg-white p-6 md:p-8";
 
-        if (isQuestionStep) {
-            const header = document.createElement("div");
-            header.className = "mb-6";
+        const questionBox = document.createElement("div");
+        questionBox.className = "rounded-2xl bg-slate-50 border border-slate-200 p-5 mb-6";
 
-            const stepLabel = document.createElement("p");
-            stepLabel.className = "text-sm font-bold text-blue-600 uppercase tracking-wide";
-            stepLabel.textContent = "Step 1: Review the question";
+        const questionLabel = document.createElement("p");
+        questionLabel.className = "text-sm font-bold text-slate-500 uppercase tracking-wide mb-2";
+        questionLabel.textContent = "Question";
 
-            const title = document.createElement("h3");
-            title.className = "text-2xl md:text-3xl font-black mt-2";
-            title.textContent = "What happened here?";
+        const questionText = document.createElement("h3");
+        questionText.className = "text-xl md:text-2xl font-black leading-snug";
+        questionText.textContent = currentReviewItem.question || currentQuestion.question;
 
-            const helper = document.createElement("p");
-            helper.className = "text-slate-600 mt-2";
-            helper.textContent = "The green answer is correct. The red answer is the one you selected.";
+        questionBox.appendChild(questionLabel);
+        questionBox.appendChild(questionText);
 
-            header.appendChild(stepLabel);
-            header.appendChild(title);
-            header.appendChild(helper);
-            card.appendChild(header);
+        if (currentReviewItem.context || currentQuestion.context) {
+            const context = document.createElement("p");
+            context.className = "mt-3 text-slate-600 leading-relaxed";
+            context.textContent = currentReviewItem.context || currentQuestion.context;
+            questionBox.appendChild(context);
+        }
 
-            const promptBox = document.createElement("div");
-            promptBox.className = "rounded-2xl bg-slate-50 border border-slate-200 p-5 mb-6";
+        card.appendChild(questionBox);
 
-            const promptLabel = document.createElement("p");
-            promptLabel.className = "text-sm font-bold text-slate-500 uppercase tracking-wide mb-2";
-            promptLabel.textContent = "Question";
+        const answersWrapper = document.createElement("div");
+        answersWrapper.className = "grid gap-3";
 
-            const prompt = document.createElement("h4");
-            prompt.className = "text-xl md:text-2xl font-black leading-snug";
-            prompt.textContent = item.question;
+        const options = normalizeOptions(currentReviewItem.options || currentQuestion.options || []);
 
-            promptBox.appendChild(promptLabel);
-            promptBox.appendChild(prompt);
+        if (
+            currentReviewItem.selected_option === "I don't know" &&
+            !options.includes("I don't know")
+        ) {
+            options.push("I don't know");
+        }
 
-            if (item.context) {
-                const context = document.createElement("p");
-                context.className = "mt-3 text-slate-600 leading-relaxed";
-                context.textContent = item.context;
-                promptBox.appendChild(context);
-            }
+        if (
+            currentAnswerWasCorrect &&
+            currentReviewItem.selected_option &&
+            !options.includes(currentReviewItem.selected_option)
+        ) {
+            options.push(currentReviewItem.selected_option);
+        }
 
-            card.appendChild(promptBox);
+        options.forEach(optionText => {
+            const row = document.createElement("div");
+            row.className = "rounded-2xl border border-slate-200 bg-slate-50 px-5 py-4 font-semibold flex items-center justify-between gap-4";
 
-            const answersWrapper = document.createElement("div");
-            answersWrapper.className = "grid gap-3";
+            const optionSpan = document.createElement("span");
+            optionSpan.textContent = optionText;
 
-            const reviewOptions = [...item.options];
+            const helperSpan = document.createElement("span");
+            helperSpan.className = "text-sm font-black whitespace-nowrap";
 
-            if (
-                item.selected_option === "I don't know" &&
-                !reviewOptions.includes("I don't know")
-            ) {
-                reviewOptions.push("I don't know");
-            }
-
-            reviewOptions.forEach(optionText => {
-                const row = document.createElement("div");
-                row.className = "rounded-2xl border border-slate-200 bg-slate-50 px-5 py-4 font-semibold flex items-center justify-between gap-4";
-
-                const optionSpan = document.createElement("span");
-                optionSpan.textContent = optionText;
-
-                const helperSpan = document.createElement("span");
-                helperSpan.className = "text-sm font-black whitespace-nowrap";
-
-                if (optionText === item.correct_answer) {
+            if (currentAnswerWasCorrect && optionText === currentReviewItem.selected_option) {
+                row.classList.add("answer-correct", "font-black");
+                helperSpan.textContent = "Your answer";
+            } else {
+                if (optionText === currentReviewItem.correct_answer) {
                     row.classList.add("answer-correct");
-                    helperSpan.textContent = "← Correct answer";
+                    helperSpan.textContent = "Correct answer";
                 }
 
-                if (optionText === item.selected_option) {
+                if (optionText === currentReviewItem.selected_option) {
                     row.classList.add("answer-wrong");
-                    helperSpan.textContent = "← Your answer";
+                    helperSpan.textContent = "Your answer";
                 }
 
                 if (
-                    optionText === item.correct_answer &&
-                    optionText === item.selected_option
+                    optionText === currentReviewItem.correct_answer &&
+                    optionText === currentReviewItem.selected_option
                 ) {
                     row.classList.remove("answer-wrong");
                     row.classList.add("answer-correct");
-                    helperSpan.textContent = "← Correct";
+                    helperSpan.textContent = "Correct";
                 }
-
-                row.appendChild(optionSpan);
-                row.appendChild(helperSpan);
-                answersWrapper.appendChild(row);
-            });
-
-            card.appendChild(answersWrapper);
-
-            reviewNextBtn.textContent = "Review word";
-            reviewNextBtn.classList.remove("hidden");
-            homeBtn.classList.add("hidden");
-        }
-
-        if (isLemmaStep) {
-            const lemma = item.lemma || {};
-
-            const header = document.createElement("div");
-            header.className = "text-center mb-8";
-
-            const stepLabel = document.createElement("p");
-            stepLabel.className = "text-sm font-bold text-blue-600 uppercase tracking-wide";
-            stepLabel.textContent = "Step 2: Learn this word";
-
-            const lemmaText = document.createElement("h3");
-            lemmaText.className = "text-4xl md:text-5xl font-black mt-3";
-            lemmaText.textContent = lemma.lemma || item.correct_answer || "";
-
-            const translation = document.createElement("p");
-            translation.className = "mt-3 text-2xl font-bold text-blue-700";
-            translation.textContent = lemma.translation || "No translation available.";
-
-            header.appendChild(stepLabel);
-            header.appendChild(lemmaText);
-            header.appendChild(translation);
-            card.appendChild(header);
-
-            const definitionBox = document.createElement("div");
-            definitionBox.className = "rounded-3xl bg-slate-50 border border-slate-200 p-6";
-
-            const definitionLabel = document.createElement("p");
-            definitionLabel.className = "text-sm font-bold text-slate-500 uppercase tracking-wide mb-2";
-            definitionLabel.textContent = "Definition";
-
-            const definition = document.createElement("p");
-            definition.className = "text-lg text-slate-700 leading-relaxed";
-            definition.textContent = lemma.definition || "No definition available.";
-
-            definitionBox.appendChild(definitionLabel);
-            definitionBox.appendChild(definition);
-            card.appendChild(definitionBox);
-
-            const bankNote = document.createElement("div");
-            bankNote.className = "mt-6 rounded-3xl border border-blue-100 bg-blue-50 p-5";
-
-            const bankNoteTitle = document.createElement("p");
-            bankNoteTitle.className = "font-black text-blue-700";
-            bankNoteTitle.textContent = "Added to your vocabulary bank";
-
-            const bankNoteText = document.createElement("p");
-            bankNoteText.className = "text-slate-700 mt-2 leading-relaxed";
-            bankNoteText.textContent = "We have added this word to your vocabulary bank so you can keep practicing it and learn it over time.";
-
-            bankNote.appendChild(bankNoteTitle);
-            bankNote.appendChild(bankNoteText);
-            card.appendChild(bankNote);
-
-            const isLastReview = currentReviewIndex === missedQuestions.length - 1;
-
-            if (isLastReview) {
-                reviewNextBtn.classList.add("hidden");
-                homeBtn.classList.remove("hidden");
-            } else {
-                reviewNextBtn.textContent = "Next missed word";
-                reviewNextBtn.classList.remove("hidden");
-                homeBtn.classList.add("hidden");
             }
-        }
 
-        reviewContainer.appendChild(card);
+            row.appendChild(optionSpan);
+            row.appendChild(helperSpan);
+            answersWrapper.appendChild(row);
+        });
+
+        card.appendChild(answersWrapper);
+        answerReviewContainer.appendChild(card);
     }
 
-    function goNextReviewQuestion() {
-        if (currentReviewStep === "question") {
-            currentReviewStep = "lemma";
-            renderReviewQuestion();
+    function renderLemma() {
+        if (!currentReviewItem) {
+            showError("Unable to show word review.");
             return;
         }
 
-        if (currentReviewIndex < missedQuestions.length - 1) {
-            currentReviewIndex += 1;
-            currentReviewStep = "question";
-            renderReviewQuestion();
+        clearLemmaHelper();
+        setLemmaButtonsDisabled(false);
+
+        const lemma = currentReviewItem.lemma || {};
+
+        lemmaContainer.innerHTML = "";
+
+        const card = document.createElement("div");
+        card.className = "rounded-3xl border border-slate-200 bg-white p-6 md:p-8";
+
+        const header = document.createElement("div");
+        header.className = "text-center mb-8";
+
+        const stepLabel = document.createElement("p");
+        stepLabel.className = "text-sm font-bold text-blue-600 uppercase tracking-wide";
+        stepLabel.textContent = "Word review";
+
+        const lemmaText = document.createElement("h3");
+        lemmaText.className = "text-4xl md:text-5xl font-black mt-3";
+        lemmaText.textContent = lemma.lemma || currentReviewItem.correct_answer || "";
+
+        const translation = document.createElement("p");
+        translation.className = "mt-3 text-2xl font-bold text-blue-700";
+        translation.textContent = lemma.translation || "No translation available.";
+
+        header.appendChild(stepLabel);
+        header.appendChild(lemmaText);
+        header.appendChild(translation);
+        card.appendChild(header);
+
+        const detailWrapper = document.createElement("div");
+        detailWrapper.className = "grid gap-4";
+
+        const definitionBox = document.createElement("div");
+        definitionBox.className = "rounded-3xl bg-slate-50 border border-slate-200 p-6";
+
+        const definitionLabel = document.createElement("p");
+        definitionLabel.className = "text-sm font-bold text-slate-500 uppercase tracking-wide mb-2";
+        definitionLabel.textContent = "Definition";
+
+        const definition = document.createElement("p");
+        definition.className = "text-lg text-slate-700 leading-relaxed";
+        definition.textContent = lemma.definition || "No definition available.";
+
+        definitionBox.appendChild(definitionLabel);
+        definitionBox.appendChild(definition);
+        detailWrapper.appendChild(definitionBox);
+
+        if (lemma.pronunciation) {
+            const pronunciationBox = document.createElement("div");
+            pronunciationBox.className = "rounded-3xl bg-slate-50 border border-slate-200 p-6";
+
+            const pronunciationLabel = document.createElement("p");
+            pronunciationLabel.className = "text-sm font-bold text-slate-500 uppercase tracking-wide mb-2";
+            pronunciationLabel.textContent = "Pronunciation";
+
+            const pronunciation = document.createElement("p");
+            pronunciation.className = "text-lg text-slate-700 leading-relaxed";
+            pronunciation.textContent = lemma.pronunciation;
+
+            pronunciationBox.appendChild(pronunciationLabel);
+            pronunciationBox.appendChild(pronunciation);
+            detailWrapper.appendChild(pronunciationBox);
+        }
+
+        if (lemma.example_sentence) {
+            const exampleBox = document.createElement("div");
+            exampleBox.className = "rounded-3xl bg-slate-50 border border-slate-200 p-6";
+
+            const exampleLabel = document.createElement("p");
+            exampleLabel.className = "text-sm font-bold text-slate-500 uppercase tracking-wide mb-2";
+            exampleLabel.textContent = "Example sentence";
+
+            const example = document.createElement("p");
+            example.className = "text-lg text-slate-700 leading-relaxed";
+            example.textContent = lemma.example_sentence;
+
+            exampleBox.appendChild(exampleLabel);
+            exampleBox.appendChild(example);
+            detailWrapper.appendChild(exampleBox);
+        }
+
+        card.appendChild(detailWrapper);
+        lemmaContainer.appendChild(card);
+
+        showSection(lemmaSection);
+    }
+
+    async function flagCurrentQuestionAsKnown() {
+        if (!currentReviewItem) {
+            return;
+        }
+
+        setLemmaButtonsDisabled(true);
+        alreadyKnowBtn.textContent = "Flagging...";
+
+        try {
+            const lemma = currentReviewItem.lemma || {};
+
+            const data = await postVocabTest({
+                action: "flag_question",
+                language: language,
+                question_id: Number(currentReviewItem.question_id || currentQuestion.question_id),
+                question: currentReviewItem.question || currentQuestion.question,
+                options: normalizeOptions(currentReviewItem.options || currentQuestion.options || []),
+                selected_option: currentReviewItem.selected_option || selectedOption,
+                correct_answer: currentReviewItem.correct_answer,
+                lemma_id: lemma.lemma_id || null,
+                lemma: lemma.lemma || currentReviewItem.correct_answer || null,
+                reason: "already_know_word"
+            });
+
+            if (data.status !== "flagged" && data.status !== "ok") {
+                throw new Error(data.error || "The server did not confirm the flagged question.");
+            }
+
+            showLemmaHelper("This word will not be added to your vocabulary bank.");
+            alreadyKnowBtn.textContent = "Word skipped";
+
+            setTimeout(async () => {
+                alreadyKnowBtn.textContent = "I already know this word";
+                await showNextQuestion();
+            }, 900);
+        } catch (error) {
+            setLemmaButtonsDisabled(false);
+            alreadyKnowBtn.textContent = "I already know this word";
+            showLemmaHelper(error.message || "Could not flag this question. Please try again.");
         }
     }
 
-    prevBtn.addEventListener("click", goPreviousQuestion);
-    nextBtn.addEventListener("click", goNextQuestion);
-    submitBtn.addEventListener("click", submitAnswers);
-    reviewNextBtn.addEventListener("click", goNextReviewQuestion);
+    async function addCurrentWordToBank() {
+        if (!currentReviewItem) {
+            return;
+        }
+
+        const lemma = currentReviewItem.lemma || {};
+
+        const data = await postVocabBuilder({
+            action: "add_to_bank",
+            language: language,
+            question_id: Number(currentReviewItem.question_id || currentQuestion.question_id),
+            selected_option: currentReviewItem.selected_option || selectedOption,
+            correct_answer: currentReviewItem.correct_answer,
+            lemma_id: lemma.lemma_id || null,
+            lemma: lemma.lemma || currentReviewItem.correct_answer || null
+        });
+
+        if (data.status !== "ok") {
+            throw new Error(data.error || "Unable to add word to vocabulary bank.");
+        }
+
+        return data;
+    }
+
+    async function keepBuildingVocabulary() {
+        setLemmaButtonsDisabled(true);
+        keepBuildingBtn.textContent = "Adding...";
+
+        try {
+            await addCurrentWordToBank();
+
+            wordsAddedCount += 1;
+            updateCounters();
+
+            keepBuildingBtn.textContent = "Keep Building Vocabulary";
+            await showNextQuestion();
+        } catch (error) {
+            setLemmaButtonsDisabled(false);
+            keepBuildingBtn.textContent = "Keep Building Vocabulary";
+            showLemmaHelper(error.message || "Unable to add word to your vocabulary bank.");
+        }
+    }
+
+    async function addWordAndReturnHome() {
+        setLemmaButtonsDisabled(true);
+        returnHomeBtn.textContent = "Saving...";
+
+        try {
+            await addCurrentWordToBank();
+
+            wordsAddedCount += 1;
+            updateCounters();
+
+            window.location.href = "/";
+        } catch (error) {
+            setLemmaButtonsDisabled(false);
+            returnHomeBtn.textContent = "Return Home";
+            showLemmaHelper(error.message || "Unable to add word to your vocabulary bank.");
+        }
+    }
+
+    async function handleAnswerReviewNext() {
+        if (currentAnswerWasCorrect) {
+            await showNextQuestion();
+            return;
+        }
+
+        renderLemma();
+    }
+
+    submitAnswerBtn.addEventListener("click", submitCurrentAnswer);
+    answerReviewNextBtn.addEventListener("click", handleAnswerReviewNext);
+
+    alreadyKnowBtn.addEventListener("click", flagCurrentQuestionAsKnown);
+    keepBuildingBtn.addEventListener("click", keepBuildingVocabulary);
+    returnHomeBtn.addEventListener("click", addWordAndReturnHome);
+
+    continueAfterCompleteBtn.addEventListener("click", loadQuestions);
     retryBtn.addEventListener("click", loadQuestions);
 
-    document.addEventListener("DOMContentLoaded", loadQuestions);
+    document.addEventListener("DOMContentLoaded", () => {
+        updateCounters();
+        loadQuestions();
+    });
 </script>
 
 </body>

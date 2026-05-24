@@ -5,3 +5,4 @@ psycopg2-binary
 stripe==5.0.0
 openai>=1.82.0
 PyJWT>=2.8.0
+cryptography>=41.0.0

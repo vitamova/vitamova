@@ -52,7 +52,7 @@ class Test:
                     fetch_counts[frontier + 1] = 10
             
             # Now it's simple, just get the questions and return them formatted
-            questions = vitalib.Database.Test.Questions(self.conn, self.language).any(fetch_counts)
+            questions = vitalib.Database.Test.Questions(self.conn, self.user_id, self.language).any(fetch_counts)
             return Test.Format.questions(questions)
         def new_questions(self, type, score):
             # Get frontier based on score
@@ -73,8 +73,10 @@ class Test:
                     fetch_counts[frontier] = 8
                     fetch_counts[frontier + 1] = 1
             # Fetch questions based on fetch_counts
-            questions = vitalib.Database.Test.Questions(self.conn, self.language).new(self.user_id, fetch_counts)
-            return Test.Format.questions(questions)
+            questions = vitalib.Database.Test.Questions(self.conn, self.user_id, self.language).new(fetch_counts)
+            questions = Test.Format.questions(questions)
+            questions = vitalib.Database.Test.Questions(self.conn, self.user_id, self.language).append_lemma(questions)
+            return questions
         def results(self, answers):
             correct_answers = vitalib.Database.Test.Answers(self.conn).correct(answers)
             # For each answer, compare correct to selected
@@ -88,9 +90,9 @@ class Test:
         def missed(self, answers):
             results = self.results(answers)
             missed = [r for r in results if not r["is_correct"]]
-            missed = vitalib.Database.Test.Questions(self.conn, self.language).append_lemma(missed)
-            missed = vitalib.Database.Test.Questions(self.conn, self.language).append_options(missed)
-            missed = vitalib.Database.Test.Questions(self.conn, self.language).append_question_text(missed)
+            missed = vitalib.Database.Test.Questions(self.conn, self.user_id, self.language).append_lemma(missed)
+            missed = vitalib.Database.Test.Questions(self.conn, self.user_id, self.language).append_options(missed)
+            missed = vitalib.Database.Test.Questions(self.conn, self.user_id, self.language).append_question_text(missed)
             for m in missed:
                 m["correct_answer"] = m["lemma"]["lemma"]
             return missed
@@ -98,7 +100,7 @@ class Test:
             # All we need to do is find the first level where the user got between 40% and 80% correct
             results = self.results(answers)
             # Append the lemma rank
-            results = vitalib.Database.Test.Questions(self.conn, self.language).append_lemma_rank(results)
+            results = vitalib.Database.Test.Questions(self.conn, self.user_id, self.language).append_lemma_rank(results)
             frontier = 1
             for level in LEVEL_RANGES:
                 level_results = [r for r in results if LEVEL_RANGES[level][0] <= r["lemma_rank"] <= (LEVEL_RANGES[level][1] or float('inf'))]
@@ -202,7 +204,7 @@ class Test:
 
             # Now get the detailed results to calculate the bonus
             results = self.results(answers)
-            results = vitalib.Database.Test.Questions(self.conn, self.language).append_lemma_rank(results)
+            results = vitalib.Database.Test.Questions(self.conn, self.user_id, self.language).append_lemma_rank(results)
 
             bonus = self.bonus(results, frontier)
             total_score = base_score + bonus

@@ -1,27 +1,11 @@
 from django.shortcuts import render, redirect
 from django.db import connection
-from django.views.decorators.http import require_POST
 from django.http import JsonResponse
 from django.conf import settings
-from .decorators import registered_logged_in_required, subscribed_required, noscore_or_subscribed_required
-import stripe
+from .decorators import registered_logged_in_required, subscribed_required, noscore_or_subscribed_required, prepare_page
 from datetime import date
-from pathlib import Path
 import json
 import vitalib
-
-# Build paths inside the project like this: BASE_DIR / 'subdir'.
-BASE_DIR = Path(__file__).resolve().parent.parent
-
-VITAMOVA_PRICE_MAP = {
-    "price_1TQtOmKOiNtX3Wewk310Ygu5": "Vitamova Monthly",
-    "price_1TQtPSKOiNtX3WewCEePEtQg": "Vitamova Yearly"
-}
-
-STRIPE_PUBLIC_KEY= "pk_live_51RIChJKOiNtX3WewnOeHxiL99XltNWm2TluZew2fn6fzcmuHJ3R2x7EuLbbNpb74k1gnHlSRPHOoFJsFTEd5z8fp00rYr00NmV"
-# Stripe key is a variable from settings.py
-stripe.api_key = settings.STRIPE_PRIVATE_KEY
-
 
 # Define supported target languages
 SUPPORTED_LANGUAGES = [
@@ -44,98 +28,21 @@ SUPPORTED_NATIVE_LANGUAGES = [
 ]
 
 # Views
-    
-@require_POST
-@registered_logged_in_required
-def create_checkout_session(request):
 
-    price_id = request.POST.get("price_id")
-
-    if price_id not in VITAMOVA_PRICE_MAP:
-        return redirect("/subscribe/")
-
-    try:
-        checkout_session = stripe.checkout.Session.create(
-            customer_email=request.user.email,
-            line_items=[
-                {
-                    "price": price_id,
-                    "quantity": 1,
-                }
-            ],
-            mode="subscription",
-            allow_promotion_codes=True,
-            payment_method_collection="if_required",
-            success_url=request.build_absolute_uri("/subscribe/success/"),
-            cancel_url=request.build_absolute_uri("/"),
-            metadata={
-                "user_id": str(request.user.id),
-                "product": "vitamova",
-                "price_id": price_id,
-            },
-            subscription_data={
-                "metadata": {
-                    "user_id": str(request.user.id),
-                    "product": "vitamova",
-                    "price_id": price_id,
-                }
-            },
-        )
-
-        return redirect(checkout_session.url)
-
-    except Exception as e:
-        print(f"Error creating Stripe checkout session: {e}")
-        return redirect("/subscribe/")
-    
-@require_POST
-@registered_logged_in_required
-def create_customer_portal_session(request):
-    user_data = vitalib.Database.UserInfo.Get(connection, request.user.id).data(
-        "stripe_customer_id"
-    )
-
-    stripe_customer_id = user_data.get("stripe_customer_id")
-
-    if not stripe_customer_id:
-        return redirect("/subscribe/")
-
-    portal_session = stripe.billing_portal.Session.create(
-        customer=stripe_customer_id,
-        configuration="bpc_1TUd3xKOiNtX3WewK8WfAXcK",
-        return_url=request.build_absolute_uri("/")
-    )
-
-    return redirect(portal_session.url)
-
+@prepare_page
 @registered_logged_in_required
 def home(request):
-
-    registered_user = vitalib.Database.UserInfo.Get(connection, request.user.id).data(
-        "subscribed",
-        "subscription_expiration",
-        "stripe_customer_id",
-        "vocab_score",
-        "target_language",
-        "second_target_language"
-        )
-
-    subscribed, subscription_expiration, stripe_customer_id, vocab_score = (
-        registered_user.get("subscribed"),
-        registered_user.get("subscription_expiration"),
-        registered_user.get("stripe_customer_id"),
-        registered_user.get("vocab_score"),
-    )
 
     #See if language is specified as a query parameter
     language = request.GET.get("language")
 
     #Get target_language value from registered_user table to pass to template
     if not language:
-        language = registered_user.get("target_language", "es")
+        language = vitalib.Database.UserInfo.Get(connection, request.user.id).data("target_language")["target_language"] or "es"
 
     review_count = vitalib.Database.Vocab.Get(connection, request.user.id, language).review_count()
     vocab_score = vitalib.Database.UserInfo.Get(connection, request.user.id).score(language)
+    language_name = vitalib.Transform.Language(language).code_to_name()
 
     today = date.today()
 
@@ -146,6 +53,7 @@ def home(request):
             "has_score": vocab_score != -1,
             "review_count": review_count,
             "language": language,
+            "language_name": language_name,
             "language_options": vitalib.Database.UserInfo.Get(connection, request.user.id).languages(),
             "dev": settings.SERVER_TYPE == 'dev',
             "vocab_score": vocab_score
@@ -158,6 +66,7 @@ def home(request):
             # Otherwise, they gotta subscribe
             return redirect("/subscribe/")
 
+@prepare_page
 def login(request):
     if request.user.is_authenticated:
         return redirect('/')
@@ -328,6 +237,7 @@ def vocab_test(request):
             "get_retest_questions",
             "complete_retest",
             "resolve_retest_score",
+            "flag_question"
         ]:
             return JsonResponse(
                 {"status": "error", "message": "Invalid action."},
@@ -447,61 +357,27 @@ def vocab_test(request):
                         {"status": "error", "message": "Invalid JSON."},
                         status=400
                     )
+        if action == "flag_question":
+            question_id = data.get("question_id")
+            language = data.get("language", "es")
 
-@registered_logged_in_required
-@noscore_or_subscribed_required
-def flag_question(request):
-    if request.method != "POST":
-        return JsonResponse(
-            {"status": "error", "message": "Invalid request method."},
-            status=400
-        )
+            if not question_id:
+                return JsonResponse(
+                    {"status": "error", "message": "Missing question_id."},
+                    status=400
+                )
 
-    try:
-        data = json.loads(request.body.decode("utf-8"))
-    except json.JSONDecodeError:
-        return JsonResponse(
-            {"status": "error", "message": "Invalid JSON."},
-            status=400
-        )
+            flagged = vitalib.Database.Test.Questions(connection, request.user.id, language).flag(request.user.id, question_id)
 
-    question_id = data.get("question_id")
-    language = data.get("language", "es")
-
-    if not question_id:
-        return JsonResponse(
-            {"status": "error", "message": "Missing question_id."},
-            status=400
-        )
-
-    flagged = vitalib.Database.Test.Questions.flag(connection, request.user.username, language, question_id)
-
-    if flagged["status"] != "flagged":
-        return JsonResponse(
-            {"status": "error", "message": "Failed to flag question."},
-            status=500
-        )
-    else:
-        return JsonResponse({
-            "status": "ok",
-            "message": "Question flagged for review."
-        })
-
-@registered_logged_in_required
-def subscribe(request):
-
-    if vitalib.User.Subscription(request.user.id, request.user.email, connection).is_active():
-        return redirect("home")
-    
-    # Get user's score and language
-    user_data = vitalib.Database.UserInfo.Get(connection, request.user.id).data()
-
-    return render(request, "general/subscribe.html", {
-        "stripe_public_key": STRIPE_PUBLIC_KEY,
-        "score": "100",
-        "language": "Spanish",
-        "first_name": "Wesley"
-    })
+            if flagged["status"] != "flagged":
+                return JsonResponse(
+                    {"status": "error", "message": "Unable to flag question."},
+                    status=500
+                )
+            else:
+                return JsonResponse({
+                    "status": "flagged"
+                })
 
 @registered_logged_in_required
 @subscribed_required
@@ -518,6 +394,11 @@ def vocab_builder(request):
         # Get language from data
         language = data.get("language", "es")
         action = data.get("action")
+        if action not in [ "load_questions", "submit_answers", "add_to_bank"]:
+            return JsonResponse({
+                "status": "error",
+                "message": "Invalid action."
+            }, status=400)
         if action == "load_questions":
             score = vitalib.Database.UserInfo.Get(connection, request.user.id).score(language)
             questions = vitalib.Test.Get(connection, request.user.id, language).new_questions("vocab_builder", score)
@@ -529,13 +410,17 @@ def vocab_builder(request):
             answers = data.get("answers", [])
             # Get results based on answers
             missed = vitalib.Test.Get(connection, request.user.id, language).missed(answers)
-            # Add all the missed lemmas to the user's vocab list
-            for m in missed:
-                lemma_id = m["lemma"]["id"]
-                vitalib.Database.Vocab.Add(connection, request.user.id).lemma(lemma_id)
             return JsonResponse({
                 "status": "ok",
                 "missed_questions": missed
+            })
+        if action == "add_to_bank":
+            question_id = data.get("question_id")
+            lemma_id = vitalib.Database.Test.Questions(connection, request.user.id, language).get_lemma_id(question_id)
+            vitalib.Database.Vocab.Add(connection, request.user.id).lemma(lemma_id)
+            return JsonResponse({
+                "status": "ok",
+                "added": True
             })
 
 @registered_logged_in_required

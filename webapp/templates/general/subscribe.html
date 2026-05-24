@@ -3,7 +3,7 @@
 <head>
   {% include "partials/head.html" %}
 
-  <title>Vitamova | Subscribe</title>
+  <title>Vitamova | Start Free Trial</title>
 
   <script src="https://js.stripe.com/v3/"></script>
 
@@ -39,7 +39,7 @@
 
     .page {
       width: 100%;
-      max-width: 960px;
+      max-width: 980px;
       min-height: calc(100vh - 48px);
       margin: 0 auto;
       display: flex;
@@ -81,7 +81,7 @@
       background: linear-gradient(160deg, var(--vita-blue) 0%, #3d7dff 55%, #6aa0ff 100%);
       color: white;
       border-radius: 28px;
-      padding: 40px 28px;
+      padding: 42px 28px;
       position: relative;
       overflow: hidden;
       box-shadow: var(--shadow);
@@ -98,41 +98,75 @@
     }
 
     .title-card::before {
-      width: 240px;
-      height: 240px;
-      background: rgba(255, 213, 74, 0.35);
-      top: -90px;
-      right: -50px;
+      width: 260px;
+      height: 260px;
+      background: rgba(255, 213, 74, 0.38);
+      top: -100px;
+      right: -60px;
     }
 
     .title-card::after {
-      width: 180px;
-      height: 180px;
+      width: 190px;
+      height: 190px;
       background: rgba(255, 255, 255, 0.15);
-      bottom: -55px;
-      left: -35px;
+      bottom: -60px;
+      left: -40px;
     }
 
     .title-card-content {
       position: relative;
       z-index: 1;
-      max-width: 720px;
+      max-width: 760px;
       margin: 0 auto;
+    }
+
+    .trial-pill {
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      gap: 8px;
+      margin-bottom: 18px;
+      padding: 10px 16px;
+      border-radius: 999px;
+      background: rgba(255, 213, 74, 0.98);
+      color: #1a1f36;
+      font-weight: 900;
+      font-size: 0.92rem;
+      box-shadow: 0 12px 26px rgba(20, 27, 52, 0.14);
     }
 
     .title-card h1 {
       margin: 0 0 18px;
-      font-size: clamp(2rem, 4vw, 3.25rem);
-      line-height: 1.05;
-      letter-spacing: -0.04em;
+      font-size: clamp(2.15rem, 5vw, 3.75rem);
+      line-height: 1.02;
+      letter-spacing: -0.05em;
     }
 
     .title-card p {
       margin: 0 auto;
-      color: rgba(255, 255, 255, 0.92);
-      max-width: 62ch;
-      line-height: 1.55;
-      font-size: 1.05rem;
+      color: rgba(255, 255, 255, 0.93);
+      max-width: 66ch;
+      line-height: 1.58;
+      font-size: 1.08rem;
+    }
+
+    .no-card-banner {
+      margin: 24px auto 0;
+      max-width: 720px;
+      display: grid;
+      grid-template-columns: repeat(3, 1fr);
+      gap: 12px;
+    }
+
+    .trust-item {
+      background: rgba(255, 255, 255, 0.14);
+      border: 1px solid rgba(255, 255, 255, 0.22);
+      border-radius: 18px;
+      padding: 14px 12px;
+      backdrop-filter: blur(5px);
+      font-size: 0.92rem;
+      font-weight: 750;
+      color: white;
     }
 
     .score-highlight {
@@ -140,7 +174,7 @@
       align-items: center;
       justify-content: center;
       gap: 16px;
-      margin: 4px auto 20px;
+      margin: 8px auto 20px;
       padding: 16px 22px;
       border-radius: 22px;
       background: rgba(255, 255, 255, 0.14);
@@ -187,14 +221,14 @@
 
     .pricing-header {
       text-align: center;
-      max-width: 640px;
+      max-width: 700px;
       margin: 0 auto 26px;
     }
 
     .pricing-header h2 {
       margin: 0;
-      font-size: clamp(1.55rem, 2.5vw, 2rem);
-      letter-spacing: -0.03em;
+      font-size: clamp(1.65rem, 2.7vw, 2.25rem);
+      letter-spacing: -0.035em;
     }
 
     .pricing-header p {
@@ -202,6 +236,38 @@
       color: var(--text-muted);
       line-height: 1.55;
       font-size: 1rem;
+    }
+
+    .free-trial-box {
+      margin: 0 auto 24px;
+      max-width: 760px;
+      border-radius: 24px;
+      padding: 22px;
+      text-align: center;
+      background:
+        radial-gradient(circle at 8% 10%, rgba(255, 213, 74, 0.55), transparent 34%),
+        linear-gradient(135deg, rgba(31, 94, 255, 0.09), rgba(255, 213, 74, 0.24));
+      border: 1px solid rgba(31, 94, 255, 0.16);
+    }
+
+    .free-trial-box strong {
+      display: block;
+      color: var(--vita-blue);
+      font-size: clamp(1.35rem, 3vw, 2.1rem);
+      letter-spacing: -0.035em;
+      margin-bottom: 6px;
+    }
+
+    .free-trial-box span {
+      color: var(--text-dark);
+      font-weight: 800;
+    }
+
+    .free-trial-box p {
+      margin: 8px auto 0;
+      color: var(--text-muted);
+      line-height: 1.5;
+      max-width: 58ch;
     }
 
     .plans {
@@ -218,7 +284,7 @@
       display: flex;
       flex-direction: column;
       gap: 16px;
-      min-height: 310px;
+      min-height: 335px;
     }
 
     .plan.featured {
@@ -252,18 +318,22 @@
       white-space: nowrap;
     }
 
-    .price {
-      font-size: 2rem;
-      font-weight: 850;
-      letter-spacing: -0.04em;
-      color: var(--text-dark);
+    .trial-price {
+      display: grid;
+      gap: 5px;
     }
 
-    .price span {
-      font-size: 0.92rem;
+    .trial-price .free {
+      font-size: 2.15rem;
+      font-weight: 900;
+      letter-spacing: -0.05em;
+      color: var(--vita-blue);
+    }
+
+    .trial-price .then {
       color: var(--text-muted);
-      font-weight: 650;
-      letter-spacing: 0;
+      font-size: 0.95rem;
+      font-weight: 700;
     }
 
     .plan p {
@@ -296,7 +366,7 @@
       border-radius: 14px;
       padding: 14px 16px;
       font-size: 0.98rem;
-      font-weight: 800;
+      font-weight: 850;
       cursor: pointer;
       transition: transform 0.04s ease, box-shadow 0.15s ease, background-color 0.15s ease, border-color 0.15s ease;
       text-decoration: none;
@@ -340,7 +410,11 @@
       font-size: 0.88rem;
       line-height: 1.45;
       text-align: center;
-      max-width: 56ch;
+      max-width: 62ch;
+    }
+
+    .helper strong {
+      color: var(--text-dark);
     }
 
     .error-message {
@@ -375,7 +449,8 @@
         padding: 26px 20px;
       }
 
-      .plans {
+      .plans,
+      .no-card-banner {
         grid-template-columns: 1fr;
       }
 
@@ -406,8 +481,12 @@
 
     <section class="title-card" aria-label="Vitamova Subscription Intro">
       <div class="title-card-content">
+        <div class="trial-pill">
+          First 30 days free · No credit card required
+        </div>
+
         {% if first_name and score and language %}
-          <h1>{{ first_name }}, you can improve your {{ language }}.</h1>
+          <h1>{{ first_name }}, keep building your {{ language }} for free.</h1>
 
           <div class="score-highlight" aria-label="{{ language }} vocabulary score">
             <div class="score-main">
@@ -420,25 +499,42 @@
           </div>
 
           <p>
-            This is your starting point. Vitamova will help you build sharper vocabulary,
-            practice with purpose, and keep moving toward real progress in {{ language }}.
+            This is your starting point. Start your free 30-day Vitamova trial today,
+            keep practicing with purpose, and see how much progress you can make before
+            you ever pay anything.
           </p>
         {% else %}
-          <h1>Unlock your language learning path</h1>
+          <h1>Start your free 30-day language-learning trial.</h1>
           <p>
-            Subscribe to continue building vocabulary with targeted practice, saved progress,
-            and recommendations based on your current level.
+            Try Vitamova free for 30 days with no credit card required. Build vocabulary,
+            save your progress, and explore your learning path before paying anything.
           </p>
         {% endif %}
+
+        <div class="no-card-banner">
+          <div class="trust-item">30 days free</div>
+          <div class="trust-item">No credit card required</div>
+          <div class="trust-item">Choose any plan</div>
+        </div>
       </div>
     </section>
 
     <section class="pricing-card" aria-label="Subscription Options">
       <div class="pricing-header">
-        <h2>Choose your plan</h2>
+        <h2>Choose a plan after your free trial</h2>
         <p>
-          Start with monthly flexibility or choose yearly if you are ready to build your
-          vocabulary consistently over time.
+          Pick the plan that fits you best. No matter which option you choose,
+          your first 30 days are completely free and you do not need to enter
+          credit card information to start.
+        </p>
+      </div>
+
+      <div class="free-trial-box">
+        <strong>Try Vitamova free for 30 days.</strong>
+        <span>No credit card. No charge today. Just start learning.</span>
+        <p>
+          Monthly and yearly both begin with the same free trial. After the trial,
+          you can continue with the plan you selected.
         </p>
       </div>
 
@@ -448,25 +544,28 @@
             <h3>Monthly</h3>
           </div>
 
-          <div class="price">
-            $5 <span>/ month</span>
+          <div class="trial-price">
+            <div class="free">$0 today</div>
+            <div class="then">Then $5 / month after your 30-day free trial</div>
           </div>
 
           <p>
-            Flexible access to Vitamova with a simple monthly subscription.
+            A flexible option if you want to keep building your vocabulary month by month.
           </p>
 
           <ul class="benefits">
+            <li>First 30 days free</li>
+            <li>No credit card required for trial</li>
             <li>Personalized vocabulary practice</li>
             <li>Progress tracking</li>
             <li>Targeted {{ language|default:"language" }} learning path</li>
           </ul>
 
-          <form method="POST" action="/create-checkout-session/">
+          <form method="POST" action="/subscribe/create-checkout-session/">
             {% csrf_token %}
             <input type="hidden" name="price_id" value="price_1TQtOmKOiNtX3Wewk310Ygu5">
             <button class="btn btn-secondary" type="submit">
-              Choose monthly
+              Start free trial monthly
             </button>
           </form>
         </article>
@@ -477,32 +576,36 @@
             <span class="badge">Best value</span>
           </div>
 
-          <div class="price">
-            $50 <span>/ year</span>
+          <div class="trial-price">
+            <div class="free">$0 today</div>
+            <div class="then">Then $50 / year after your 30-day free trial</div>
           </div>
 
           <p>
-            A better value for learners who want to commit to steady improvement.
+            The better value if you are ready to build consistent long-term progress.
           </p>
 
           <ul class="benefits">
+            <li>First 30 days free</li>
+            <li>No credit card required for trial</li>
             <li>Everything in monthly</li>
             <li>Better long-term value</li>
             <li>Stay focused on consistent learning</li>
           </ul>
 
-          <form method="POST" action="/create-checkout-session/">
+          <form method="POST" action="/subscribe/create-checkout-session/">
             {% csrf_token %}
             <input type="hidden" name="price_id" value="price_1TQtPSKOiNtX3WewCEePEtQg">
             <button class="btn btn-primary" type="submit">
-              Choose yearly
+              Start free trial yearly
             </button>
           </form>
         </article>
       </div>
 
       <div class="helper">
-        Payments are handled securely through Stripe. You can manage your subscription after checkout.
+        <strong>You will not be charged today.</strong> Your first 30 days are free,
+        and no credit card information is required to begin the trial.
       </div>
 
       <div class="error-message" id="errorMessage">
@@ -536,10 +639,10 @@
 
         errorMessage.classList.remove("is-visible");
         button.disabled = true;
-        button.textContent = "Redirecting...";
+        button.textContent = "Starting your free trial...";
 
         try {
-          const response = await fetch("/create-checkout-session/", {
+          const response = await fetch("/subscribe/create-checkout-session/", {
             method: "POST",
             headers: {
               "Content-Type": "application/json",
@@ -570,9 +673,9 @@
           button.disabled = false;
 
           if (priceId === "price_1TQtOmKOiNtX3Wewk310Ygu5") {
-            button.textContent = "Choose monthly";
+            button.textContent = "Start free trial monthly";
           } else {
-            button.textContent = "Choose yearly";
+            button.textContent = "Start free trial yearly";
           }
         }
       });
