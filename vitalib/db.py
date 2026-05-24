@@ -22,6 +22,44 @@ REVIEW_STAGE_INTERVALS = {
 }
 
 class Database:
+    class Status:
+        def __init__(self, conn):
+            self.conn = conn
+
+        def get(self):
+            try:
+                with self.conn.cursor() as cursor:
+                    cursor.execute("SET LOCAL statement_timeout = 1500;")
+                    cursor.execute("SELECT 1;")
+                    result = cursor.fetchone()
+
+                return result is not None and result[0] == 1
+
+            except Exception:
+                return False
+
+        def start(self):
+            try:
+                with self.conn.cursor() as cursor:
+                    cursor.execute("SELECT 1;")
+                    result = cursor.fetchone()
+
+                if result is not None and result[0] == 1:
+                    return {
+                        "status": "ok",
+                        "message": "Database start successful."
+                    }
+
+                return {
+                    "status": "error",
+                    "error": "Database did not return the expected response."
+                }
+
+            except Exception as error:
+                return {
+                    "status": "error",
+                    "error": str(error)
+                }
     #Retrieve user information
     class UserInfo:
         ALLOWED_COLUMNS = {
