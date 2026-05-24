@@ -31,6 +31,7 @@ urlpatterns = [
     # New organized sections
     path("vocabulary/", include("webapp.new_urls.vocabulary")),
     path("subscribe/", include("webapp.new_urls.subscribe")),
+    path("general/", include("webapp.new_urls.general")),
     #path("sentences/", include("webapp.urls.sentences")),
     #path("reading/", include("webapp.urls.reading"))
     ]
