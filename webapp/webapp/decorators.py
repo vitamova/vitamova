@@ -113,3 +113,15 @@ def valid_language(view_func):
         return view_func(request, *args, **kwargs)
 
     return wrapper
+
+def prepare_page(view_func):
+    @wraps(view_func)
+    def wrapper(request, *args, **kwargs):
+        if request.path.startswith("/general/prepare"):
+            return view_func(request, *args, **kwargs)
+        if not vitalib.Database.Status(connection).get():
+            return redirect("/general/prepare/")
+
+        return view_func(request, *args, **kwargs)
+
+    return wrapper

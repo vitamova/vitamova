@@ -2,7 +2,7 @@ from django.shortcuts import render, redirect
 from django.db import connection
 from django.http import JsonResponse
 from django.conf import settings
-from .decorators import registered_logged_in_required, subscribed_required, noscore_or_subscribed_required
+from .decorators import registered_logged_in_required, subscribed_required, noscore_or_subscribed_required, prepare_page
 from datetime import date
 import json
 import vitalib
@@ -30,6 +30,7 @@ SUPPORTED_NATIVE_LANGUAGES = [
 # Views
 
 @registered_logged_in_required
+@prepare_page
 def home(request):
 
     #See if language is specified as a query parameter
@@ -65,6 +66,7 @@ def home(request):
             # Otherwise, they gotta subscribe
             return redirect("/subscribe/")
 
+@prepare_page
 def login(request):
     if request.user.is_authenticated:
         return redirect('/')
