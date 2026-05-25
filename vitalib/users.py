@@ -188,4 +188,4 @@ class User:
             created_at = datetime.datetime.fromtimestamp(created_timestamp, tz=datetime.timezone.utc)
             now = datetime.datetime.now(datetime.timezone.utc)
 
-            return now - created_at <= datetime.timedelta(minutes=30)
+            return now - created_at <= datetime.timedelta(minutes=10)
