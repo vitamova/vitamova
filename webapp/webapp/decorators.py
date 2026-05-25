@@ -5,6 +5,7 @@ from django.http import HttpResponseForbidden, JsonResponse
 from django.conf import settings
 import vitalib
 import json
+from urllib.parse import urlencode
 
 server_type = settings.SERVER_TYPE
 
@@ -119,8 +120,23 @@ def prepare_page(view_func):
     def wrapper(request, *args, **kwargs):
         if request.path.startswith("/general/prepare"):
             return view_func(request, *args, **kwargs)
-        if not vitalib.Database.Status(connection).get():
-            return redirect("/general/prepare/")
+
+        db_settings = connection.settings_dict
+
+        conn_params = {
+            "host": db_settings.get("HOST"),
+            "port": db_settings.get("PORT") or 5432,
+            "dbname": db_settings.get("NAME"),
+            "user": db_settings.get("USER"),
+            "password": db_settings.get("PASSWORD"),
+        }
+
+        if not vitalib.Database.Status(conn_params).get():
+            redirect_params = urlencode({
+                "redirect_uri": request.get_full_path()
+            })
+
+            return redirect(f"/general/prepare/?{redirect_params}")
 
         return view_func(request, *args, **kwargs)
 

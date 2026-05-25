@@ -1,6 +1,8 @@
 import datetime
 import random
 import vitalib
+import psycopg2
+from concurrent.futures import ThreadPoolExecutor, TimeoutError
 
 LEVEL_RANGES = {
     1: (1, 1500),
@@ -23,37 +25,62 @@ REVIEW_STAGE_INTERVALS = {
 
 class Database:
     class Status:
-        def __init__(self, conn):
-            self.conn = conn
+        def __init__(self, conn_params):
+            self.conn_params = conn_params
 
         def get(self):
-            try:
-                with self.conn.cursor() as cursor:
-                    cursor.execute("SET LOCAL statement_timeout = 1500;")
-                    cursor.execute("SELECT 1;")
-                    result = cursor.fetchone()
+            def quick_check():
+                conn = psycopg2.connect(
+                    **self.conn_params,
+                    connect_timeout=1
+                )
 
-                return result is not None and result[0] == 1
+                try:
+                    with conn.cursor() as cursor:
+                        cursor.execute("SELECT 1;")
+                        result = cursor.fetchone()
+
+                    return result is not None and result[0] == 1
+
+                finally:
+                    conn.close()
+
+            try:
+                with ThreadPoolExecutor(max_workers=1) as executor:
+                    future = executor.submit(quick_check)
+                    return future.result(timeout=0.5)
+
+            except TimeoutError:
+                return False
 
             except Exception:
                 return False
 
         def start(self):
             try:
-                with self.conn.cursor() as cursor:
-                    cursor.execute("SELECT 1;")
-                    result = cursor.fetchone()
+                conn = psycopg2.connect(
+                    **self.conn_params,
+                    connect_timeout=10
+                )
 
-                if result is not None and result[0] == 1:
+                try:
+                    with conn.cursor() as cursor:
+                        cursor.execute("SELECT 1;")
+                        result = cursor.fetchone()
+
+                    if result is not None and result[0] == 1:
+                        return {
+                            "status": "ok",
+                            "message": "Database start successful."
+                        }
+
                     return {
-                        "status": "ok",
-                        "message": "Database start successful."
+                        "status": "error",
+                        "error": "Database did not return the expected response."
                     }
 
-                return {
-                    "status": "error",
-                    "error": "Database did not return the expected response."
-                }
+                finally:
+                    conn.close()
 
             except Exception as error:
                 return {
