@@ -56,7 +56,8 @@ def home(request):
             "language_name": language_name,
             "language_options": vitalib.Database.UserInfo.Get(connection, request.user.id).languages(),
             "dev": settings.SERVER_TYPE == 'dev',
-            "vocab_score": vocab_score
+            "vocab_score": vocab_score,
+            "mobile": request.user_agent.is_mobile
             })
     else:
         # Not subscribed but can still take the test
