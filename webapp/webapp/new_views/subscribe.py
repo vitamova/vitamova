@@ -107,4 +107,4 @@ def success(request):
             "language": language_name,
         })
     else:
-        return redirect("/")
+        return redirect("/account/")
