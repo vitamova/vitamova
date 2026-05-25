@@ -1,7 +1,7 @@
 from django.shortcuts import render, redirect
 from django.db import connection
 from django.http import JsonResponse
-from .decorators import registered_logged_in_required
+from ..decorators import registered_logged_in_required
 import vitalib
 
 @registered_logged_in_required
