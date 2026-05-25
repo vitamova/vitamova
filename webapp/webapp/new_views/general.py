@@ -1,8 +1,15 @@
 from django.shortcuts import render, redirect
 from django.db import connection
 from django.http import JsonResponse
+from .decorators import registered_logged_in_required
 import vitalib
 
+@registered_logged_in_required
+def register_success(request):
+    if vitalib.User.Registration(request.user.id, connection).recent():
+        return render(request, "general/register_success.html")
+    else:
+        return redirect('/')
 
 def prepare(request):
     db_settings = connection.settings_dict

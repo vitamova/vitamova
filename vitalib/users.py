@@ -19,6 +19,18 @@ class User:
         def is_valid(self):
             user_info = vitalib.Database.UserInfo.Get(self.conn, self.user_id).data()
             return user_info is not None
+        
+        def recent(self):
+            user_info = vitalib.Database.UserInfo.Get(self.conn, self.user_id).data("date_created")
+
+            if not user_info or not user_info.get("date_created"):
+                return False
+
+            user_created = user_info["date_created"]
+
+            now = datetime.datetime.now(user_created.tzinfo) if user_created.tzinfo else datetime.datetime.now()
+
+            return now - user_created <= datetime.timedelta(minutes=10)
     
     class Subscription:
         def __init__(self, user_id, email, conn):

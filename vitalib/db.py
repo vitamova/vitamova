@@ -97,7 +97,9 @@ class Database:
             "subscription_expiration",
             "stripe_customer_id",
             "second_target_language",
-            "second_vocab_score"
+            "second_vocab_score",
+            "date_created",
+            "date_updated"
         }
         class Create:
             def __init__(self, conn, user_id):

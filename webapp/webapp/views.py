@@ -76,6 +76,9 @@ def login(request):
 def register(request):
     if not request.user.is_authenticated:
         return redirect('/login/')
+    
+    if vitalib.User.Registration(request.user.id, connection).is_valid():
+        return redirect('/account/')
 
     if request.method == 'POST':
         native_language = request.POST.get('native_language')
@@ -101,7 +104,7 @@ def register(request):
             stripe_customer_id=subscription_info["stripe_customer_id"],
         )
 
-        return redirect('/')
+        return redirect('/general/register-success/')
 
     elif request.method == 'GET':
         return render(request, 'general/register.html', {
