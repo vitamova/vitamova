@@ -373,7 +373,7 @@ class Database:
                         FROM lemmas l
                         LEFT JOIN lemma_translations lt
                             ON lt.lemma_id = l.id
-                            AND lt.language = %s
+                            AND lt.native_language = %s
                         WHERE l.language = %s
                         AND l.lemma ILIKE %s
                         ORDER BY l.rank ASC
