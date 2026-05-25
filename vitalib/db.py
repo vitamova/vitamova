@@ -60,7 +60,7 @@ class Database:
             try:
                 conn = psycopg2.connect(
                     **self.conn_params,
-                    connect_timeout=10
+                    connect_timeout=15
                 )
 
                 try:
