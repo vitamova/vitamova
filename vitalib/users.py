@@ -161,7 +161,7 @@ class User:
                 limit=100,
             ).data
 
-            vitamova_price_ids = set(VITAMOVA_PRICE_MAP.values())
+            vitamova_price_ids = set(VITAMOVA_PRICE_MAP.keys())
 
             latest_vitamova_subscription = None
 
