@@ -222,10 +222,7 @@
       padding: 16px;
       text-align: left;
       cursor: pointer;
-      display: flex;
-      align-items: center;
-      justify-content: space-between;
-      gap: 16px;
+      display: block;
       font: inherit;
       color: var(--text-dark);
       box-shadow: 0 8px 18px rgba(24, 42, 100, 0.05);
@@ -249,22 +246,19 @@
       margin: 0;
     }
 
+    .result-translation {
+      margin: 5px 0 0;
+      color: var(--text-dark);
+      font-size: 0.98rem;
+      font-weight: 750;
+      line-height: 1.4;
+    }
+
     .result-meta {
       margin: 5px 0 0;
       color: var(--text-muted);
       font-size: 0.9rem;
       line-height: 1.4;
-    }
-
-    .rank-pill {
-      flex-shrink: 0;
-      background: rgba(31, 94, 255, 0.08);
-      color: var(--vita-blue);
-      border-radius: 999px;
-      padding: 7px 10px;
-      font-size: 0.78rem;
-      font-weight: 900;
-      white-space: nowrap;
     }
 
     .empty-state {
@@ -352,6 +346,14 @@
       font-weight: 950;
     }
 
+    .modal-translation {
+      display: none;
+      margin-top: 8px;
+      color: var(--text-dark);
+      font-weight: 750;
+      line-height: 1.45;
+    }
+
     .modal-actions {
       display: flex;
       justify-content: flex-end;
@@ -418,11 +420,6 @@
       .status-text {
         display: block;
         margin-top: 8px;
-      }
-
-      .result-card {
-        align-items: flex-start;
-        flex-direction: column;
       }
 
       .modal-actions {
@@ -502,6 +499,7 @@
       <p>
         Add <span id="modalWord" class="modal-word"></span> to your vocabulary so it can appear in your future reviews?
       </p>
+      <p id="modalTranslation" class="modal-translation"></p>
 
       <div class="modal-actions">
         <button id="cancelAddButton" class="btn btn-secondary" type="button">Cancel</button>
@@ -522,6 +520,7 @@
 
     const confirmModal = document.getElementById("confirmModal");
     const modalWord = document.getElementById("modalWord");
+    const modalTranslation = document.getElementById("modalTranslation");
     const cancelAddButton = document.getElementById("cancelAddButton");
     const confirmAddButton = document.getElementById("confirmAddButton");
 
@@ -581,6 +580,15 @@
         word.className = "result-word";
         word.textContent = match.lemma;
 
+        main.appendChild(word);
+
+        if (match.translation) {
+          const translation = document.createElement("p");
+          translation.className = "result-translation";
+          translation.textContent = match.translation;
+          main.appendChild(translation);
+        }
+
         const meta = document.createElement("p");
         meta.className = "result-meta";
 
@@ -594,17 +602,13 @@
           details.push(match.definition);
         }
 
-        meta.textContent = details.join(" · ") || "Lemma match";
+        meta.textContent = details.join(" · ");
 
-        const rank = document.createElement("span");
-        rank.className = "rank-pill";
-        rank.textContent = match.rank ? `Rank ${match.rank}` : "Lemma";
-
-        main.appendChild(word);
-        main.appendChild(meta);
+        if (details.length > 0) {
+          main.appendChild(meta);
+        }
 
         button.appendChild(main);
-        button.appendChild(rank);
 
         button.addEventListener("click", () => {
           openConfirmModal(match);
@@ -681,6 +685,15 @@
     function openConfirmModal(match) {
       selectedLemma = match;
       modalWord.textContent = match.lemma;
+
+      if (match.translation) {
+        modalTranslation.textContent = match.translation;
+        modalTranslation.style.display = "block";
+      } else {
+        modalTranslation.textContent = "";
+        modalTranslation.style.display = "none";
+      }
+
       confirmModal.classList.add("is-open");
       confirmAddButton.disabled = false;
       cancelAddButton.focus();
@@ -689,6 +702,8 @@
     function closeConfirmModal() {
       confirmModal.classList.remove("is-open");
       selectedLemma = null;
+      modalTranslation.textContent = "";
+      modalTranslation.style.display = "none";
     }
 
     function addSelectedLemma() {
