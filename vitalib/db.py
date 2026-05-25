@@ -359,28 +359,41 @@ class Database:
                 }
             def lemma_starts_with(self, prefix):
                 # Return up to 5 lemmas that start with the given prefix for the user's target language
+                # Include translation when available in the user's native language
+
                 with self.conn.cursor() as cursor:
                     cursor.execute(
                         """
-                        SELECT id, lemma, pos, definition
-                        FROM lemmas
-                        WHERE language = %s
-                        AND lemma ILIKE %s
-                        ORDER BY rank ASC
+                        SELECT 
+                            l.id,
+                            l.lemma,
+                            l.pos,
+                            l.definition,
+                            lt.translation
+                        FROM lemmas l
+                        LEFT JOIN lemma_translations lt
+                            ON lt.lemma_id = l.id
+                            AND lt.language = %s
+                        WHERE l.language = %s
+                        AND l.lemma ILIKE %s
+                        ORDER BY l.rank ASC
                         LIMIT 5
                         """,
                         [
+                            self.native_language,
                             self.language,
                             prefix + '%'
                         ]
                     )
                     rows = cursor.fetchall()
+
                 return [
                     {
                         "lemma_id": row[0],
                         "lemma": row[1],
                         "part_of_speech": row[2],
-                        "definition": row[3]
+                        "definition": row[3],
+                        "translation": row[4]
                     }
                     for row in rows
                 ]
