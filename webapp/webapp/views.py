@@ -47,6 +47,15 @@ def home(request):
     today = date.today()
 
     if vitalib.User.Subscription(request.user.id, request.user.email, connection).is_active():
+        user_agent = request.META.get("HTTP_USER_AGENT", "").lower()
+        mobile = any(device in user_agent for device in [
+            "mobile",
+            "android",
+            "iphone",
+            "ipad",
+            "ipod",
+            "windows phone",
+        ])
         return render(request, "general/home.html", {
             "first_name": request.user.first_name,
             "user_email": request.user.email,
@@ -57,7 +66,7 @@ def home(request):
             "language_options": vitalib.Database.UserInfo.Get(connection, request.user.id).languages(),
             "dev": settings.SERVER_TYPE == 'dev',
             "vocab_score": vocab_score,
-            "mobile": request.user_agent.is_mobile
+            "mobile": mobile
             })
     else:
         # Not subscribed but can still take the test
