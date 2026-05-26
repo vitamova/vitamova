@@ -23,7 +23,6 @@ urlpatterns = [
     path('accounts/', include('allauth.urls')),
     path('register/', views.register, name='register'),
     path('account/', views.account, name='account'),
-    path('vocab-test/', views.vocab_test, name='vocab-test'),
     path('reading-practice/', views.reading_practice, name='reading-practice'),
 
     # New organized sections

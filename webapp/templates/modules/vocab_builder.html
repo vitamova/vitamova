@@ -243,7 +243,6 @@
 
 <script>
     const VOCAB_BUILDER_URL = "/vocabulary/build/";
-    const VOCAB_TEST_URL = "/vocab-test/";
     const BATCH_SIZE = 10;
 
     const language = document.getElementById("language").value;
@@ -382,7 +381,7 @@
     }
 
     async function postVocabTest(payload) {
-        return postJson(VOCAB_TEST_URL, payload);
+        return postJson(VOCAB_BUILDER_URL, payload);
     }
 
     function normalizeOptions(options) {

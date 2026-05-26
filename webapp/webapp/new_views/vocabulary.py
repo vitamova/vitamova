@@ -87,7 +87,7 @@ def build(request):
         # Get language from data
         language = data.get("language", "es")
         action = data.get("action")
-        if action not in [ "load_questions", "submit_answers", "add_to_bank"]:
+        if action not in [ "load_questions", "submit_answers", "add_to_bank", "flag_question"]:
             return JsonResponse({
                 "status": "error",
                 "message": "Invalid action."
@@ -123,6 +123,27 @@ def build(request):
                 "status": "ok",
                 "added": True
             })
+        if action == "flag_question":
+            question_id = data.get("question_id")
+            language = data.get("language", "es")
+
+            if not question_id:
+                return JsonResponse(
+                    {"status": "error", "message": "Missing question_id."},
+                    status=400
+                )
+
+            flagged = vitalib.Database.Test.Questions(connection, request.user.id, language).flag(request.user.id, question_id)
+
+            if flagged["status"] != "flagged":
+                return JsonResponse(
+                    {"status": "error", "message": "Unable to flag question."},
+                    status=500
+                )
+            else:
+                return JsonResponse({
+                    "status": "flagged"
+                })
 
 @registered_logged_in_required
 @subscribed_required

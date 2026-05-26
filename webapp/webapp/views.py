@@ -78,12 +78,7 @@ def home(request):
             "new_score_dict": new_score
             })
     else:
-        # Not subscribed but can still take the test
-        if vocab_score == -1:
-            return render(request, "home_unsubscribed_noscore.html")
-        else:
-            # Otherwise, they gotta subscribe
-            return redirect("/subscribe/")
+        return redirect("/subscribe/")
 
 @prepare_page
 def login(request):
