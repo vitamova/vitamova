@@ -654,6 +654,33 @@ class Database:
                         ]
                     )
                 return {"status": "flagged"}
+            def log_result(self, results):
+                # For each resul in results result.is_correct should be True or False and result.question_id is the id of the question
+                # The table has columns id, user_id, question_id, correct, and answered_at
+                answered_at = datetime.datetime.now(datetime.timezone.utc)
+                rows = [
+                    (
+                        self.user_id,
+                        result["question_id"],
+                        result["is_correct"],
+                        answered_at
+                    )
+                    for result in results
+                ]
+                with self.conn.cursor() as cursor:
+                    cursor.executemany(
+                        """
+                        INSERT INTO test_results (
+                            user_id,
+                            question_id,
+                            correct,
+                            answered_at
+                        )
+                        VALUES (%s, %s, %s, %s)
+                        """,
+                        rows
+                    )
+                return {"status": "logged"}
             def append_lemma_rank(self, questions):
                 question_ids = [q["question_id"] for q in questions]
                 if not question_ids:

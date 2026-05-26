@@ -89,6 +89,10 @@ class Test:
             return answers
         def missed(self, answers):
             results = self.results(answers)
+            # Log results
+            logged = vitalib.Database.Test.Questions(self.conn, self.user_id, self.language).log_result(results)
+            if logged["status"] != "logged" or not logged:
+                raise Exception("Failed to log results")
             missed = [r for r in results if not r["is_correct"]]
             missed = vitalib.Database.Test.Questions(self.conn, self.user_id, self.language).append_lemma(missed)
             missed = vitalib.Database.Test.Questions(self.conn, self.user_id, self.language).append_options(missed)
