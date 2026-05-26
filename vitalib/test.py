@@ -30,25 +30,33 @@ class Test:
                 for level in LEVEL_RANGES:
                     correct = per_level_results.get(level, {}).get("correct", 0)
                     incorrect = per_level_results.get(level, {}).get("incorrect", 0)
-                    level_weights[level] = beta.cdf(0.80, correct + 1, incorrect + 1)
-                levels = list(LEVEL_RANGES.keys())
-                weights = [level_weights[level] for level in levels]
-                selected_levels = random.choices(levels, weights=weights, k=count)
-                for level in selected_levels:
-                    fetch_counts[level] += 1
+                    level_weights[level] = beta.sf(0.80, correct + 1, incorrect + 1)
             else:
-                frontier = min((score // 1000) + 1, 6)
+                frontier = min((score // 1000) + 1, len(LEVEL_RANGES))
+                bonus = score % 1000
                 if frontier == 1:
-                    fetch_counts[1] = int(count * 0.8)
-                    fetch_counts[2] = count - fetch_counts[1]
-                elif frontier == 6:
-                    fetch_counts[6] = int(count * 0.8)
-                    fetch_counts[5] = count - fetch_counts[6]
+                    level_weights = {
+                        1: 1000,
+                        2: bonus,
+                    }
+
+                elif frontier == len(LEVEL_RANGES):
+                    level_weights = {
+                        len(LEVEL_RANGES): 1000,
+                        len(LEVEL_RANGES) - 1: 1000 - bonus,
+                    }
+
                 else:
-                    fetch_counts[frontier] = int(count * 0.8)
-                    remaining = count - fetch_counts[frontier]
-                    fetch_counts[frontier - 1] = remaining // 2
-                    fetch_counts[frontier + 1] = remaining - fetch_counts[frontier - 1]
+                    level_weights = {
+                        frontier - 1: 1000 - bonus,
+                        frontier: 1000,
+                        frontier + 1: bonus,
+                    }
+            levels = list(level_weights.keys())
+            weights = list(level_weights.values())
+            selected_levels = random.choices(levels, weights=weights, k=count)
+            for level in selected_levels:
+                fetch_counts[level] += 1
             return fetch_counts
 
         def any_questions(self, type, frontier, batch=None):
@@ -250,18 +258,20 @@ class Test:
                 correct = per_level_results[level].get("correct", 0)
                 incorrect = per_level_results[level].get("incorrect", 0)
                 eval_dict[level] = {}
-                eval_dict[level]["mastery"] = beta.cdf(0.80, correct + 1, incorrect + 1)
-                eval_dict[level]["entry"] = beta.cdf(0.40, correct + 1, incorrect + 1)
-            for level in eval_dict:
+                eval_dict[level]["mastery_confidence"] = beta.sf(0.80, correct + 1, incorrect + 1)
+                eval_dict[level]["entry_confidence"] = beta.sf(0.40, correct + 1, incorrect + 1)
+            frontier = 1
+            for level in sorted(eval_dict.keys()):
                 if level < len(list(eval_dict.keys())):
                     next_level = level + 1
-                    if eval_dict[level]["mastery"] < 0.9 and eval_dict[next_level]["entry"] < 0.9:
-                        score_result += 1000 * eval_dict[level]["mastery"] * eval_dict[level+1]["entry"]
-                        break
-                    else:
-                        score_result += 1000
-                else:
-                    score_result += 1000 * eval_dict[level]["mastery"]
+                    if eval_dict[level]["mastery_confidence"] >= 0.9 and eval_dict[next_level]["entry_confidence"] >= 0.9:
+                        frontier = next_level
+            base_score = 1000 * (frontier - 1)
+            if frontier < len(list(eval_dict.keys())):
+                bonus = 1000 * eval_dict[frontier]["mastery_confidence"] * eval_dict[frontier + 1]["entry_confidence"]
+            else:
+                bonus = 1000 * eval_dict[frontier]["mastery_confidence"]
+            score_result = base_score + bonus
             return round(score_result)
 
                 
