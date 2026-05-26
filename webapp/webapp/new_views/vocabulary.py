@@ -72,3 +72,82 @@ def add(request):
                     },
                     status=400
                 )
+            
+@registered_logged_in_required
+@subscribed_required
+def build(request):
+    if request.method == "GET":
+        language = request.GET.get("language", "es")
+        return render(request, "modules/vocab_builder.html", {
+            "language": language
+        })
+    if request.method == "POST":
+        # Get the data
+        data = json.loads(request.body.decode("utf-8"))
+        # Get language from data
+        language = data.get("language", "es")
+        action = data.get("action")
+        if action not in [ "load_questions", "submit_answers", "add_to_bank"]:
+            return JsonResponse({
+                "status": "error",
+                "message": "Invalid action."
+            }, status=400)
+        if action == "load_questions":
+            questions = vitalib.Test.Get(connection, request.user.id, language).new_questions(count = 10)
+            return JsonResponse({
+                "status": "ok",
+                "questions": questions
+            })
+        if action == "submit_answers":
+            answers = data.get("answers", [])
+            # Get results based on answers
+            missed = vitalib.Test.Get(connection, request.user.id, language).missed(answers)
+            return JsonResponse({
+                "status": "ok",
+                "missed_questions": missed
+            })
+        if action == "add_to_bank":
+            question_id = data.get("question_id")
+            lemma_id = vitalib.Database.Test.Questions(connection, request.user.id, language).get_lemma_id(question_id)
+            vitalib.Database.Vocab.Add(connection, request.user.id).lemma(lemma_id)
+            return JsonResponse({
+                "status": "ok",
+                "added": True
+            })
+
+@registered_logged_in_required
+@subscribed_required
+def review(request):
+    
+    if request.method == "GET":
+        language = request.GET.get("language", "es")
+        return render(request, "modules/review.html", {
+            "language": language
+        })
+    elif request.method == "POST":
+        data = json.loads(request.body.decode("utf-8"))
+        language = data.get("language", "es")
+        action = data.get("action")
+
+        if action not in ["load_review_items", "submit_review_result"]:
+            return JsonResponse({
+                "status": "error",
+                "message": "Invalid action."
+            }, status=400)
+
+        if action == "load_review_items":
+            review_items = vitalib.Database.Vocab.Get(connection, request.user.id, language).words()
+            return JsonResponse({
+                "status": "ok",
+                "items": review_items
+            })
+        elif action == "submit_review_result":
+            lemma_id = data.get("lemma_id")
+            if data.get("remembered_correctly"):
+                updated = vitalib.Database.Vocab.Update(connection, request.user.id).correct(lemma_id)
+            else:
+                updated = vitalib.Database.Vocab.Update(connection, request.user.id).incorrect(lemma_id)
+            assert updated["status"] == "updated", "Failed to update review results."
+            return JsonResponse({
+                "status": "ok"
+            })
