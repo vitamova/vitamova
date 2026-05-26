@@ -374,13 +374,8 @@
     async function postVocabBuilder(payload) {
         const data = await postJson(VOCAB_BUILDER_URL, payload);
 
-        if (data.status !== "ok") {
-            if (data.status === "redirect_home") {
-                window.location.href = "/?language=" + language;
-                return;
-            } else {
+        if (data.status !== "ok" && data.status !== "redirect_home") {
                 throw new Error(data.error || "Request failed.");
-            }
         }
 
         return data;
@@ -446,6 +441,11 @@
                 count: BATCH_SIZE,
                 batch: batchNumber
             });
+
+            if (data.status === "redirect_home") {
+                window.location.href = "/";
+                return;
+            }
 
             const newQuestions = data.questions || [];
 
