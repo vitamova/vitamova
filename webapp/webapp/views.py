@@ -43,6 +43,7 @@ def home(request):
     review_count = vitalib.Database.Vocab.Get(connection, request.user.id, language).review_count()
     vocab_score = vitalib.Database.UserInfo.Get(connection, request.user.id).score(language)
     language_name = vitalib.Transform.Language(language).code_to_name()
+    new_score = vitalib.Test.Get(connection, request.user.id, language).new_score()
 
     today = date.today()
 
@@ -66,7 +67,8 @@ def home(request):
             "language_options": vitalib.Database.UserInfo.Get(connection, request.user.id).languages(),
             "dev": settings.SERVER_TYPE == 'dev',
             "vocab_score": vocab_score,
-            "mobile": mobile
+            "mobile": mobile,
+            "new_score": new_score
             })
     else:
         # Not subscribed but can still take the test
