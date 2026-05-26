@@ -616,9 +616,20 @@ class Database:
                                 WHERE uv.user_id = %s
                                     AND uv.lemma_id = vtb.lemma_id
                             )
+                            AND NOT EXISTS (
+                                SELECT 1
+                                FROM user_vocab_question_results uvqr
+                                WHERE uvqr.user_id = %s
+                                    AND uvqr.question_id = vtb.id
+                            )
                         """
 
-                        params = [self.language, min_rank, self.user_id]
+                        params = [
+                            self.language,
+                            min_rank,
+                            self.user_id,
+                            self.user_id
+                        ]
 
                         if max_rank is not None:
                             sql += " AND l.rank <= %s"
@@ -655,9 +666,11 @@ class Database:
                     )
                 return {"status": "flagged"}
             def log_result(self, results):
-                # For each resul in results result.is_correct should be True or False and result.question_id is the id of the question
-                # The table has columns id, user_id, question_id, correct, and answered_at
+                if not results:
+                    return {"status": "logged", "count": 0}
+
                 answered_at = datetime.datetime.now(datetime.timezone.utc)
+
                 rows = [
                     (
                         self.user_id,
@@ -667,6 +680,7 @@ class Database:
                     )
                     for result in results
                 ]
+
                 with self.conn.cursor() as cursor:
                     cursor.executemany(
                         """
@@ -677,10 +691,18 @@ class Database:
                             answered_at
                         )
                         VALUES (%s, %s, %s, %s)
+                        ON CONFLICT (user_id, question_id)
+                        DO UPDATE SET
+                            correct = EXCLUDED.correct,
+                            answered_at = EXCLUDED.answered_at
                         """,
                         rows
                     )
-                return {"status": "logged"}
+
+                self.conn.commit()
+
+                return {"status": "logged", "count": len(rows)}
+            
             def append_lemma_rank(self, questions):
                 question_ids = [q["question_id"] for q in questions]
                 if not question_ids:
