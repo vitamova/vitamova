@@ -5,7 +5,7 @@
 
   <title>Vitamova | Home</title>
 
-  <! -- Your new score is {{ new_score_dict.score }} with {{ new_score_dict.confidence }} confidence -- >
+  <!-- Your new score is {{ new_score_dict.score }} with {{ new_score_dict.confidence }} confidence -->
 
   <style>
     :root {
@@ -254,9 +254,16 @@
       left: -35px;
     }
 
-    .hero-content {
+    .hero-grid {
       position: relative;
       z-index: 1;
+      display: grid;
+      grid-template-columns: minmax(0, 1fr) 280px;
+      gap: 28px;
+      align-items: center;
+    }
+
+    .hero-content {
       max-width: 720px;
     }
 
@@ -273,6 +280,67 @@
       max-width: 62ch;
       line-height: 1.55;
       font-size: 1.05rem;
+    }
+
+    .hero-score-card {
+      position: relative;
+      background:
+        radial-gradient(circle at 90% 12%, rgba(255, 213, 74, 0.30), transparent 38%),
+        rgba(255, 255, 255, 0.14);
+      border: 1px solid rgba(255, 255, 255, 0.22);
+      border-radius: 26px;
+      padding: 22px;
+      box-shadow: 0 18px 42px rgba(0, 30, 120, 0.18);
+      backdrop-filter: blur(10px);
+      text-align: center;
+      overflow: hidden;
+    }
+
+    .hero-score-card::before {
+      content: "";
+      position: absolute;
+      inset: 1px;
+      border-radius: 24px;
+      border: 1px solid rgba(255, 255, 255, 0.10);
+      pointer-events: none;
+    }
+
+    .hero-score-label {
+      display: block;
+      color: rgba(255, 255, 255, 0.82);
+      font-size: 0.74rem;
+      font-weight: 900;
+      letter-spacing: 0.10em;
+      text-transform: uppercase;
+      line-height: 1.35;
+    }
+
+    .hero-score-language {
+      display: block;
+      margin-top: 4px;
+      color: white;
+      font-size: 0.94rem;
+      font-weight: 900;
+      line-height: 1.25;
+    }
+
+    .hero-score-value {
+      display: block;
+      margin-top: 12px;
+      color: white;
+      font-size: clamp(2.6rem, 6vw, 4.3rem);
+      font-weight: 950;
+      letter-spacing: -0.07em;
+      line-height: 0.95;
+      text-shadow: 0 10px 28px rgba(0, 0, 0, 0.18);
+    }
+
+    .hero-score-note {
+      margin-top: 12px;
+      color: rgba(255, 255, 255, 0.84);
+      font-size: 0.86rem;
+      font-weight: 750;
+      line-height: 1.35;
     }
 
     .status-strip {
@@ -293,7 +361,7 @@
       font-weight: 700;
     }
 
-    .review-priority-panel {
+    .priority-panel {
       display: grid;
       grid-template-columns: minmax(0, 1fr) auto;
       gap: 18px;
@@ -307,14 +375,14 @@
       box-shadow: 0 18px 45px rgba(155, 116, 0, 0.14);
     }
 
-    .review-priority-copy {
+    .priority-copy {
       display: flex;
       align-items: center;
       gap: 18px;
       min-width: 0;
     }
 
-    .review-badge {
+    .priority-badge {
       width: 96px;
       height: 96px;
       border-radius: 24px;
@@ -326,12 +394,12 @@
       box-shadow: 0 14px 30px rgba(31, 94, 255, 0.24);
     }
 
-    .review-badge-inner {
+    .priority-badge-inner {
       text-align: center;
       line-height: 1;
     }
 
-    .review-label {
+    .priority-label {
       display: block;
       font-size: 0.68rem;
       font-weight: 850;
@@ -341,20 +409,20 @@
       margin-bottom: 8px;
     }
 
-    .review-value {
+    .priority-value {
       display: block;
       font-size: 1.8rem;
       font-weight: 950;
       letter-spacing: -0.04em;
     }
 
-    .review-priority-text h2 {
+    .priority-text h2 {
       margin: 0;
       font-size: 1.55rem;
       letter-spacing: -0.03em;
     }
 
-    .review-priority-text p {
+    .priority-text p {
       margin: 8px 0 0;
       color: var(--text-muted);
       line-height: 1.5;
@@ -378,96 +446,6 @@
     }
 
     .primary-action:hover {
-      transform: translateY(-2px);
-      background: var(--vita-blue-dark);
-      box-shadow: 0 14px 28px rgba(31, 94, 255, 0.30);
-    }
-
-    .retest-panel {
-      display: grid;
-      grid-template-columns: minmax(0, 1fr) auto;
-      gap: 18px;
-      align-items: center;
-      background:
-        radial-gradient(circle at 94% 10%, rgba(255, 213, 74, 0.34), transparent 34%),
-        linear-gradient(135deg, #ffffff 0%, #fff8d8 100%);
-      border: 1px solid rgba(244, 191, 32, 0.42);
-      border-radius: 26px;
-      padding: 24px;
-      box-shadow: 0 16px 38px rgba(155, 116, 0, 0.10);
-    }
-
-    .retest-copy {
-      display: flex;
-      align-items: center;
-      gap: 18px;
-      min-width: 0;
-    }
-
-    .score-badge {
-      width: 96px;
-      height: 96px;
-      border-radius: 24px;
-      background: var(--text-dark);
-      color: white;
-      display: grid;
-      place-items: center;
-      flex-shrink: 0;
-      box-shadow: 0 12px 30px rgba(26, 31, 54, 0.18);
-    }
-
-    .score-badge-inner {
-      text-align: center;
-      line-height: 1;
-    }
-
-    .score-label {
-      display: block;
-      font-size: 0.68rem;
-      font-weight: 850;
-      text-transform: uppercase;
-      letter-spacing: 0.08em;
-      color: rgba(255, 255, 255, 0.72);
-      margin-bottom: 8px;
-    }
-
-    .score-value {
-      display: block;
-      font-size: 1.8rem;
-      font-weight: 950;
-      letter-spacing: -0.04em;
-    }
-
-    .retest-text h2 {
-      margin: 0;
-      font-size: 1.45rem;
-      letter-spacing: -0.03em;
-    }
-
-    .retest-text p {
-      margin: 8px 0 0;
-      color: var(--text-muted);
-      line-height: 1.5;
-      max-width: 68ch;
-    }
-
-    .retest-action {
-      display: inline-flex;
-      align-items: center;
-      justify-content: center;
-      gap: 8px;
-      border-radius: 999px;
-      background: var(--vita-blue);
-      color: white;
-      text-decoration: none;
-      font-weight: 900;
-      padding: 13px 18px;
-      white-space: nowrap;
-      box-shadow: 0 10px 22px rgba(31, 94, 255, 0.24);
-      transition: transform 0.15s ease, box-shadow 0.15s ease, background 0.15s ease;
-    }
-
-    .retest-action:hover {
       transform: translateY(-2px);
       background: var(--vita-blue-dark);
       box-shadow: 0 14px 28px rgba(31, 94, 255, 0.30);
@@ -587,18 +565,6 @@
       }
     }
 
-    .activity-card.locked {
-      opacity: 0.52;
-      filter: grayscale(0.15);
-      cursor: not-allowed;
-    }
-
-    .activity-card.locked:hover {
-      transform: none;
-      box-shadow: 0 12px 32px rgba(24, 42, 100, 0.08);
-      border-color: var(--border);
-    }
-
     .activity-card.coming-soon {
       opacity: 0.54;
       filter: grayscale(0.25);
@@ -702,21 +668,6 @@
       color: var(--text-muted);
     }
 
-    .locked-note {
-      position: relative;
-      z-index: 1;
-      margin-top: auto;
-      padding-top: 18px;
-      color: var(--text-muted);
-      font-size: 0.84rem;
-      line-height: 1.45;
-      font-weight: 700;
-    }
-
-    .locked-note strong {
-      color: var(--text-dark);
-    }
-
     .bottom-note {
       text-align: center;
       color: var(--text-muted);
@@ -726,18 +677,24 @@
     }
 
     @media (max-width: 980px) {
+      .hero-grid {
+        grid-template-columns: 1fr;
+      }
+
+      .hero-score-card {
+        max-width: 360px;
+      }
+
       .module-row,
       .module-row.single {
         grid-template-columns: repeat(2, 1fr);
       }
 
-      .review-priority-panel,
-      .retest-panel {
+      .priority-panel {
         grid-template-columns: 1fr;
       }
 
-      .primary-action,
-      .retest-action {
+      .primary-action {
         justify-self: start;
       }
     }
@@ -769,14 +726,12 @@
         padding: 28px 22px;
       }
 
-      .review-priority-copy,
-      .retest-copy {
+      .priority-copy {
         align-items: flex-start;
         flex-direction: column;
       }
 
-      .review-badge,
-      .score-badge {
+      .priority-badge {
         width: 88px;
         height: 88px;
       }
@@ -878,46 +833,59 @@
     </header>
 
     <section class="hero" aria-label="Vitamova Dashboard Welcome">
-      <div class="hero-content">
-        <h1>Welcome back, {{ first_name }}
-          {% if dev %}
-            <br>[ DEV SERVER ]
-          {% endif %}
-        </h1>
-        <p>
-          Keep building the kind of vocabulary, sentence patterns, and language confidence
-          that help you understand more naturally and communicate with more precision.
-        </p>
+      <div class="hero-grid">
+        <div class="hero-content">
+          <h1>Welcome back, {{ first_name }}
+            {% if dev %}
+              <br>[ DEV SERVER ]
+            {% endif %}
+          </h1>
+          <p>
+            Keep building the kind of vocabulary, sentence patterns, and language confidence
+            that help you understand more naturally and communicate with more precision.
+          </p>
 
-        <div class="status-strip">
-          {% if has_score %}
-            <span class="status-pill">Vocabulary score ready</span>
-          {% else %}
-            <span class="status-pill">Start with your first vocabulary test</span>
-          {% endif %}
+          <div class="status-strip">
+            {% if has_score %}
+              <span class="status-pill">Vocabulary score ready</span>
+            {% else %}
+              <span class="status-pill">Score developing organically</span>
+            {% endif %}
 
-          {% if review_count > 0 %}
-            <span class="status-pill">{{ review_count }} terms ready for review</span>
-          {% else %}
-            <span class="status-pill">No reviews due</span>
-          {% endif %}
+            {% if review_count > 0 %}
+              <span class="status-pill">{{ review_count }} terms ready for review</span>
+            {% else %}
+              <span class="status-pill">No reviews due</span>
+            {% endif %}
 
-          <span class="status-pill">Current language: {{ language_name }}</span>
+            <span class="status-pill">Current language: {{ language_name }}</span>
+          </div>
         </div>
+
+        {% if has_score %}
+          <div class="hero-score-card" aria-label="Current vocabulary score">
+            <span class="hero-score-label">Your current score for</span>
+            <span class="hero-score-language">{{ language_name }}</span>
+            <span class="hero-score-value">{{ vocab_score }}</span>
+            <div class="hero-score-note">
+              Built from your activity inside Vitamova.
+            </div>
+          </div>
+        {% endif %}
       </div>
     </section>
 
     {% if review_count > 0 %}
-      <section class="review-priority-panel" aria-label="Words ready for review">
-        <div class="review-priority-copy">
-          <div class="review-badge">
-            <div class="review-badge-inner">
-              <span class="review-label">Due</span>
-              <span class="review-value">{{ review_count }}</span>
+      <section class="priority-panel" aria-label="Words ready for review">
+        <div class="priority-copy">
+          <div class="priority-badge">
+            <div class="priority-badge-inner">
+              <span class="priority-label">Due</span>
+              <span class="priority-value">{{ review_count }}</span>
             </div>
           </div>
 
-          <div class="review-priority-text">
+          <div class="priority-text">
             <h2>Your review queue is ready</h2>
             <p>
               These words are ready for another pass. Review them now while they are due and keep your vocabulary active.
@@ -925,44 +893,36 @@
           </div>
         </div>
 
-        <a class="primary-action" href="/review/?language={{ language }}">
+        <a class="primary-action" href="/vocabulary/review/?language={{ language }}">
           <span>Review now</span>
           <span>→</span>
         </a>
       </section>
-    {% endif %}
+    {% else %}
+      <section class="priority-panel" aria-label="Build vocabulary">
+        <div class="priority-copy">
+          <div class="priority-badge">
+            <div class="priority-badge-inner">
+              <span class="priority-label">Build</span>
+              <span class="priority-value">✦</span>
+            </div>
+          </div>
 
-    <section class="retest-panel" aria-label="Vocabulary score and retest">
-      <div class="retest-copy">
-        <div class="score-badge">
-          <div class="score-badge-inner">
-            <span class="score-label">Score</span>
-            {% if has_score %}
-              <span class="score-value">{{ vocab_score }}</span>
-            {% else %}
-              <span class="score-value">—</span>
-            {% endif %}
+          <div class="priority-text">
+            <h2>You have no vocabulary to review</h2>
+            <p>
+              Build your vocabulary bank with the Vocabulary Builder. Vitamova will use your activity to grow your score
+              naturally while you learn.
+            </p>
           </div>
         </div>
 
-        <div class="retest-text">
-          <h2>{% if has_score %}Ready to measure your progress?{% else %}Start with your first vocabulary test{% endif %}</h2>
-          <p>
-            {% if has_score %}
-              If you think your vocabulary has improved and you are ready to retest, take a new vocabulary test
-              to refresh your score and keep Vitamova aligned with your current level.
-            {% else %}
-              Take your first vocabulary test so Vitamova can estimate your current level and personalize your learning path. The test takes an estimated 10-15 minutes.
-            {% endif %}
-          </p>
-        </div>
-      </div>
-
-      <a class="retest-action" href="/vocab-test/?language={{ language }}">
-        <span>{% if has_score %}Retake test{% else %}Take test{% endif %}</span>
-        <span>→</span>
-      </a>
-    </section>
+        <a class="primary-action" href="/vocabulary/build/?language={{ language }}">
+          <span>Build vocabulary</span>
+          <span>→</span>
+        </a>
+      </section>
+    {% endif %}
 
     <section class="dashboard-section {% if mobile %}mobile-collapsible{% endif %}" aria-label="Vocabulary modules" data-mobile-section>
       <div class="section-header">
@@ -981,74 +941,40 @@
 
       <div class="section-content">
         <div class="module-row">
-          {% if has_score %}
-            <a class="activity-card" href="/vocab-builder/?language={{ language }}">
-              <div class="card-topline">
-                <div class="icon-circle">✦</div>
-              </div>
-
-              <h3>Vocabulary Builder</h3>
-              <p>
-                Learn new words in the frequency range that best matches your current level.
-              </p>
-
-              <div class="card-action">
-                <span>Build vocabulary</span>
-                <span>→</span>
-              </div>
-            </a>
-          {% else %}
-            <div class="activity-card locked">
-              <div class="card-topline">
-                <div class="icon-circle">✦</div>
-              </div>
-
-              <h3>Vocabulary Builder</h3>
-              <p>
-                Learn new words in the frequency range that best matches your current level.
-              </p>
-
-              <div class="locked-note">
-                <strong>Almost ready.</strong> Complete your first vocabulary test so we can recommend the right words.
-              </div>
+          <a class="activity-card" href="/vocabulary/build/?language={{ language }}">
+            <div class="card-topline">
+              <div class="icon-circle">✦</div>
             </div>
-          {% endif %}
 
-          {% if has_score %}
-            <a class="activity-card {% if review_count > 0 %}highlighted{% endif %}" href="/review/?language={{ language }}">
-              <div class="card-topline">
-                <div class="icon-circle">↻</div>
-                {% if review_count > 0 %}
-                  <span class="mini-badge review">{{ review_count }} due</span>
-                {% endif %}
-              </div>
+            <h3>Vocabulary Builder</h3>
+            <p>
+              Learn new words, answer diagnostic questions, and let Vitamova shape your score through regular practice.
+            </p>
 
-              <h3>Review Queue</h3>
-              <p>
-                Revisit terms that are ready for another pass and keep them active in long-term memory.
-              </p>
-
-              <div class="card-action">
-                <span>{% if review_count > 0 %}Review now{% else %}Check reviews{% endif %}</span>
-                <span>→</span>
-              </div>
-            </a>
-          {% else %}
-            <div class="activity-card locked">
-              <div class="card-topline">
-                <div class="icon-circle">↻</div>
-              </div>
-
-              <h3>Review Queue</h3>
-              <p>
-                Revisit terms that are ready for another pass and keep them active in long-term memory.
-              </p>
-
-              <div class="locked-note">
-                <strong>Coming next.</strong> Complete your first vocabulary test so your reviews can be personalized.
-              </div>
+            <div class="card-action">
+              <span>Build vocabulary</span>
+              <span>→</span>
             </div>
-          {% endif %}
+          </a>
+
+          <a class="activity-card {% if review_count > 0 %}highlighted{% endif %}" href="/vocabulary/review/?language={{ language }}">
+            <div class="card-topline">
+              <div class="icon-circle">↻</div>
+              {% if review_count > 0 %}
+                <span class="mini-badge review">{{ review_count }} due</span>
+              {% endif %}
+            </div>
+
+            <h3>Review Queue</h3>
+            <p>
+              Revisit terms that are ready for another pass and keep them active in long-term memory.
+            </p>
+
+            <div class="card-action">
+              <span>{% if review_count > 0 %}Review now{% else %}Check reviews{% endif %}</span>
+              <span>→</span>
+            </div>
+          </a>
 
           <a class="activity-card" href="/vocabulary/add/?language={{ language }}">
             <div class="card-topline">
@@ -1066,167 +992,171 @@
             </div>
           </a>
 
-          <div class="activity-card coming-soon" aria-disabled="true">
-            <div class="card-topline">
-              <div class="icon-circle">☰</div>
-              <span class="mini-badge soon">Soon</span>
-            </div>
+          {% if dev %}
+            <div class="activity-card coming-soon" aria-disabled="true">
+              <div class="card-topline">
+                <div class="icon-circle">☰</div>
+                <span class="mini-badge soon">Soon</span>
+              </div>
 
-            <h3>Manage My Vocabulary</h3>
-            <p>
-              See the words in your review system, inspect their details, and remove terms you no longer want to study.
-            </p>
-
-            <div class="card-action">
-              <span>Manage words</span>
-              <span>→</span>
-            </div>
-          </div>
-        </div>
-      </div>
-    </section>
-
-    <section class="dashboard-section {% if mobile %}mobile-collapsible{% endif %}" aria-label="Sentence modules" data-mobile-section>
-      <div class="section-header">
-        <button class="section-title-button" type="button" data-section-toggle {% if not mobile %}disabled{% endif %}>
-          <div class="section-title-row">
-            <div>
-              <h2>Sentences</h2>
+              <h3>Manage My Vocabulary</h3>
               <p>
-                Practice useful sentence patterns so words become easier to recall, combine, and use in real conversations.
+                See the words in your review system, inspect their details, and remove terms you no longer want to study.
               </p>
+
+              <div class="card-action">
+                <span>Manage words</span>
+                <span>→</span>
+              </div>
             </div>
-            <span class="section-chevron">⌄</span>
-          </div>
-        </button>
-      </div>
-
-      <div class="section-content">
-        <div class="module-row">
-          <div class="activity-card coming-soon" aria-disabled="true">
-            <div class="card-topline">
-              <div class="icon-circle">“</div>
-              <span class="mini-badge soon">Soon</span>
-            </div>
-
-            <h3>Sentence Builder</h3>
-            <p>
-              Learn practical sentences that reinforce grammar, vocabulary, and natural phrasing.
-            </p>
-
-            <div class="card-action">
-              <span>Build sentences</span>
-              <span>→</span>
-            </div>
-          </div>
-
-          <div class="activity-card coming-soon" aria-disabled="true">
-            <div class="card-topline">
-              <div class="icon-circle">↻</div>
-              <span class="mini-badge soon">Soon</span>
-            </div>
-
-            <h3>Sentence Review Queue</h3>
-            <p>
-              Revisit full sentences until the structure starts to feel automatic.
-            </p>
-
-            <div class="card-action">
-              <span>Review sentences</span>
-              <span>→</span>
-            </div>
-          </div>
-
-          <div class="activity-card coming-soon" aria-disabled="true">
-            <div class="card-topline">
-              <div class="icon-circle">+</div>
-              <span class="mini-badge soon">Soon</span>
-            </div>
-
-            <h3>Manually Add Sentences</h3>
-            <p>
-              Save sentences you hear, read, or want to memorize for future review.
-            </p>
-
-            <div class="card-action">
-              <span>Add sentences</span>
-              <span>→</span>
-            </div>
-          </div>
-
-          <div class="activity-card coming-soon" aria-disabled="true">
-            <div class="card-topline">
-              <div class="icon-circle">☰</div>
-              <span class="mini-badge soon">Soon</span>
-            </div>
-
-            <h3>Manage My Sentences</h3>
-            <p>
-              View, organize, edit, or remove the sentences you are actively practicing.
-            </p>
-
-            <div class="card-action">
-              <span>Manage sentences</span>
-              <span>→</span>
-            </div>
-          </div>
+          {% endif %}
         </div>
       </div>
     </section>
 
-    <section class="dashboard-section {% if mobile %}mobile-collapsible{% endif %}" aria-label="Practice lab modules" data-mobile-section>
-      <div class="section-header">
-        <button class="section-title-button" type="button" data-section-toggle {% if not mobile %}disabled{% endif %}>
-          <div class="section-title-row">
-            <div>
-              <h2>Practice Labs</h2>
+    {% if dev %}
+      <section class="dashboard-section {% if mobile %}mobile-collapsible{% endif %}" aria-label="Sentence modules" data-mobile-section>
+        <div class="section-header">
+          <button class="section-title-button" type="button" data-section-toggle {% if not mobile %}disabled{% endif %}>
+            <div class="section-title-row">
+              <div>
+                <h2>Sentences</h2>
+                <p>
+                  Practice useful sentence patterns so words become easier to recall, combine, and use in real conversations.
+                </p>
+              </div>
+              <span class="section-chevron">⌄</span>
+            </div>
+          </button>
+        </div>
+
+        <div class="section-content">
+          <div class="module-row">
+            <div class="activity-card coming-soon" aria-disabled="true">
+              <div class="card-topline">
+                <div class="icon-circle">“</div>
+                <span class="mini-badge soon">Soon</span>
+              </div>
+
+              <h3>Sentence Builder</h3>
               <p>
-                Strengthen your comprehension and expression with guided activities matched to your learning progress.
+                Learn practical sentences that reinforce grammar, vocabulary, and natural phrasing.
               </p>
-            </div>
-            <span class="section-chevron">⌄</span>
-          </div>
-        </button>
-      </div>
 
-      <div class="section-content">
-        <div class="module-row single">
-          <div class="activity-card coming-soon" aria-disabled="true">
-            <div class="card-topline">
-              <div class="icon-circle">¶</div>
-              <span class="mini-badge soon">Soon</span>
+              <div class="card-action">
+                <span>Build sentences</span>
+                <span>→</span>
+              </div>
             </div>
 
-            <h3>Reading Lab</h3>
-            <p>
-              Practice in context with reading passages matched to your vocabulary level.
-            </p>
+            <div class="activity-card coming-soon" aria-disabled="true">
+              <div class="card-topline">
+                <div class="icon-circle">↻</div>
+                <span class="mini-badge soon">Soon</span>
+              </div>
 
-            <div class="card-action">
-              <span>Start reading</span>
-              <span>→</span>
+              <h3>Sentence Review Queue</h3>
+              <p>
+                Revisit full sentences until the structure starts to feel automatic.
+              </p>
+
+              <div class="card-action">
+                <span>Review sentences</span>
+                <span>→</span>
+              </div>
             </div>
-          </div>
 
-          <div class="activity-card coming-soon" aria-disabled="true">
-            <div class="card-topline">
-              <div class="icon-circle">✎</div>
-              <span class="mini-badge soon">Soon</span>
+            <div class="activity-card coming-soon" aria-disabled="true">
+              <div class="card-topline">
+                <div class="icon-circle">+</div>
+                <span class="mini-badge soon">Soon</span>
+              </div>
+
+              <h3>Manually Add Sentences</h3>
+              <p>
+                Save sentences you hear, read, or want to memorize for future review.
+              </p>
+
+              <div class="card-action">
+                <span>Add sentences</span>
+                <span>→</span>
+              </div>
             </div>
 
-            <h3>Writing Practice</h3>
-            <p>
-              Practice writing short responses and receive targeted feedback on clarity, grammar, and vocabulary.
-            </p>
+            <div class="activity-card coming-soon" aria-disabled="true">
+              <div class="card-topline">
+                <div class="icon-circle">☰</div>
+                <span class="mini-badge soon">Soon</span>
+              </div>
 
-            <div class="card-action">
-              <span>Start writing</span>
-              <span>→</span>
+              <h3>Manage My Sentences</h3>
+              <p>
+                View, organize, edit, or remove the sentences you are actively practicing.
+              </p>
+
+              <div class="card-action">
+                <span>Manage sentences</span>
+                <span>→</span>
+              </div>
             </div>
           </div>
         </div>
-      </div>
-    </section>
+      </section>
+
+      <section class="dashboard-section {% if mobile %}mobile-collapsible{% endif %}" aria-label="Practice lab modules" data-mobile-section>
+        <div class="section-header">
+          <button class="section-title-button" type="button" data-section-toggle {% if not mobile %}disabled{% endif %}>
+            <div class="section-title-row">
+              <div>
+                <h2>Practice Labs</h2>
+                <p>
+                  Strengthen your comprehension and expression with guided activities matched to your learning progress.
+                </p>
+              </div>
+              <span class="section-chevron">⌄</span>
+            </div>
+          </button>
+        </div>
+
+        <div class="section-content">
+          <div class="module-row single">
+            <div class="activity-card coming-soon" aria-disabled="true">
+              <div class="card-topline">
+                <div class="icon-circle">¶</div>
+                <span class="mini-badge soon">Soon</span>
+              </div>
+
+              <h3>Reading Lab</h3>
+              <p>
+                Practice in context with reading passages matched to your vocabulary level.
+              </p>
+
+              <div class="card-action">
+                <span>Start reading</span>
+                <span>→</span>
+              </div>
+            </div>
+
+            <div class="activity-card coming-soon" aria-disabled="true">
+              <div class="card-topline">
+                <div class="icon-circle">✎</div>
+                <span class="mini-badge soon">Soon</span>
+              </div>
+
+              <h3>Writing Practice</h3>
+              <p>
+                Practice writing short responses and receive targeted feedback on clarity, grammar, and vocabulary.
+              </p>
+
+              <div class="card-action">
+                <span>Start writing</span>
+                <span>→</span>
+              </div>
+            </div>
+          </div>
+        </div>
+      </section>
+    {% endif %}
 
     <div class="bottom-note">
       Small, consistent practice compounds. Pick one activity and keep the streak moving.
