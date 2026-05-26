@@ -45,6 +45,7 @@ def home(request):
     new_score = vitalib.Test.Get(connection, request.user.id, language).new_score()
 
     if new_score["confidence"] == "solid" and new_score["score"] > vocab_score:
+        vitalib.Database.UserInfo.Update(connection, request.user.id).score(language, new_score["score"])
         return render(request, "general/new_score.html", {
             "first_name": request.user.first_name,
             "language": language,
@@ -74,7 +75,7 @@ def home(request):
             "dev": settings.SERVER_TYPE == 'dev',
             "vocab_score": vocab_score,
             "mobile": mobile,
-            "new_score": new_score
+            "new_score_dict": new_score
             })
     else:
         # Not subscribed but can still take the test
