@@ -241,6 +241,33 @@ class Test:
                 vitalib.Database.UserInfo.Update(self.conn, self.user_id).score(self.language, total_score)
 
             return total_score
+        def new_score(self):
+            score_result = 0
+            # Get the per_level_results for the user
+            per_level_results = vitalib.Database.Test.Questions(self.conn, self.user_id, self.language).per_level_results()
+            eval_dict = {}
+            for level in per_level_results:
+                correct = per_level_results[level].get("correct", 0)
+                incorrect = per_level_results[level].get("incorrect", 0)
+                eval_dict[level] = {}
+                eval_dict[level]["mastery"] = beta.cdf(0.80, correct + 1, incorrect + 1)
+                eval_dict[level]["entry"] = beta.cdf(0.40, correct + 1, incorrect + 1)
+            for level in eval_dict:
+                if level < len(list(eval_dict.keys())):
+                    next_level = level + 1
+                    if eval_dict[level]["mastery"] < 0.9 and eval_dict[next_level]["entry"] < 0.9:
+                        score_result += 1000 * eval_dict[level]["mastery"] * eval_dict[level+1]["entry"]
+                        break
+                    else:
+                        score_result += 1000
+                else:
+                    score_result += 1000 * eval_dict[level]["mastery"]
+            return round(score_result)
+
+                
+
+            # Calculate the user's score with statistics
+
     class Format:
         @staticmethod
         def questions(rows):
