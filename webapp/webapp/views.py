@@ -3,7 +3,6 @@ from django.db import connection
 from django.http import JsonResponse
 from django.conf import settings
 from .decorators import registered_logged_in_required, subscribed_required, noscore_or_subscribed_required, prepare_page
-from datetime import date
 import json
 import vitalib
 
@@ -45,16 +44,15 @@ def home(request):
     language_name = vitalib.Transform.Language(language).code_to_name()
     new_score = vitalib.Test.Get(connection, request.user.id, language).new_score()
 
-    if True:
+    if new_score["confidence"] == "solid" and new_score["score"] > vocab_score:
         return render(request, "general/new_score.html", {
             "first_name": request.user.first_name,
             "language": language,
+            "language_name": language_name,
             "old_score": vocab_score,
             "new_score": new_score["score"]
         })
-
-    today = date.today()
-
+    
     if vitalib.User.Subscription(request.user.id, request.user.email, connection).is_active():
         user_agent = request.META.get("HTTP_USER_AGENT", "").lower()
         mobile = any(device in user_agent for device in [

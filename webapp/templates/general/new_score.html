@@ -605,10 +605,12 @@
 
         <h1>Congratulations, {{ first_name }}!!</h1>
 
+        <h3> You've improved your {{ language_name }} score!</h3>
+
         <p>
           {% if old_score == -1 %}
             You just earned your first Vitamova score. This gives us a starting point for personalizing your practice
-            and helping you build momentum in {{ language }}.
+            and helping you build momentum in {{ language_name }}.
           {% else %}
             Your work is paying off. Your Vitamova score has increased, which means your recent activity shows stronger
             command of the material you have been practicing.
@@ -765,14 +767,6 @@
       <div class="action-row">
         <a class="btn btn-primary" href="/">
           Continue in Vitamova →
-        </a>
-
-        <a class="btn btn-secondary" href="/vocab-builder/?language={{ language }}">
-          Build more vocabulary
-        </a>
-
-        <a class="btn btn-secondary" href="/review/?language={{ language }}">
-          Review words
         </a>
       </div>
     </section>
