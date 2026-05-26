@@ -109,6 +109,10 @@ class Database:
             def data(self, **fields):
                 allowed_columns = Database.UserInfo.ALLOWED_COLUMNS | {"user_id"}
 
+                # We're gonna automatically give the user 30 days of subscription
+                fields["subscribed"] = True
+                fields["subscription_expiration"] = datetime.datetime.now(datetime.timezone.utc) + datetime.timedelta(days=30)
+
                 fields["user_id"] = self.user_id
 
                 invalid_columns = set(fields.keys()) - allowed_columns

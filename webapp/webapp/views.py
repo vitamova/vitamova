@@ -110,17 +110,12 @@ def register(request):
                 'first_name': request.user.first_name,
                 'error': 'You must agree to the Terms and Conditions to continue.'
             })
-
-        subscription_info = vitalib.User.Subscription(request.user.id, request.user.email, connection).check_stripe()
-
+        
         # vitalib.Database.Test(connection, request.user.username, "es").score_result(data.get("answers", []))
         vitalib.Database.UserInfo.Create(connection, request.user.id).data(
             native_language=native_language,
             target_language=target_language,
-            second_target_language=second_target_language,
-            subscribed=subscription_info["subscribed"],
-            subscription_expiration=subscription_info["subscription_expiration"],
-            stripe_customer_id=subscription_info["stripe_customer_id"],
+            second_target_language=second_target_language
         )
 
         return redirect('/general/register-success/')
