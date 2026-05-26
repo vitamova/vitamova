@@ -50,7 +50,7 @@ def home(request):
             "first_name": request.user.first_name,
             "language": language,
             "old_score": vocab_score,
-            "new_score": new_score
+            "new_score": new_score["score"]
         })
 
     today = date.today()
