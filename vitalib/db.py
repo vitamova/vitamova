@@ -670,7 +670,7 @@ class Database:
                 with self.conn.cursor() as cursor:
                     cursor.executemany(
                         """
-                        INSERT INTO test_results (
+                        INSERT INTO user_vocab_question_results (
                             user_id,
                             question_id,
                             correct,
