@@ -262,6 +262,7 @@ class Test:
                 eval_dict[level]["entry_confidence"] = beta.sf(0.40, correct + 1, incorrect + 1)
             frontier = 1
             for level in sorted(eval_dict.keys()):
+                if level == 1:
                 if level < len(list(eval_dict.keys())):
                     next_level = level + 1
                     if eval_dict[level]["mastery_confidence"] >= 0.9 and eval_dict[next_level]["entry_confidence"] >= 0.9:
@@ -272,7 +273,16 @@ class Test:
             else:
                 bonus = 1000 * eval_dict[frontier]["mastery_confidence"]
             score_result = base_score + bonus
-            return round(score_result)
+            if score_result >= 1000:
+                confidence = "solid"
+            elif eval_dict[1]["mastery_confidence"] < 0.1 or eval_dict[2]["entry_confidence"] < 0.1:
+                confidence = "solid"
+            else:
+                confidence = "rough"
+            return {
+                "score": round(score_result),
+                "confidence": confidence
+            }
 
                 
 
