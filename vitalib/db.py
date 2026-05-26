@@ -252,11 +252,17 @@ class Database:
                     cur.execute("SELECT target_language, second_target_language FROM registered_user WHERE user_id=%s", (self.user_id,))
                     row = cur.fetchone()
                     if row:
-                        return [
-                            {"code": row[0], "name": vitalib.Transform.Language(row[0]).code_to_name()},
-                            {"code": row[1], "name": vitalib.Transform.Language(row[1]).code_to_name()}
-                        ]
-                    return []
+                        if row[1] and row[1].strip() != "":
+                            return [
+                                {"code": row[0], "name": vitalib.Transform.Language(row[0]).code_to_name()},
+                                {"code": row[1], "name": vitalib.Transform.Language(row[1]).code_to_name() if row[1] else None}
+                            ]
+                        else:
+                            return [
+                                {"code": row[0], "name": vitalib.Transform.Language(row[0]).code_to_name()}
+                            ]
+                    else:
+                        return []
 
     class Vocab:
         class Get:
