@@ -379,7 +379,7 @@
                 window.location.href = "/?language=" + language;
                 return;
             } else {
-            throw new Error(data.error || "Request failed.");
+                throw new Error(data.error || "Request failed.");
             }
         }
 
@@ -819,7 +819,7 @@
                 reason: "already_know_word"
             });
 
-            if (data.status !== "flagged" && data.status !== "ok") {
+            if (data.status !== "flagged" && data.status !== "ok" && data.status !== "redirect_home") {
                 throw new Error(data.error || "The server did not confirm the flagged question.");
             }
 
