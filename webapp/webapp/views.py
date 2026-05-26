@@ -45,6 +45,14 @@ def home(request):
     language_name = vitalib.Transform.Language(language).code_to_name()
     new_score = vitalib.Test.Get(connection, request.user.id, language).new_score()
 
+    if True:
+        return render(request, "general/new_score.html", {
+            "first_name": request.user.first_name,
+            "language": language,
+            "old_score": vocab_score,
+            "new_score": new_score
+        })
+
     today = date.today()
 
     if vitalib.User.Subscription(request.user.id, request.user.email, connection).is_active():
