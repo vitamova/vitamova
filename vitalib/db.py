@@ -702,7 +702,38 @@ class Database:
                 self.conn.commit()
 
                 return {"status": "logged", "count": len(rows)}
-            
+            def per_level_results(self):
+                # For each level in LEVEL_RANGES
+                # Return the number correct and number incorrect
+                results = {}
+                with self.conn.cursor() as cursor:
+                    for level, (min_rank, max_rank) in LEVEL_RANGES.items():
+                        sql = """
+                            SELECT
+                                COUNT(*) FILTER (WHERE correct = true) AS correct_count,
+                                COUNT(*) FILTER (WHERE correct = false) AS incorrect_count
+                            FROM user_vocab_question_results uvqr
+                            JOIN vocab_test_bank vtb ON uvqr.question_id = vtb.id
+                            JOIN lemmas l ON vtb.lemma_id = l.id
+                            WHERE uvqr.user_id = %s
+                            AND l.language = %s
+                            AND l.rank >= %s
+                        """
+
+                        params = [self.user_id, self.language, min_rank]
+
+                        if max_rank is not None:
+                            sql += " AND l.rank <= %s"
+                            params.append(max_rank)
+
+                        cursor.execute(sql, params)
+                        row = cursor.fetchone()
+                        results[level] = {
+                            "correct": row[0],
+                            "incorrect": row[1]
+                        }
+                self.conn.commit()
+                return results
             def append_lemma_rank(self, questions):
                 question_ids = [q["question_id"] for q in questions]
                 if not question_ids:

@@ -1,5 +1,6 @@
 import vitalib
 import random
+from scipy.stats import beta
 
 LEVEL_RANGES = {
     1: (1, 1500),
@@ -16,6 +17,40 @@ class Test:
             self.conn = conn
             self.user_id = user_id
             self.language = language
+        def fetch_counts(self, count):
+            # Set initial fetch counts to 0 for each level
+            fetch_counts = { i : 0 for i in LEVEL_RANGES }
+            # Get the user's current score for the language
+            score = vitalib.Database.UserInfo.Get(self.conn, self.user_id).score(self.language)
+            # If the score is -1, we'll use per_level_results
+            if score == -1:
+                per_level_results = vitalib.Database.Test.Questions(self.conn, self.user_id, self.language).per_level_results()
+                # Set an empty dictionary which we will use to fill in the counts for each level
+                level_weights = {}
+                for level in LEVEL_RANGES:
+                    correct = per_level_results.get(level, {}).get("correct", 0)
+                    incorrect = per_level_results.get(level, {}).get("incorrect", 0)
+                    level_weights[level] = beta.cdf(0.80, correct + 1, incorrect + 1)
+                levels = list(LEVEL_RANGES.keys())
+                weights = [level_weights[level] for level in levels]
+                selected_levels = random.choices(levels, weights=weights, k=count)
+                for level in selected_levels:
+                    fetch_counts[level] += 1
+            else:
+                frontier = min((score // 1000) + 1, 6)
+                if frontier == 1:
+                    fetch_counts[1] = int(count * 0.8)
+                    fetch_counts[2] = count - fetch_counts[1]
+                elif frontier == 6:
+                    fetch_counts[6] = int(count * 0.8)
+                    fetch_counts[5] = count - fetch_counts[6]
+                else:
+                    fetch_counts[frontier] = int(count * 0.8)
+                    remaining = count - fetch_counts[frontier]
+                    fetch_counts[frontier - 1] = remaining // 2
+                    fetch_counts[frontier + 1] = remaining - fetch_counts[frontier - 1]
+            return fetch_counts
+
         def any_questions(self, type, frontier, batch=None):
             # First we need to set fetch_counts based on the parameters
             fetch_counts = { i : 0 for i in range(1, 7) }
@@ -54,24 +89,10 @@ class Test:
             # Now it's simple, just get the questions and return them formatted
             questions = vitalib.Database.Test.Questions(self.conn, self.user_id, self.language).any(fetch_counts)
             return Test.Format.questions(questions)
-        def new_questions(self, type, score):
-            # Get frontier based on score
-            frontier = min((score // 1000) + 1, 6)
-            fetch_counts = {}
-            if type == "vocab_builder":
-                # Get 8 questions from the frontier level 1 from a level above and 1 from a level below
-                # If frontier is 1 do an 8/2 split
-                # If frontier is 6 do a 8/2 split but with the below level instead of the above level
-                if frontier == 1:
-                    fetch_counts[1] = 8
-                    fetch_counts[2] = 2
-                elif frontier == 6:
-                    fetch_counts[5] = 2
-                    fetch_counts[6] = 8
-                else:
-                    fetch_counts[frontier - 1] = 1
-                    fetch_counts[frontier] = 8
-                    fetch_counts[frontier + 1] = 1
+        def new_questions(self, count):
+            # Get fetch_counts
+            fetch_counts = self.fetch_counts(count)
+            
             # Fetch questions based on fetch_counts
             questions = vitalib.Database.Test.Questions(self.conn, self.user_id, self.language).new(fetch_counts)
             questions = Test.Format.questions(questions)

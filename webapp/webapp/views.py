@@ -413,8 +413,7 @@ def vocab_builder(request):
                 "message": "Invalid action."
             }, status=400)
         if action == "load_questions":
-            score = vitalib.Database.UserInfo.Get(connection, request.user.id).score(language)
-            questions = vitalib.Test.Get(connection, request.user.id, language).new_questions("vocab_builder", score)
+            questions = vitalib.Test.Get(connection, request.user.id, language).new_questions(count = 10)
             return JsonResponse({
                 "status": "ok",
                 "questions": questions
