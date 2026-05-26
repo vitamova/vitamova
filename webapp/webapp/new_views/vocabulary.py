@@ -1,4 +1,4 @@
-from django.shortcuts import render, redirect
+from django.shortcuts import render
 from webapp.decorators import registered_logged_in_required, subscribed_required
 from django.db import connection
 from django.http import JsonResponse
@@ -98,7 +98,9 @@ def build(request):
             new_score = vitalib.Test.Get(connection, request.user.id, language).new_score()
             if new_score["confidence"] == "solid" and new_score["score"] > vocab_score:
                 # Just redirect home and it will update the score there
-                return redirect("/?language=%s" % language)
+                return JsonResponse({
+                    "status": "redirect_home"
+                })
             else:
                 questions = vitalib.Test.Get(connection, request.user.id, language).new_questions(count = 10)
                 return JsonResponse({

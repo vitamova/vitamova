@@ -442,6 +442,11 @@
                 batch: batchNumber
             });
 
+            if (data.status === "redirect_home") {
+                window.location.href = "/";
+                return;
+            }
+
             const newQuestions = data.questions || [];
 
             if (newQuestions.length === 0) {
