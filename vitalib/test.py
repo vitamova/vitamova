@@ -262,7 +262,6 @@ class Test:
                 eval_dict[level]["entry_confidence"] = beta.sf(0.40, correct + 1, incorrect + 1)
             frontier = 1
             for level in sorted(eval_dict.keys()):
-                if level == 1:
                 if level < len(list(eval_dict.keys())):
                     next_level = level + 1
                     if eval_dict[level]["mastery_confidence"] >= 0.9 and eval_dict[next_level]["entry_confidence"] >= 0.9:
