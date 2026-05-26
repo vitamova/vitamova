@@ -21,14 +21,19 @@ def subscribe(request):
     if vitalib.User.Subscription(request.user.id, request.user.email, connection).is_active():
         return redirect("home")
     
-    # Get user's score and language
-    user_data = vitalib.Database.UserInfo.Get(connection, request.user.id).data()
+    # Get user's language and stripe customer ID
+    user_data = vitalib.Database.UserInfo.Get(connection, request.user.id).data(
+        "target_language",
+        "stripe_customer_id"
+    )
+
+    is_trial_user = user_data.get("stripe_customer_id") is None
 
     return render(request, "general/subscribe.html", {
         "stripe_public_key": STRIPE_PUBLIC_KEY,
-        "score": vitalib.Database.UserInfo.Get(connection, request.user.id).data("vocab_score")["vocab_score"],
         "language": vitalib.Transform.Language(user_data["target_language"]).code_to_name(),
         "first_name": request.user.first_name,
+        "trial_user": is_trial_user
     })
 
 @require_POST
