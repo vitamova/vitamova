@@ -24,8 +24,6 @@ urlpatterns = [
     path('register/', views.register, name='register'),
     path('account/', views.account, name='account'),
     path('vocab-test/', views.vocab_test, name='vocab-test'),
-    path('vocab-builder/', views.vocab_builder, name='vocab-builder'),
-    path('review/', views.review, name='review'),
     path('reading-practice/', views.reading_practice, name='reading-practice'),
 
     # New organized sections
