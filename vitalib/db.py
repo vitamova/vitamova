@@ -111,7 +111,7 @@ class Database:
 
                 # We're gonna automatically give the user 30 days of subscription
                 fields["subscribed"] = True
-                fields["subscription_expiration"] = datetime.datetime.now(datetime.timezone.utc) + datetime.timedelta(days=30)
+                fields["subscription_expiration"] = (datetime.datetime.now(datetime.timezone.utc) + datetime.timedelta(days=30)).date()
 
                 fields["user_id"] = self.user_id
 
