@@ -313,6 +313,7 @@ class Test:
                     "coverage": coverage,
                     "mastery_confidence": mastery_confidence
                 }
+                min_rank += 1000
             return result
         def new_level(self):
             coverage_mastery_threshold = 0.80
@@ -334,7 +335,6 @@ class Test:
 
                 if mastered_by_coverage or mastered_by_questions:
                     new_level = (min_rank // 1000) + 1
-                min_rank += 1000
 
             return new_level
 
