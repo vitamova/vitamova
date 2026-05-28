@@ -40,7 +40,6 @@ def home(request):
         language = vitalib.Database.UserInfo.Get(connection, request.user.id).data("target_language")["target_language"] or "es"
 
     review_count = vitalib.Database.Vocab.Get(connection, request.user.id, language).review_count()
-    vocab_score = vitalib.Database.UserInfo.Get(connection, request.user.id).score(language)
     level = vitalib.Database.UserInfo.Get(connection, request.user.id).level(language)
     language_name = vitalib.Transform.Language(language).code_to_name()
     new_level = vitalib.Test.Get(connection, request.user.id, language).new_level()
@@ -69,15 +68,15 @@ def home(request):
         return render(request, "general/home.html", {
             "first_name": request.user.first_name,
             "user_email": request.user.email,
-            "has_score": vocab_score != -1,
             "review_count": review_count,
             "language": language,
             "language_name": language_name,
             "language_options": vitalib.Database.UserInfo.Get(connection, request.user.id).languages(),
             "dev": settings.SERVER_TYPE == 'dev',
-            "vocab_score": vocab_score,
             "mobile": mobile,
-            "edge_range": edge_range
+            "edge_range": edge_range,
+            "old_level": level,
+            "new_level": new_level
             })
     else:
         return redirect("/subscribe/")
