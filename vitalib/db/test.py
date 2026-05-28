@@ -386,7 +386,7 @@ class Test:
                         l.id AS lemma_id,
                         l.lemma,
                         lt.translation,
-                        l.definition
+                        l.definition,
                         l.pos
                     FROM vocab_test_bank vtb
                     JOIN lemmas l
