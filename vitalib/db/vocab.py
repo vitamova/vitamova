@@ -1,0 +1,323 @@
+import datetime
+import vitalib
+
+REVIEW_STAGE_INTERVALS = {
+    0: datetime.timedelta(0), # When someone gets a word wrong, sets back to 0 for immediate review
+    1: datetime.timedelta(hours=18),
+    2: datetime.timedelta(days=2, hours=18),
+    3: datetime.timedelta(days=6, hours=18),
+    4: datetime.timedelta(days=13, hours=18),
+    5: datetime.timedelta(days=29, hours=18),
+    6: datetime.timedelta(days=59, hours=18),
+    7: datetime.timedelta(days=119, hours=18)
+}
+
+class Vocab:
+    class Get:
+        def __init__(self, conn, user_id, language):
+            self.conn = conn
+            self.user_id = user_id
+            self.language = language
+            self.native_language = vitalib.Database.UserInfo.Get(conn, user_id).data("native_language")["native_language"]
+        def review_count(self):
+            with self.conn.cursor() as cursor:
+                cursor.execute(
+                    """
+                    SELECT COUNT(*)
+                    FROM user_vocabulary uv
+                    JOIN lemmas l
+                        ON uv.lemma_id = l.id
+                    WHERE uv.user_id = %s
+                    AND l.language = %s
+                    AND uv.next_review_at IS NOT NULL
+                    AND uv.next_review_at < %s
+                    """,
+                    [
+                        self.user_id,
+                        self.language,
+                        datetime.datetime.now(datetime.timezone.utc)
+                    ]
+                )
+                review_count = cursor.fetchone()[0]
+
+            return review_count
+        def review_items(self):
+            # Need to get lemma_id, lemma, pronunciation, translation, definition,
+            # part_of_speech, and example_sentence.
+            # Filter by language and user_id.
+            # Only return words where next_review_at is in the past.
+
+            with self.conn.cursor() as cursor:
+                cursor.execute(
+                    """
+                    SELECT
+                        l.id,
+                        l.lemma,
+                        l.pronunciation,
+                        lt.translation,
+                        l.definition,
+                        l.pos,
+                        s.sentence AS example_sentence
+                    FROM user_vocabulary uv
+                    JOIN lemmas l
+                        ON uv.lemma_id = l.id
+                    LEFT JOIN lemma_translations lt
+                        ON lt.lemma_id = l.id
+                        AND lt.native_language = %s
+                    LEFT JOIN LATERAL (
+                        SELECT sentence
+                        FROM sentences
+                        WHERE lemma_id = l.id
+                        AND language = l.language
+                        ORDER BY date_created ASC
+                        LIMIT 1
+                    ) s ON TRUE
+                    WHERE uv.user_id = %s
+                    AND l.language = %s
+                    AND uv.next_review_at IS NOT NULL
+                    AND uv.next_review_at < %s
+                    """,
+                    [
+                        self.native_language,
+                        self.user_id,
+                        self.language,
+                        datetime.datetime.now(datetime.timezone.utc)
+                    ]
+                )
+
+                rows = cursor.fetchall()
+
+            items = []
+
+            for row in rows:
+                item = {
+                    "lemma_id": row[0],
+                    "lemma": row[1],
+                    "translation": row[3],
+                    "definition": row[4],
+                    "part_of_speech": row[5],
+                    "example_sentence": row[6],
+                }
+
+                if row[2] is not None:
+                    item["pronunciation"] = row[2]
+
+                items.append(item)
+
+            return items
+        def lemma(self, lemma_id):
+            with self.conn.cursor() as cursor:
+                cursor.execute(
+                    """
+                    SELECT
+                        l.id,
+                        l.lemma,
+                        l.pronunciation,
+                        lt.translation,
+                        l.definition
+                    FROM lemmas l
+                    LEFT JOIN lemma_translations lt
+                        ON lt.lemma_id = l.id
+                    AND lt.native_language = %s
+                    WHERE l.id = %s
+                    AND l.language = %s
+                    """,
+                    [
+                        self.native_language,
+                        lemma_id,
+                        self.language
+                    ]
+                )
+                row = cursor.fetchone()
+            if not row:
+                return None
+            return {
+                "lemma_id": row[0],
+                "lemma": row[1],
+                "pronunciation": row[2],
+                "translation": row[3],
+                "definition": row[4]
+            }
+        def lemma_starts_with(self, prefix):
+            # Return up to 5 lemmas that start with the given prefix for the user's target language
+            # Include translation when available in the user's native language
+
+            with self.conn.cursor() as cursor:
+                cursor.execute(
+                    """
+                    SELECT 
+                        l.id,
+                        l.lemma,
+                        l.pos,
+                        l.definition,
+                        lt.translation
+                    FROM lemmas l
+                    LEFT JOIN lemma_translations lt
+                        ON lt.lemma_id = l.id
+                        AND lt.native_language = %s
+                    WHERE l.language = %s
+                    AND l.lemma ILIKE %s
+                    ORDER BY l.rank ASC
+                    LIMIT 5
+                    """,
+                    [
+                        self.native_language,
+                        self.language,
+                        prefix + '%'
+                    ]
+                )
+                rows = cursor.fetchall()
+
+            return [
+                {
+                    "lemma_id": row[0],
+                    "lemma": row[1],
+                    "part_of_speech": row[2],
+                    "definition": row[3],
+                    "translation": row[4]
+                }
+                for row in rows
+            ]
+    class Add:
+        def __init__(self, conn, user_id):
+            self.conn = conn
+            self.user_id = user_id
+        def lemma(self, lemma_id):
+            # Columns are: id, user_id, lemma_id, status, review_stage, 
+            # next_review_at, last_reviewed_at, times_seen, times_correct, times_incorrect
+            # created_at, updated_at
+            # Note lemma_id is unique across languages, so we don't need to specify language here
+            with self.conn.cursor() as cursor:
+                cursor.execute(
+                    """
+                    SELECT 1
+                    FROM user_vocabulary
+                    WHERE user_id = %s
+                    AND lemma_id = %s
+                    """,
+                    [self.user_id, lemma_id]
+                )
+                if cursor.fetchone():
+                    return {"status": "already_exists"}
+                
+                # Since we're adding a new lemma, we can set most of these to their initial values.
+                # Next review will be in 1 day, so we can set next_review_at to now + 1 day
+                cursor.execute(
+                    """
+                    INSERT INTO user_vocabulary (
+                        user_id,
+                        lemma_id,
+                        status,
+                        review_stage,
+                        next_review_at,
+                        last_reviewed_at,
+                        times_seen,
+                        times_correct,
+                        times_incorrect,
+                        created_at,
+                        updated_at
+                    ) VALUES (%s, %s, 'learning', 1, %s, NULL, 0, 0, 0, %s, %s)
+                    """,
+                    [
+                        self.user_id,
+                        lemma_id,
+                        datetime.datetime.now(datetime.timezone.utc) + datetime.timedelta(hours = 18),
+                        datetime.datetime.now(datetime.timezone.utc),
+                        datetime.datetime.now(datetime.timezone.utc)
+                    ]
+                )
+                # We should also return the lemma that was added to the user's vocabulary
+                cursor.execute(
+                    """
+                    SELECT lemma
+                    FROM lemmas
+                    WHERE id = %s
+                    """,
+                    [lemma_id]
+                )
+                lemma = cursor.fetchone()[0]
+            return {"status": "added", "lemma": lemma}
+    class Update:
+        def __init__(self, conn, user_id):
+            self.conn = conn
+            self.user_id = user_id
+        def correct(self, lemma_id):
+            # Need to update the user_vocabulary entry for this lemma_id and user_id
+            # It's correct so we should increment times_seen and times_correct
+            # updated_at and last_reviewed_at should be set to now
+            # review_stage should be incremented by 1 and next_review_at should be set based on the new review_stage
+            with self.conn.cursor() as cursor:
+                # Let's first get the current review_stage for this lemma_id and user_id
+                cursor.execute(
+                    """
+                    SELECT review_stage
+                    FROM user_vocabulary
+                    WHERE user_id = %s
+                    AND lemma_id = %s
+                    """,
+                    [self.user_id, lemma_id]
+                )
+                row = cursor.fetchone()
+                if not row:
+                    return {"status": "not_found"}
+                current_review_stage = row[0]
+
+                #If the current review stage is 7, keep it at 7 but set status to "learned"
+                # Otherwise, increment the review stage by 1
+                if current_review_stage >= 7:
+                    new_review_stage = 7
+                    status = "learned"
+                else:
+                    new_review_stage = current_review_stage + 1
+                    status = "learning"
+                cursor.execute(
+                    """
+                    UPDATE user_vocabulary
+                    SET times_seen = times_seen + 1,
+                        times_correct = times_correct + 1,
+                        review_stage = %s,
+                        next_review_at = %s,
+                        last_reviewed_at = %s,
+                        status = %s,
+                        updated_at = %s
+                    WHERE user_id = %s
+                    AND lemma_id = %s
+                    """,
+                    [
+                        new_review_stage,
+                        datetime.datetime.now(datetime.timezone.utc) + REVIEW_STAGE_INTERVALS[new_review_stage],
+                        datetime.datetime.now(datetime.timezone.utc),
+                        status,
+                        datetime.datetime.now(datetime.timezone.utc),
+                        self.user_id,
+                        lemma_id
+                    ]
+                )
+            return {"status": "updated"}
+        def incorrect(self, lemma_id):
+            # Need to update the user_vocabulary entry for this lemma_id and user_id
+            # It's incorrect so we should increment times_seen and times_incorrect
+            # updated_at and last_reviewed_at should be set to now
+            # review_stage should be set back to 0 and next_review_at should be set to now + 18 hours
+            with self.conn.cursor() as cursor:
+                cursor.execute(
+                    """
+                    UPDATE user_vocabulary
+                    SET times_seen = times_seen + 1,
+                        times_incorrect = times_incorrect + 1,
+                        review_stage = 0,
+                        next_review_at = %s,
+                        last_reviewed_at = %s,
+                        updated_at = %s
+                    WHERE user_id = %s
+                    AND lemma_id = %s
+                    """,
+                    [
+                        datetime.datetime.now(datetime.timezone.utc),
+                        datetime.datetime.now(datetime.timezone.utc),
+                        datetime.datetime.now(datetime.timezone.utc),
+                        self.user_id,
+                        lemma_id
+                    ]
+                )
+            return {"status": "updated"}

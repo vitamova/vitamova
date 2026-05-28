@@ -1,4 +1,4 @@
-from .db import *
+from . import db as Database
 from .users import *
 from .test import *
 from .transform import *
