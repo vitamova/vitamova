@@ -235,7 +235,8 @@ class Test:
                         l.id AS lemma_id,
                         l.lemma,
                         lt.translation,
-                        l.definition
+                        l.definition,
+                        l.pos
                     FROM vocab_test_bank vtb
                     JOIN lemmas l
                         ON vtb.lemma_id = l.id
@@ -255,7 +256,8 @@ class Test:
                         "id": row[1],
                         "lemma": row[2],
                         "translation": row[3],
-                        "definition": row[4]
+                        "definition": row[4],
+                        "part_of_speech": row[5]
                     }
                     for row in cursor.fetchall()
                 }
