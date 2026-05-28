@@ -97,17 +97,56 @@
             transform: translateY(0);
         }
 
-        .detail-pill {
-            display: inline-flex;
-            align-items: center;
-            justify-content: center;
-            border-radius: 999px;
-            padding: 0.35rem 0.7rem;
-            background: rgba(31, 94, 255, 0.08);
-            color: #1f5eff;
-            border: 1px solid rgba(31, 94, 255, 0.14);
-            font-size: 0.8rem;
-            font-weight: 800;
+        .detail-box {
+            border-radius: 1.25rem;
+            background: #ffffff;
+            border: 1px solid #e2e8f0;
+            padding: 1rem;
+        }
+
+        .detail-box.primary {
+            background: #f8fafc;
+            border-color: #e2e8f0;
+            padding: 1.5rem;
+        }
+
+        .detail-label {
+            font-size: 0.72rem;
+            line-height: 1rem;
+            font-weight: 900;
+            color: #64748b;
+            text-transform: uppercase;
+            letter-spacing: 0.08em;
+            margin-bottom: 0.35rem;
+        }
+
+        .detail-value {
+            color: #334155;
+            font-weight: 650;
+            line-height: 1.6;
+        }
+
+        .detail-value.large {
+            font-size: 1.08rem;
+        }
+
+        .detail-value.translation {
+            color: var(--vita-blue);
+            font-size: 1.15rem;
+            font-weight: 850;
+        }
+
+        .detail-grid {
+            display: grid;
+            grid-template-columns: 1fr;
+            gap: 1rem;
+            margin-top: 1.25rem;
+        }
+
+        @media (min-width: 768px) {
+            .detail-grid.two-column {
+                grid-template-columns: 1fr 1fr;
+            }
         }
     </style>
 </head>
@@ -465,20 +504,33 @@
         });
     }
 
-    function addOptionalDetail(parent, labelText, valueText) {
+    function addDetailBox(parent, labelText, valueText, options = {}) {
         if (!valueText) {
             return;
         }
 
         const box = document.createElement("div");
-        box.className = "rounded-2xl bg-white border border-slate-200 p-4";
+
+        if (options.primary) {
+            box.className = "detail-box primary";
+        } else {
+            box.className = "detail-box";
+        }
 
         const label = document.createElement("p");
-        label.className = "text-xs font-black text-slate-500 uppercase tracking-wide mb-1";
+        label.className = "detail-label";
         label.textContent = labelText;
 
         const value = document.createElement("p");
-        value.className = "text-slate-700 leading-relaxed font-semibold";
+
+        if (options.translation) {
+            value.className = "detail-value translation";
+        } else if (options.large) {
+            value.className = "detail-value large";
+        } else {
+            value.className = "detail-value";
+        }
+
         value.textContent = valueText;
 
         box.appendChild(label);
@@ -555,41 +607,42 @@
             lemma.className = "lemma-display font-black mt-4 text-center";
             lemma.textContent = item.lemma;
 
-            const metaRow = document.createElement("div");
-            metaRow.className = "flex flex-wrap items-center justify-center gap-2 mt-4";
-
-            if (item.part_of_speech) {
-                const partOfSpeech = document.createElement("span");
-                partOfSpeech.className = "detail-pill";
-                partOfSpeech.textContent = item.part_of_speech;
-                metaRow.appendChild(partOfSpeech);
-            }
-
-            if (item.translation) {
-                const translation = document.createElement("span");
-                translation.className = "detail-pill";
-                translation.textContent = item.translation;
-                metaRow.appendChild(translation);
-            }
-
-            const definitionBox = document.createElement("div");
-            definitionBox.className = "rounded-3xl bg-slate-50 border border-slate-200 p-6 mt-8";
-
-            const definitionLabel = document.createElement("p");
-            definitionLabel.className = "text-sm font-bold text-slate-500 uppercase tracking-wide mb-2";
-            definitionLabel.textContent = "Definition";
-
-            const definition = document.createElement("p");
-            definition.className = "text-lg text-slate-700 leading-relaxed";
-            definition.textContent = item.definition;
-
-            definitionBox.appendChild(definitionLabel);
-            definitionBox.appendChild(definition);
-
             const detailGrid = document.createElement("div");
-            detailGrid.className = "grid grid-cols-1 gap-4 mt-4";
+            detailGrid.className = "detail-grid";
 
-            addOptionalDetail(detailGrid, "Example sentence", item.example_sentence);
+            const topDetailGrid = document.createElement("div");
+            topDetailGrid.className = "detail-grid two-column";
+
+            addDetailBox(
+                topDetailGrid,
+                "Translation",
+                item.translation,
+                {
+                    translation: true
+                }
+            );
+
+            addDetailBox(
+                topDetailGrid,
+                "Part of speech",
+                item.part_of_speech
+            );
+
+            addDetailBox(
+                detailGrid,
+                "Definition",
+                item.definition,
+                {
+                    primary: true,
+                    large: true
+                }
+            );
+
+            addDetailBox(
+                detailGrid,
+                "Example sentence",
+                item.example_sentence
+            );
 
             const prompt = document.createElement("p");
             prompt.className = "text-center text-slate-600 font-semibold mt-8";
@@ -622,11 +675,9 @@
             back.appendChild(label);
             back.appendChild(lemma);
 
-            if (metaRow.children.length > 0) {
-                back.appendChild(metaRow);
+            if (topDetailGrid.children.length > 0) {
+                back.appendChild(topDetailGrid);
             }
-
-            back.appendChild(definitionBox);
 
             if (detailGrid.children.length > 0) {
                 back.appendChild(detailGrid);
