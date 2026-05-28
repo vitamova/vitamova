@@ -320,7 +320,7 @@
 <div id="xp-toast" class="xp-toast">
     <div class="rounded-2xl border border-blue-100 bg-white px-5 py-4 shadow-2xl">
         <p class="text-sm font-black text-blue-700">+5 XP</p>
-        <p class="text-sm font-semibold text-slate-600">for building your vocabulary</p>
+        <p class="text-sm font-semibold text-slate-600">for working on your vocabulary</p>
     </div>
 </div>
 
@@ -727,6 +727,7 @@
 
             questionsReviewedCount += 1;
             updateCounters();
+            showXpToast();
 
             if (!missedReviewItem) {
                 currentAnswerWasCorrect = true;
@@ -1018,7 +1019,6 @@
 
             wordsAddedCount += 1;
             updateCounters();
-            showXpToast();
 
             keepBuildingBtn.textContent = "Keep Building Vocabulary";
             await showNextQuestion();
@@ -1038,7 +1038,6 @@
 
             wordsAddedCount += 1;
             updateCounters();
-            showXpToast();
 
             window.location.href = "/";
         } catch (error) {
