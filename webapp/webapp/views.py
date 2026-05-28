@@ -50,7 +50,7 @@ def home(request):
 
     if new_level > level:
         vitalib.Database.UserInfo.Update(connection, request.user.id).level(language, new_level)
-        return render(request, "general/new_score.html", {
+        return render(request, "general/new_level.html", {
             "first_name": request.user.first_name,
             "language": language,
             "language_name": language_name,
