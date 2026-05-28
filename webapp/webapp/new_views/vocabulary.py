@@ -78,7 +78,7 @@ def add(request):
 def build(request):
     if request.method == "GET":
         language = request.GET.get("language", "es")
-        return render(request, "modules/vocab_builder.html", {
+        return render(request, "modules/vocabulary/build.html", {
             "language": language
         })
     if request.method == "POST":
@@ -109,6 +109,9 @@ def build(request):
                 })
         if action == "submit_answers":
             answers = data.get("answers", [])
+            # Add 5 points per qestion answered
+            points_added = vitalib.Database.Points(connection, request.user.id).add(len(answers) * 5, "vocab_builder")
+            assert points_added["status"] == "ok", "Failed to add points for quiz."
             # Get results based on answers
             missed = vitalib.Test.Get(connection, request.user.id, language).missed(answers)
             return JsonResponse({
@@ -178,6 +181,8 @@ def review(request):
             else:
                 updated = vitalib.Database.Vocab.Update(connection, request.user.id).incorrect(lemma_id)
             assert updated["status"] == "updated", "Failed to update review results."
+            points_added = vitalib.Database.Points(connection, request.user.id).add(updated["points_added"], "vocab_review")
+            assert points_added["status"] == "ok", "Failed to add points for review."
             return JsonResponse({
                 "status": "ok"
             })

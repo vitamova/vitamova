@@ -12,6 +12,7 @@
         :root {
             --vita-yellow: #ffd54a;
             --vita-blue: #1f5eff;
+            --vita-blue-dark: #1748c6;
             --vita-dark: #111827;
             --vita-soft: #f8fafc;
         }
@@ -59,6 +60,81 @@
         .counter-card {
             border: 1px solid rgba(226, 232, 240, 0.9);
             background: rgba(248, 250, 252, 0.9);
+        }
+
+        .lemma-display {
+            max-width: 100%;
+            overflow-wrap: anywhere;
+            word-break: normal;
+            line-height: 1.05;
+        }
+
+        .detail-box {
+            border-radius: 1.25rem;
+            background: #ffffff;
+            border: 1px solid #e2e8f0;
+            padding: 1rem;
+        }
+
+        .detail-box.primary {
+            background: #f8fafc;
+            border-color: #e2e8f0;
+            padding: 1.5rem;
+        }
+
+        .detail-label {
+            font-size: 0.72rem;
+            line-height: 1rem;
+            font-weight: 900;
+            color: #64748b;
+            text-transform: uppercase;
+            letter-spacing: 0.08em;
+            margin-bottom: 0.35rem;
+        }
+
+        .detail-value {
+            color: #334155;
+            font-weight: 650;
+            line-height: 1.6;
+        }
+
+        .detail-value.large {
+            font-size: 1.08rem;
+        }
+
+        .detail-value.translation {
+            color: var(--vita-blue);
+            font-size: 1.15rem;
+            font-weight: 850;
+        }
+
+        .detail-grid {
+            display: grid;
+            grid-template-columns: 1fr;
+            gap: 1rem;
+            margin-top: 1.25rem;
+        }
+
+        .xp-toast {
+            position: fixed;
+            left: 1.25rem;
+            bottom: 1.25rem;
+            z-index: 80;
+            transform: translateY(18px);
+            opacity: 0;
+            pointer-events: none;
+            transition: opacity 0.2s ease, transform 0.2s ease;
+        }
+
+        .xp-toast.is-visible {
+            opacity: 1;
+            transform: translateY(0);
+        }
+
+        @media (min-width: 768px) {
+            .detail-grid.two-column {
+                grid-template-columns: 1fr 1fr;
+            }
         }
     </style>
 </head>
@@ -241,6 +317,13 @@
     </section>
 </main>
 
+<div id="xp-toast" class="xp-toast">
+    <div class="rounded-2xl border border-blue-100 bg-white px-5 py-4 shadow-2xl">
+        <p class="text-sm font-black text-blue-700">+5 XP</p>
+        <p class="text-sm font-semibold text-slate-600">for building your vocabulary</p>
+    </div>
+</div>
+
 <script>
     const VOCAB_BUILDER_URL = "/vocabulary/build/";
     const BATCH_SIZE = 10;
@@ -289,6 +372,9 @@
     const errorMessage = document.getElementById("error-message");
     const retryBtn = document.getElementById("retry-btn");
 
+    const xpToast = document.getElementById("xp-toast");
+    let xpToastTimer = null;
+
     function getCookie(name) {
         let cookieValue = null;
 
@@ -327,6 +413,18 @@
     function updateCounters() {
         questionsReviewedCountEl.textContent = questionsReviewedCount;
         wordsAddedCountEl.textContent = wordsAddedCount;
+    }
+
+    function showXpToast() {
+        if (xpToastTimer) {
+            clearTimeout(xpToastTimer);
+        }
+
+        xpToast.classList.add("is-visible");
+
+        xpToastTimer = setTimeout(() => {
+            xpToast.classList.remove("is-visible");
+        }, 1800);
     }
 
     function showLemmaHelper(message) {
@@ -374,7 +472,7 @@
         const data = await postJson(VOCAB_BUILDER_URL, payload);
 
         if (data.status !== "ok" && data.status !== "redirect_home") {
-                throw new Error(data.error || "Request failed.");
+            throw new Error(data.error || "Request failed.");
         }
 
         return data;
@@ -396,6 +494,64 @@
 
             return option.text;
         });
+    }
+
+    function fitLemmaText(element, maxPx, minPx) {
+        element.style.fontSize = `${maxPx}px`;
+
+        requestAnimationFrame(() => {
+            let currentSize = maxPx;
+            const parent = element.parentElement;
+
+            if (!parent) {
+                return;
+            }
+
+            while (
+                currentSize > minPx &&
+                (
+                    element.scrollWidth > parent.clientWidth ||
+                    element.scrollHeight > parent.clientHeight * 0.55
+                )
+            ) {
+                currentSize -= 2;
+                element.style.fontSize = `${currentSize}px`;
+            }
+        });
+    }
+
+    function addDetailBox(parent, labelText, valueText, options = {}) {
+        if (!valueText) {
+            return;
+        }
+
+        const box = document.createElement("div");
+
+        if (options.primary) {
+            box.className = "detail-box primary";
+        } else {
+            box.className = "detail-box";
+        }
+
+        const label = document.createElement("p");
+        label.className = "detail-label";
+        label.textContent = labelText;
+
+        const value = document.createElement("p");
+
+        if (options.translation) {
+            value.className = "detail-value translation";
+        } else if (options.large) {
+            value.className = "detail-value large";
+        } else {
+            value.className = "detail-value";
+        }
+
+        value.textContent = valueText;
+
+        box.appendChild(label);
+        box.appendChild(value);
+        parent.appendChild(box);
     }
 
     function getCurrentQuestionSelectedReviewItem() {
@@ -717,81 +873,74 @@
         card.className = "rounded-3xl border border-slate-200 bg-white p-6 md:p-8";
 
         const header = document.createElement("div");
-        header.className = "text-center mb-8";
+        header.className = "text-center mb-8 overflow-hidden";
 
         const stepLabel = document.createElement("p");
         stepLabel.className = "text-sm font-bold text-blue-600 uppercase tracking-wide";
         stepLabel.textContent = "Word review";
 
         const lemmaText = document.createElement("h3");
-        lemmaText.className = "text-4xl md:text-5xl font-black mt-3";
+        lemmaText.className = "lemma-display font-black mt-3";
         lemmaText.textContent = lemma.lemma || currentReviewItem.correct_answer || "";
-
-        const translation = document.createElement("p");
-        translation.className = "mt-3 text-2xl font-bold text-blue-700";
-        translation.textContent = lemma.translation || "No translation available.";
 
         header.appendChild(stepLabel);
         header.appendChild(lemmaText);
-        header.appendChild(translation);
         card.appendChild(header);
 
-        const detailWrapper = document.createElement("div");
-        detailWrapper.className = "grid gap-4";
+        const topDetailGrid = document.createElement("div");
+        topDetailGrid.className = "detail-grid two-column";
 
-        const definitionBox = document.createElement("div");
-        definitionBox.className = "rounded-3xl bg-slate-50 border border-slate-200 p-6";
+        addDetailBox(
+            topDetailGrid,
+            "Translation",
+            lemma.translation,
+            {
+                translation: true
+            }
+        );
 
-        const definitionLabel = document.createElement("p");
-        definitionLabel.className = "text-sm font-bold text-slate-500 uppercase tracking-wide mb-2";
-        definitionLabel.textContent = "Definition";
+        addDetailBox(
+            topDetailGrid,
+            "Part of speech",
+            lemma.part_of_speech
+        );
 
-        const definition = document.createElement("p");
-        definition.className = "text-lg text-slate-700 leading-relaxed";
-        definition.textContent = lemma.definition || "No definition available.";
+        const detailGrid = document.createElement("div");
+        detailGrid.className = "detail-grid";
 
-        definitionBox.appendChild(definitionLabel);
-        definitionBox.appendChild(definition);
-        detailWrapper.appendChild(definitionBox);
+        addDetailBox(
+            detailGrid,
+            "Definition",
+            lemma.definition,
+            {
+                primary: true,
+                large: true
+            }
+        );
 
-        if (lemma.pronunciation) {
-            const pronunciationBox = document.createElement("div");
-            pronunciationBox.className = "rounded-3xl bg-slate-50 border border-slate-200 p-6";
+        addDetailBox(
+            detailGrid,
+            "Pronunciation",
+            lemma.pronunciation
+        );
 
-            const pronunciationLabel = document.createElement("p");
-            pronunciationLabel.className = "text-sm font-bold text-slate-500 uppercase tracking-wide mb-2";
-            pronunciationLabel.textContent = "Pronunciation";
+        addDetailBox(
+            detailGrid,
+            "Example sentence",
+            lemma.example_sentence
+        );
 
-            const pronunciation = document.createElement("p");
-            pronunciation.className = "text-lg text-slate-700 leading-relaxed";
-            pronunciation.textContent = lemma.pronunciation;
-
-            pronunciationBox.appendChild(pronunciationLabel);
-            pronunciationBox.appendChild(pronunciation);
-            detailWrapper.appendChild(pronunciationBox);
+        if (topDetailGrid.children.length > 0) {
+            card.appendChild(topDetailGrid);
         }
 
-        if (lemma.example_sentence) {
-            const exampleBox = document.createElement("div");
-            exampleBox.className = "rounded-3xl bg-slate-50 border border-slate-200 p-6";
-
-            const exampleLabel = document.createElement("p");
-            exampleLabel.className = "text-sm font-bold text-slate-500 uppercase tracking-wide mb-2";
-            exampleLabel.textContent = "Example sentence";
-
-            const example = document.createElement("p");
-            example.className = "text-lg text-slate-700 leading-relaxed";
-            example.textContent = lemma.example_sentence;
-
-            exampleBox.appendChild(exampleLabel);
-            exampleBox.appendChild(example);
-            detailWrapper.appendChild(exampleBox);
+        if (detailGrid.children.length > 0) {
+            card.appendChild(detailGrid);
         }
 
-        card.appendChild(detailWrapper);
         lemmaContainer.appendChild(card);
-
         showSection(lemmaSection);
+        fitLemmaText(lemmaText, window.innerWidth < 768 ? 42 : 56, 24);
     }
 
     async function flagCurrentQuestionAsKnown() {
@@ -869,6 +1018,7 @@
 
             wordsAddedCount += 1;
             updateCounters();
+            showXpToast();
 
             keepBuildingBtn.textContent = "Keep Building Vocabulary";
             await showNextQuestion();
@@ -888,6 +1038,7 @@
 
             wordsAddedCount += 1;
             updateCounters();
+            showXpToast();
 
             window.location.href = "/";
         } catch (error) {
