@@ -181,7 +181,7 @@ def review(request):
             else:
                 updated = vitalib.Database.Vocab.Update(connection, request.user.id).incorrect(lemma_id)
             assert updated["status"] == "updated", "Failed to update review results."
-            points_added = vitalib.Database.Points(connection, request.user.id).add(updated["points_added"], "vocab_review")
+            points_added = vitalib.Database.Points(connection, request.user.id).add(5, "vocab_review")
             assert points_added["status"] == "ok", "Failed to add points for review."
             return JsonResponse({
                 "status": "ok"
