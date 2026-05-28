@@ -23,12 +23,11 @@ urlpatterns = [
     path('accounts/', include('allauth.urls')),
     path('register/', views.register, name='register'),
     path('account/', views.account, name='account'),
-    path('reading-practice/', views.reading_practice, name='reading-practice'),
 
     # New organized sections
     path("vocabulary/", include("webapp.new_urls.vocabulary")),
     path("subscribe/", include("webapp.new_urls.subscribe")),
     path("general/", include("webapp.new_urls.general")),
     #path("sentences/", include("webapp.urls.sentences")),
-    #path("reading/", include("webapp.urls.reading"))
+    #path("lab/", include("webapp.urls.lab"))
     ]

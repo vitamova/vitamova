@@ -151,7 +151,7 @@ def review(request):
     
     if request.method == "GET":
         language = request.GET.get("language", "es")
-        return render(request, "modules/review.html", {
+        return render(request, "modules/vocabulary/review.html", {
             "language": language
         })
     elif request.method == "POST":
