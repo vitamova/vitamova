@@ -166,7 +166,7 @@ def review(request):
             }, status=400)
 
         if action == "load_review_items":
-            review_items = vitalib.Database.Vocab.Get(connection, request.user.id, language).words()
+            review_items = vitalib.Database.Vocab.Get(connection, request.user.id, language).review_items()
             return JsonResponse({
                 "status": "ok",
                 "items": review_items

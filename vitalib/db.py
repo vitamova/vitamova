@@ -14,13 +14,14 @@ LEVEL_RANGES = {
 }
 
 REVIEW_STAGE_INTERVALS = {
-    0: datetime.timedelta(hours=18),
-    1: datetime.timedelta(days=2, hours=18),
-    2: datetime.timedelta(days=6, hours=18),
-    3: datetime.timedelta(days=13, hours=18),
-    4: datetime.timedelta(days=29, hours=18),
-    5: datetime.timedelta(days=59, hours=18),
-    6: datetime.timedelta(days=119, hours=18)
+    0: datetime.timedelta(0), # When someone gets a word wrong, sets back to 0 for immediate review
+    1: datetime.timedelta(hours=18),
+    2: datetime.timedelta(days=2, hours=18),
+    3: datetime.timedelta(days=6, hours=18),
+    4: datetime.timedelta(days=13, hours=18),
+    5: datetime.timedelta(days=29, hours=18),
+    6: datetime.timedelta(days=59, hours=18),
+    7: datetime.timedelta(days=119, hours=18)
 }
 
 class Database:
@@ -293,10 +294,12 @@ class Database:
                     review_count = cursor.fetchone()[0]
 
                 return review_count
-            def words(self):
-                # Need to get lemma_id, lemma, pronunciation, translation, and definition
-                # Also need to filter by language and user_id
-                # And should only be words that have next_review_at in the past
+            def review_items(self):
+                # Need to get lemma_id, lemma, pronunciation, translation, definition,
+                # part_of_speech, and example_sentence.
+                # Filter by language and user_id.
+                # Only return words where next_review_at is in the past.
+
                 with self.conn.cursor() as cursor:
                     cursor.execute(
                         """
@@ -305,13 +308,23 @@ class Database:
                             l.lemma,
                             l.pronunciation,
                             lt.translation,
-                            l.definition
+                            l.definition,
+                            l.pos,
+                            s.sentence AS example_sentence
                         FROM user_vocabulary uv
                         JOIN lemmas l
                             ON uv.lemma_id = l.id
                         LEFT JOIN lemma_translations lt
                             ON lt.lemma_id = l.id
-                        AND lt.native_language = %s
+                            AND lt.native_language = %s
+                        LEFT JOIN LATERAL (
+                            SELECT sentence
+                            FROM sentences
+                            WHERE lemma_id = l.id
+                            AND language = l.language
+                            ORDER BY date_created ASC
+                            LIMIT 1
+                        ) s ON TRUE
                         WHERE uv.user_id = %s
                         AND l.language = %s
                         AND uv.next_review_at IS NOT NULL
@@ -324,18 +337,27 @@ class Database:
                             datetime.datetime.now(datetime.timezone.utc)
                         ]
                     )
+
                     rows = cursor.fetchall()
-                # Return a list of dicts with all the lemmas that need to be reviewed
-                return [
-                    {
+
+                items = []
+
+                for row in rows:
+                    item = {
                         "lemma_id": row[0],
                         "lemma": row[1],
-                        "pronunciation": row[2],
                         "translation": row[3],
-                        "definition": row[4]
+                        "definition": row[4],
+                        "part_of_speech": row[5],
+                        "example_sentence": row[6],
                     }
-                    for row in rows
-                ]
+
+                    if row[2] is not None:
+                        item["pronunciation"] = row[2]
+
+                    items.append(item)
+
+                return items
             def lemma(self, lemma_id):
                 with self.conn.cursor() as cursor:
                     cursor.execute(
@@ -447,7 +469,7 @@ class Database:
                             times_incorrect,
                             created_at,
                             updated_at
-                        ) VALUES (%s, %s, 'learning', 0, %s, NULL, 0, 0, 0, %s, %s)
+                        ) VALUES (%s, %s, 'learning', 1, %s, NULL, 0, 0, 0, %s, %s)
                         """,
                         [
                             self.user_id,
@@ -493,10 +515,10 @@ class Database:
                         return {"status": "not_found"}
                     current_review_stage = row[0]
 
-                    #If the current review stage is 6, keep it at 6 but set status to "learned"
+                    #If the current review stage is 7, keep it at 7 but set status to "learned"
                     # Otherwise, increment the review stage by 1
-                    if current_review_stage >= 6:
-                        new_review_stage = 6
+                    if current_review_stage >= 7:
+                        new_review_stage = 7
                         status = "learned"
                     else:
                         new_review_stage = current_review_stage + 1
@@ -544,7 +566,7 @@ class Database:
                         AND lemma_id = %s
                         """,
                         [
-                            datetime.datetime.now(datetime.timezone.utc) + datetime.timedelta(hours = 18),
+                            datetime.datetime.now(datetime.timezone.utc),
                             datetime.datetime.now(datetime.timezone.utc),
                             datetime.datetime.now(datetime.timezone.utc),
                             self.user_id,
