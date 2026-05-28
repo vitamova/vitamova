@@ -315,12 +315,12 @@ class Test:
                 }
             return result
         def new_level(self):
-            new_level = sorted(list(level_mastery.keys()))[0]
             coverage_mastery_threshold = 0.80
             question_mastery_threshold = 0.80
             confidence_threshold = 0.90
 
             level_mastery = self.level_mastery(question_mastery_threshold)
+            new_level = sorted(list(level_mastery.keys()))[0]
 
             for level in sorted(level_mastery.keys()):
                 coverage = level_mastery[level]["coverage"]
