@@ -4,12 +4,12 @@ import vitalib
 ALLOWED_COLUMNS = {
     "native_language",
     "target_language",
-    "vocab_score",
+    "level",
     "subscribed",
     "subscription_expiration",
     "stripe_customer_id",
     "second_target_language",
-    "second_vocab_score",
+    "second_level",
     "date_created",
     "date_updated"
 }
