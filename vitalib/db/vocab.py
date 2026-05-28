@@ -199,44 +199,101 @@ class Vocab:
                 raise ValueError("max_rank must be greater than or equal to min_rank.")
 
             sql = """
-                SELECT
-                    COUNT(l.id) AS total_words,
-                    COALESCE(
-                        SUM(
-                            CASE
-                                WHEN uv.review_stage IS NULL THEN 0
-                                WHEN uv.review_stage <= 1 THEN 0
-                                WHEN uv.review_stage >= 7 THEN 6
-                                ELSE uv.review_stage - 1
-                            END
-                        ),
-                        0
-                    ) AS earned_points
-                FROM lemmas l
-                LEFT JOIN user_vocabulary uv
-                    ON uv.lemma_id = l.id
-                    AND uv.user_id = %s
-                WHERE l.language = %s
-                AND l.rank >= %s
+                WITH range_lemmas AS (
+                    SELECT
+                        id
+                    FROM lemmas
+                    WHERE language = %s
+                    AND rank >= %s
             """
 
             params = [
-                self.user_id,
                 self.language,
                 min_rank
             ]
 
             if max_rank is not None:
-                sql += " AND l.rank <= %s"
+                sql += " AND rank <= %s"
                 params.append(max_rank)
+
+            sql += """
+                ),
+
+                vocabulary_points AS (
+                    SELECT
+                        COALESCE(
+                            SUM(
+                                CASE
+                                    WHEN uv.review_stage IS NULL THEN 0
+                                    WHEN uv.review_stage <= 1 THEN 0
+                                    WHEN uv.review_stage >= 7 THEN 6
+                                    ELSE uv.review_stage - 1
+                                END
+                            ),
+                            0
+                        ) AS earned_points
+                    FROM range_lemmas rl
+                    LEFT JOIN user_vocabulary uv
+                        ON uv.lemma_id = rl.id
+                        AND uv.user_id = %s
+                ),
+
+                correct_question_lemmas AS (
+                    SELECT DISTINCT
+                        vtb.lemma_id
+                    FROM user_vocab_question_results uvqr
+                    JOIN vocab_test_bank vtb
+                        ON uvqr.question_id = vtb.id
+                    JOIN range_lemmas rl
+                        ON rl.id = vtb.lemma_id
+                    WHERE uvqr.user_id = %s
+                    AND uvqr.correct = true
+                    AND NOT EXISTS (
+                        SELECT 1
+                        FROM user_vocabulary uv
+                        WHERE uv.user_id = %s
+                        AND uv.lemma_id = vtb.lemma_id
+                    )
+                ),
+
+                question_points AS (
+                    SELECT
+                        COUNT(*) * 6 AS earned_points
+                    FROM correct_question_lemmas
+                )
+
+                SELECT
+                    COUNT(*) AS total_words,
+                    vocabulary_points.earned_points,
+                    question_points.earned_points
+                FROM range_lemmas
+                CROSS JOIN vocabulary_points
+                CROSS JOIN question_points
+                GROUP BY
+                    vocabulary_points.earned_points,
+                    question_points.earned_points
+            """
+
+            params.extend([
+                self.user_id,
+                self.user_id,
+                self.user_id
+            ])
 
             with self.conn.cursor() as cursor:
                 cursor.execute(sql, params)
                 row = cursor.fetchone()
 
-            total_words = row[0] or 0
-            earned_points = row[1] or 0
+            if row is None:
+                total_words = 0
+                vocabulary_points = 0
+                question_points = 0
+            else:
+                total_words = row[0] or 0
+                vocabulary_points = row[1] or 0
+                question_points = row[2] or 0
 
+            earned_points = vocabulary_points + question_points
             max_points = total_words * 6
 
             if max_points == 0:
@@ -248,6 +305,8 @@ class Vocab:
                 "min_rank": min_rank,
                 "max_rank": max_rank,
                 "total_words": total_words,
+                "vocabulary_points": vocabulary_points,
+                "question_points": question_points,
                 "earned_points": earned_points,
                 "max_points": max_points,
                 "coverage": coverage_ratio,
