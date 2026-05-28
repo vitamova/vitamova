@@ -6,9 +6,9 @@
   <title>Vitamova | Home</title>
 
   <!-- Your edge range is {{ edge_range.0 }} - {{ edge_range.1 }} -->
-   <! -- Your level is {{ level }} --!>
-   <! -- You are closest to level {{ best_level }} with mastery confidence of {{ best_level_mastery.mastery_confidence }} and a coverage of {{ best_level_mastery.coverage }} --!>
-   <! -- You have earned {{ weekly_points }} points this week --!>
+  <!-- Your level is {{ level }} -->
+  <!-- You are closest to level {{ best_level }} with mastery confidence of {{ best_level_mastery.mastery_confidence }} and a coverage of {{ best_level_mastery.coverage }} -->
+  <!-- You have earned {{ weekly_points }} points this week -->
 
   <style>
     :root {
@@ -261,7 +261,7 @@
       position: relative;
       z-index: 1;
       display: grid;
-      grid-template-columns: minmax(0, 1fr) 280px;
+      grid-template-columns: minmax(0, 1fr) 360px;
       gap: 28px;
       align-items: center;
     }
@@ -285,7 +285,7 @@
       font-size: 1.05rem;
     }
 
-    .hero-score-card {
+    .hero-progress-card {
       position: relative;
       background:
         radial-gradient(circle at 90% 12%, rgba(255, 213, 74, 0.30), transparent 38%),
@@ -299,7 +299,7 @@
       overflow: hidden;
     }
 
-    .hero-score-card::before {
+    .hero-progress-card::before {
       content: "";
       position: absolute;
       inset: 1px;
@@ -308,42 +308,91 @@
       pointer-events: none;
     }
 
-    .hero-score-label {
+    .progress-grid {
+      position: relative;
+      z-index: 1;
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 12px;
+    }
+
+    .progress-stat {
+      border-radius: 20px;
+      padding: 16px 12px;
+      background: rgba(255, 255, 255, 0.13);
+      border: 1px solid rgba(255, 255, 255, 0.16);
+    }
+
+    .progress-label {
       display: block;
-      color: rgba(255, 255, 255, 0.82);
-      font-size: 0.74rem;
+      color: rgba(255, 255, 255, 0.78);
+      font-size: 0.72rem;
       font-weight: 900;
       letter-spacing: 0.10em;
       text-transform: uppercase;
       line-height: 1.35;
     }
 
-    .hero-score-language {
+    .progress-value {
       display: block;
-      margin-top: 4px;
+      margin-top: 8px;
       color: white;
-      font-size: 0.94rem;
-      font-weight: 900;
-      line-height: 1.25;
-    }
-
-    .hero-score-value {
-      display: block;
-      margin-top: 12px;
-      color: white;
-      font-size: clamp(2.6rem, 6vw, 4.3rem);
+      font-size: clamp(2.2rem, 5vw, 3.9rem);
       font-weight: 950;
       letter-spacing: -0.07em;
       line-height: 0.95;
       text-shadow: 0 10px 28px rgba(0, 0, 0, 0.18);
     }
 
-    .hero-score-note {
-      margin-top: 12px;
-      color: rgba(255, 255, 255, 0.84);
-      font-size: 0.86rem;
+    .progress-value.small {
+      font-size: clamp(1.95rem, 4.2vw, 3.25rem);
+    }
+
+    .progress-note {
+      position: relative;
+      z-index: 1;
+      margin-top: 14px;
+      color: rgba(255, 255, 255, 0.88);
+      font-size: 0.88rem;
       font-weight: 750;
-      line-height: 1.35;
+      line-height: 1.42;
+    }
+
+    .level-zero-card {
+      position: relative;
+      z-index: 1;
+      display: grid;
+      gap: 14px;
+    }
+
+    .level-zero-badge {
+      display: inline-flex;
+      justify-content: center;
+      align-items: center;
+      justify-self: center;
+      width: 86px;
+      height: 86px;
+      border-radius: 26px;
+      background: rgba(255, 213, 74, 0.95);
+      color: var(--vita-blue);
+      font-size: 2.4rem;
+      font-weight: 950;
+      box-shadow: 0 16px 34px rgba(0, 30, 120, 0.18);
+    }
+
+    .level-zero-title {
+      color: white;
+      font-size: 1.15rem;
+      font-weight: 950;
+      letter-spacing: -0.02em;
+    }
+
+    .level-zero-copy {
+      margin: 0;
+      color: rgba(255, 255, 255, 0.86);
+      font-size: 0.9rem;
+      font-weight: 700;
+      line-height: 1.45;
     }
 
     .status-strip {
@@ -684,8 +733,8 @@
         grid-template-columns: 1fr;
       }
 
-      .hero-score-card {
-        max-width: 360px;
+      .hero-progress-card {
+        max-width: 420px;
       }
 
       .module-row,
@@ -727,6 +776,10 @@
 
       .hero {
         padding: 28px 22px;
+      }
+
+      .progress-grid {
+        grid-template-columns: 1fr;
       }
 
       .priority-copy {
@@ -843,17 +896,27 @@
               <br>[ DEV SERVER ]
             {% endif %}
           </h1>
-          <p>
-            Keep building the kind of vocabulary, sentence patterns, and language confidence
-            that help you understand more naturally and communicate with more precision.
-          </p>
+
+          {% if level > 0 %}
+            <p>
+              You are building real momentum in {{ language_name }}. Keep practicing to advance your level,
+              earn more XP, and turn your growing vocabulary into long-term confidence.
+            </p>
+          {% else %}
+            <p>
+              Vitamova is still gathering enough learning data to assign your first {{ language_name }} level.
+              Keep building vocabulary and answering questions so the system can calibrate your progress.
+            </p>
+          {% endif %}
 
           <div class="status-strip">
-            {% if has_score %}
-              <span class="status-pill">Vocabulary score ready</span>
+            {% if level > 0 %}
+              <span class="status-pill">Level {{ level }} in {{ language_name }}</span>
             {% else %}
-              <span class="status-pill">Score developing organically</span>
+              <span class="status-pill">Level calibration in progress</span>
             {% endif %}
+
+            <span class="status-pill">{{ weekly_points }} XP earned this week</span>
 
             {% if review_count > 0 %}
               <span class="status-pill">{{ review_count }} terms ready for review</span>
@@ -865,16 +928,49 @@
           </div>
         </div>
 
-        {% if has_score %}
-          <div class="hero-score-card" aria-label="Current vocabulary score">
-            <span class="hero-score-label">Your current score for</span>
-            <span class="hero-score-language">{{ language_name }}</span>
-            <span class="hero-score-value">{{ vocab_score }}</span>
-            <div class="hero-score-note">
-              Built from your activity inside Vitamova.
+        <div class="hero-progress-card" aria-label="Current Vitamova progress">
+          {% if level > 0 %}
+            <div class="progress-grid">
+              <div class="progress-stat">
+                <span class="progress-label">Current level</span>
+                <span class="progress-value">{{ level }}</span>
+              </div>
+
+              <div class="progress-stat">
+                <span class="progress-label">Weekly XP</span>
+                <span class="progress-value small">{{ weekly_points }}</span>
+              </div>
             </div>
-          </div>
-        {% endif %}
+
+            <div class="progress-note">
+              Advance your level by proving durable vocabulary mastery. Earn XP by showing up and practicing consistently.
+            </div>
+          {% else %}
+            <div class="level-zero-card">
+              <div class="level-zero-badge">?</div>
+
+              <div>
+                <div class="level-zero-title">No level assigned yet</div>
+                <p class="level-zero-copy">
+                  Your first level needs more evidence. Build vocabulary, review words, and keep earning XP so Vitamova can
+                  confidently place your learning foundation.
+                </p>
+              </div>
+
+              <div class="progress-grid">
+                <div class="progress-stat">
+                  <span class="progress-label">Current level</span>
+                  <span class="progress-value">0</span>
+                </div>
+
+                <div class="progress-stat">
+                  <span class="progress-label">Weekly XP</span>
+                  <span class="progress-value small">{{ weekly_points }}</span>
+                </div>
+              </div>
+            </div>
+          {% endif %}
+        </div>
       </div>
     </section>
 
@@ -914,8 +1010,8 @@
           <div class="priority-text">
             <h2>You have no vocabulary to review</h2>
             <p>
-              Build your vocabulary bank with the Vocabulary Builder. Vitamova will use your activity to grow your score
-              naturally while you learn.
+              Build your vocabulary bank with the Vocabulary Builder. Vitamova will use your activity to calibrate your level
+              and help you keep moving toward the next milestone.
             </p>
           </div>
         </div>
@@ -951,7 +1047,7 @@
 
             <h3>Vocabulary Builder</h3>
             <p>
-              Learn new words, answer diagnostic questions, and let Vitamova shape your score through regular practice.
+              Learn new words, answer adaptive questions, and help Vitamova find your strongest learning path through regular practice.
             </p>
 
             <div class="card-action">
