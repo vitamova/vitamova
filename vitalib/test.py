@@ -244,7 +244,7 @@ class Test:
                 "confidence": confidence
             }
         def new_level(self):
-            pass
+            return 0 # Placeholder until we have a real leveling system based on the new scoring
 
 
     class Format:
