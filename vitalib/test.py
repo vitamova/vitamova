@@ -301,7 +301,7 @@ class Test:
                 )
 
                 if mastered_by_coverage or mastered_by_questions:
-                    new_level = (min_rank // 1000) + 1
+                    new_level = level + 1
 
             return new_level
 
