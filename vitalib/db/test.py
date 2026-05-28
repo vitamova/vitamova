@@ -56,60 +56,140 @@ class Test:
 
             return questions
 
-        def new(self, fetch_counts):
+        def new(self, min_rank, max_rank, count):
             questions = []
 
+            if count <= 0:
+                return questions
+
+            if min_rank is None:
+                min_rank = 1
+
+            if max_rank is None:
+                max_rank = min_rank + 999
+
+            range_width = max_rank - min_rank + 1
+
+            if range_width <= 0:
+                raise ValueError("max_rank must be greater than or equal to min_rank.")
+
+            original_min_rank = min_rank
+            original_max_rank = max_rank
+
+            searched_ranges = set()
+
             with self.conn.cursor() as cursor:
-                for level, count in fetch_counts.items():
-                    if count <= 0:
-                        continue
+                expansion_step = 0
 
-                    min_rank, max_rank = LEVEL_RANGES[level]
+                while len(questions) < count:
+                    ranges_to_search = []
 
-                    sql = """
-                        SELECT
-                            vtb.id,
-                            vtb.question,
-                            vtb.correct_answer,
-                            vtb.distractor_1,
-                            vtb.distractor_2,
-                            vtb.distractor_3
-                        FROM vocab_test_bank vtb
-                        JOIN lemmas l ON l.id = vtb.lemma_id
-                        WHERE l.language = %s
-                        AND l.rank >= %s
-                        AND NOT EXISTS (
-                            SELECT 1
-                            FROM user_vocabulary uv
-                            WHERE uv.user_id = %s
-                                AND uv.lemma_id = vtb.lemma_id
+                    if expansion_step == 0:
+                        ranges_to_search.append(
+                            (
+                                original_min_rank,
+                                original_max_rank
+                            )
                         )
-                        AND NOT EXISTS (
-                            SELECT 1
-                            FROM user_vocab_question_results uvqr
-                            WHERE uvqr.user_id = %s
-                                AND uvqr.question_id = vtb.id
+                    else:
+                        lower_min = max(
+                            1,
+                            original_min_rank - (range_width * expansion_step)
                         )
-                    """
+                        lower_max = original_min_rank - (range_width * (expansion_step - 1)) - 1
 
-                    params = [
-                        self.language,
-                        min_rank,
-                        self.user_id,
-                        self.user_id
-                    ]
+                        upper_min = original_max_rank + (range_width * (expansion_step - 1)) + 1
+                        upper_max = original_max_rank + (range_width * expansion_step)
 
-                    if max_rank is not None:
-                        sql += " AND l.rank <= %s"
-                        params.append(max_rank)
+                        if lower_max >= 1 and lower_min <= lower_max:
+                            ranges_to_search.append(
+                                (
+                                    lower_min,
+                                    lower_max
+                                )
+                            )
 
-                    sql += " ORDER BY RANDOM() LIMIT %s"
-                    params.append(count)
+                        ranges_to_search.append(
+                            (
+                                upper_min,
+                                upper_max
+                            )
+                        )
 
-                    cursor.execute(sql, params)
-                    questions.extend(cursor.fetchall())
+                    found_new_range = False
 
-            return questions
+                    for search_min_rank, search_max_rank in ranges_to_search:
+                        if len(questions) >= count:
+                            break
+
+                        range_key = (
+                            search_min_rank,
+                            search_max_rank
+                        )
+
+                        if range_key in searched_ranges:
+                            continue
+
+                        searched_ranges.add(range_key)
+                        found_new_range = True
+
+                        remaining = count - len(questions)
+
+                        cursor.execute(
+                            """
+                            SELECT
+                                vtb.id,
+                                vtb.question,
+                                vtb.correct_answer,
+                                vtb.distractor_1,
+                                vtb.distractor_2,
+                                vtb.distractor_3
+                            FROM vocab_test_bank vtb
+                            JOIN lemmas l
+                                ON l.id = vtb.lemma_id
+                            WHERE l.language = %s
+                            AND l.rank >= %s
+                            AND l.rank <= %s
+                            AND NOT EXISTS (
+                                SELECT 1
+                                FROM user_vocabulary uv
+                                WHERE uv.user_id = %s
+                                    AND uv.lemma_id = vtb.lemma_id
+                            )
+                            AND NOT EXISTS (
+                                SELECT 1
+                                FROM user_vocab_question_results uvqr
+                                WHERE uvqr.user_id = %s
+                                    AND uvqr.question_id = vtb.id
+                            )
+                            ORDER BY RANDOM()
+                            LIMIT %s
+                            """,
+                            [
+                                self.language,
+                                search_min_rank,
+                                search_max_rank,
+                                self.user_id,
+                                self.user_id,
+                                remaining
+                            ]
+                        )
+
+                        rows = cursor.fetchall()
+                        questions.extend(rows)
+
+                    if len(questions) >= count:
+                        break
+
+                    if not found_new_range:
+                        break
+
+                    if original_min_rank - (range_width * expansion_step) <= 1 and original_max_rank + (range_width * expansion_step) > 300000:
+                        break
+
+                    expansion_step += 1
+
+            return questions[:count]
         
         def flag(self, user_id, question_id):
             with self.conn.cursor() as cursor:
@@ -170,38 +250,109 @@ class Test:
             self.conn.commit()
 
             return {"status": "logged", "count": len(rows)}
-        def per_level_results(self):
-            # For each level in LEVEL_RANGES
-            # Return the number correct and number incorrect
-            results = {}
-            with self.conn.cursor() as cursor:
-                for level, (min_rank, max_rank) in LEVEL_RANGES.items():
-                    sql = """
-                        SELECT
-                            COUNT(*) FILTER (WHERE correct = true) AS correct_count,
-                            COUNT(*) FILTER (WHERE correct = false) AS incorrect_count
-                        FROM user_vocab_question_results uvqr
-                        JOIN vocab_test_bank vtb ON uvqr.question_id = vtb.id
-                        JOIN lemmas l ON vtb.lemma_id = l.id
-                        WHERE uvqr.user_id = %s
-                        AND l.language = %s
-                        AND l.rank >= %s
-                    """
+        def range_results(self, min_rank, max_rank=None, days_back=None):
+            # Return the number correct and incorrect for this user
+            # within the provided lemma rank range.
+            #
+            # If max_rank is None, use the highest rank available in the user's
+            # existing question results for this language.
+            #
+            # If days_back is provided, only count results from the last X days.
 
-                    params = [self.user_id, self.language, min_rank]
+            if min_rank is None:
+                min_rank = 1
 
-                    if max_rank is not None:
-                        sql += " AND l.rank <= %s"
-                        params.append(max_rank)
+            if max_rank is not None and max_rank < min_rank:
+                raise ValueError("max_rank must be greater than or equal to min_rank.")
 
+            if days_back is not None and days_back <= 0:
+                raise ValueError("days_back must be greater than 0 if provided.")
+
+            answered_after = None
+
+            if days_back is not None:
+                answered_after = datetime.datetime.now(datetime.timezone.utc) - datetime.timedelta(days=days_back)
+
+            if max_rank is None:
+                sql = """
+                    SELECT MAX(l.rank)
+                    FROM user_vocab_question_results uvqr
+                    JOIN vocab_test_bank vtb
+                        ON uvqr.question_id = vtb.id
+                    JOIN lemmas l
+                        ON vtb.lemma_id = l.id
+                    WHERE uvqr.user_id = %s
+                    AND l.language = %s
+                    AND l.rank >= %s
+                """
+
+                params = [
+                    self.user_id,
+                    self.language,
+                    min_rank
+                ]
+
+                if answered_after is not None:
+                    sql += " AND uvqr.answered_at >= %s"
+                    params.append(answered_after)
+
+                with self.conn.cursor() as cursor:
                     cursor.execute(sql, params)
-                    row = cursor.fetchone()
-                    results[level] = {
-                        "correct": row[0],
-                        "incorrect": row[1]
+                    max_rank_row = cursor.fetchone()
+                    max_rank = max_rank_row[0]
+
+                if max_rank is None:
+                    return {
+                        "min_rank": min_rank,
+                        "max_rank": None,
+                        "correct": 0,
+                        "incorrect": 0,
+                        "total": 0,
+                        "days_back": days_back
                     }
-            self.conn.commit()
-            return results
+
+            sql = """
+                SELECT
+                    COUNT(*) FILTER (WHERE uvqr.correct = true) AS correct_count,
+                    COUNT(*) FILTER (WHERE uvqr.correct = false) AS incorrect_count
+                FROM user_vocab_question_results uvqr
+                JOIN vocab_test_bank vtb
+                    ON uvqr.question_id = vtb.id
+                JOIN lemmas l
+                    ON vtb.lemma_id = l.id
+                WHERE uvqr.user_id = %s
+                AND l.language = %s
+                AND l.rank >= %s
+                AND l.rank <= %s
+            """
+
+            params = [
+                self.user_id,
+                self.language,
+                min_rank,
+                max_rank
+            ]
+
+            if answered_after is not None:
+                sql += " AND uvqr.answered_at >= %s"
+                params.append(answered_after)
+
+            with self.conn.cursor() as cursor:
+                cursor.execute(sql, params)
+                row = cursor.fetchone()
+
+            correct = row[0] or 0
+            incorrect = row[1] or 0
+
+            return {
+                "min_rank": min_rank,
+                "max_rank": max_rank,
+                "correct": correct,
+                "incorrect": incorrect,
+                "total": correct + incorrect,
+                "days_back": days_back
+            }
+        
         def append_lemma_rank(self, questions):
             question_ids = [q["question_id"] for q in questions]
             if not question_ids:
@@ -235,7 +386,7 @@ class Test:
                         l.id AS lemma_id,
                         l.lemma,
                         lt.translation,
-                        l.definition,
+                        l.definition
                         l.pos
                     FROM vocab_test_bank vtb
                     JOIN lemmas l
