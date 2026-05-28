@@ -94,9 +94,9 @@ def build(request):
             }, status=400)
         if action == "load_questions":
             # Check if the vocabulary score has improved
-            vocab_score = vitalib.Database.UserInfo.Get(connection, request.user.id).score(language)
-            new_score = vitalib.Test.Get(connection, request.user.id, language).new_score()
-            if new_score["confidence"] == "solid" and new_score["score"] > vocab_score:
+            level = vitalib.Database.UserInfo.Get(connection, request.user.id).level(language)
+            new_level = vitalib.Test.Get(connection, request.user.id, language).new_level()
+            if new_level > level:
                 # Just redirect home and it will update the score there
                 return JsonResponse({
                     "status": "redirect_home"

@@ -225,39 +225,6 @@ class Test:
             for m in missed:
                 m["correct_answer"] = m["lemma"]["lemma"]
             return missed
-        def new_score(self):
-            score_result = 0
-            # Get the per_level_results for the user
-            per_level_results = vitalib.Database.Test.Questions(self.conn, self.user_id, self.language).per_level_results()
-            eval_dict = {}
-            for level in per_level_results:
-                correct = per_level_results[level].get("correct", 0)
-                incorrect = per_level_results[level].get("incorrect", 0)
-                eval_dict[level] = {}
-                eval_dict[level]["mastery_confidence"] = beta.sf(0.80, correct + 1, incorrect + 1)
-                eval_dict[level]["entry_confidence"] = beta.sf(0.40, correct + 1, incorrect + 1)
-            frontier = 1
-            for level in sorted(eval_dict.keys()):
-                if level < len(list(eval_dict.keys())):
-                    next_level = level + 1
-                    if eval_dict[level]["mastery_confidence"] >= 0.9 and eval_dict[next_level]["entry_confidence"] >= 0.9:
-                        frontier = next_level
-            base_score = 1000 * (frontier - 1)
-            if frontier < len(list(eval_dict.keys())):
-                bonus = 1000 * eval_dict[frontier]["mastery_confidence"] * eval_dict[frontier + 1]["entry_confidence"]
-            else:
-                bonus = 1000 * eval_dict[frontier]["mastery_confidence"]
-            score_result = base_score + bonus
-            if score_result >= 1000:
-                confidence = "solid"
-            elif eval_dict[1]["mastery_confidence"] < 0.1 or eval_dict[2]["entry_confidence"] < 0.1:
-                confidence = "solid"
-            else:
-                confidence = "rough"
-            return {
-                "score": round(score_result),
-                "confidence": confidence
-            }
         def level_mastery(self, question_mastery_threshold = 0.80):
             result = {}
             # Get user's current level
