@@ -105,6 +105,19 @@ class Vocab:
                 items.append(item)
 
             return items
+        def total_lemmas(self):
+            with self.conn.cursor() as cursor:
+                cursor.execute(
+                    """
+                    SELECT COUNT(*)
+                    FROM lemmas
+                    WHERE language = %s
+                    """,
+                    [self.language]
+                )
+                lemma_count = cursor.fetchone()[0]
+
+            return lemma_count
         def lemma(self, lemma_id):
             with self.conn.cursor() as cursor:
                 cursor.execute(
@@ -178,6 +191,68 @@ class Vocab:
                 }
                 for row in rows
             ]
+        def coverage(self, min_rank, max_rank):
+            if min_rank is None:
+                min_rank = 1
+
+            if max_rank is not None and max_rank < min_rank:
+                raise ValueError("max_rank must be greater than or equal to min_rank.")
+
+            sql = """
+                SELECT
+                    COUNT(l.id) AS total_words,
+                    COALESCE(
+                        SUM(
+                            CASE
+                                WHEN uv.review_stage IS NULL THEN 0
+                                WHEN uv.review_stage <= 1 THEN 0
+                                WHEN uv.review_stage >= 7 THEN 6
+                                ELSE uv.review_stage - 1
+                            END
+                        ),
+                        0
+                    ) AS earned_points
+                FROM lemmas l
+                LEFT JOIN user_vocabulary uv
+                    ON uv.lemma_id = l.id
+                    AND uv.user_id = %s
+                WHERE l.language = %s
+                AND l.rank >= %s
+            """
+
+            params = [
+                self.user_id,
+                self.language,
+                min_rank
+            ]
+
+            if max_rank is not None:
+                sql += " AND l.rank <= %s"
+                params.append(max_rank)
+
+            with self.conn.cursor() as cursor:
+                cursor.execute(sql, params)
+                row = cursor.fetchone()
+
+            total_words = row[0] or 0
+            earned_points = row[1] or 0
+
+            max_points = total_words * 6
+
+            if max_points == 0:
+                coverage_ratio = 0
+            else:
+                coverage_ratio = earned_points / max_points
+
+            return {
+                "min_rank": min_rank,
+                "max_rank": max_rank,
+                "total_words": total_words,
+                "earned_points": earned_points,
+                "max_points": max_points,
+                "coverage": coverage_ratio,
+                "coverage_percent": round(coverage_ratio * 100, 2)
+            }
     class Add:
         def __init__(self, conn, user_id):
             self.conn = conn

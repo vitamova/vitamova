@@ -244,7 +244,75 @@ class Test:
                 "confidence": confidence
             }
         def new_level(self):
-            return 0 # Placeholder until we have a real leveling system based on the new scoring
+            # Get user's current level
+            current_level = vitalib.Database.UserInfo.Get(
+                self.conn,
+                self.user_id
+            ).level(self.language)
+
+            # Get the number of lemmas for this language
+            total_lemmas = vitalib.Database.Vocab.Get(
+                self.conn,
+                self.user_id,
+                self.language
+            ).total_lemmas()
+
+            coverage_mastery_threshold = 0.80
+            question_mastery_threshold = 0.80
+            confidence_threshold = 0.90
+            minimum_question_results = 20
+
+            new_level = current_level
+
+            # If the user is level 0, start at ranks 1-1000.
+            # If the user is level 3, start at ranks 3001-4000.
+            min_rank = (current_level * 1000) + 1
+
+            while min_rank <= total_lemmas:
+                max_rank = min(min_rank + 999, total_lemmas)
+
+                coverage_result = vitalib.Database.Vocab.Get(
+                    self.conn,
+                    self.user_id,
+                    self.language
+                ).coverage(
+                    min_rank,
+                    max_rank
+                )
+
+                range_result = vitalib.Database.Test.Questions(
+                    self.conn,
+                    self.user_id,
+                    self.language
+                ).range_results(
+                    min_rank,
+                    max_rank
+                )
+
+                coverage = coverage_result["coverage"]
+
+                correct = range_result["correct"]
+                incorrect = range_result["incorrect"]
+                total = range_result["total"]
+
+                mastery_confidence = beta.sf(
+                    question_mastery_threshold,
+                    correct + 1,
+                    incorrect + 1
+                )
+
+                mastered_by_coverage = coverage >= coverage_mastery_threshold
+
+                mastered_by_questions = (
+                    total >= minimum_question_results
+                    and mastery_confidence >= confidence_threshold
+                )
+
+                if mastered_by_coverage or mastered_by_questions:
+                    new_level = (min_rank // 1000) + 1
+                min_rank += 1000
+
+            return new_level
 
 
     class Format:
