@@ -9,9 +9,9 @@ class Test:
             self.user_id = user_id
             self.language = language
         def edge_range(self):
+            # Return the most likely learning edge range based on the user's existing results.
+            # This does not fetch new questions. It only looks at available user data.
 
-            # Broad placement ranges.
-            # These are intentionally wide because the first goal is to locate the user's general zone.
             broad_ranges = [
                 (1, 3000),
                 (3001, 10000),
@@ -22,51 +22,28 @@ class Test:
             max_narrowing_rounds = 8
             minimum_results_to_narrow = 4
 
-            questions = []
             question_fetcher = vitalib.Database.Test.Questions(
                 self.conn,
                 self.user_id,
                 self.language
             )
 
-            # First, check whether the user has enough data to make any useful edge estimate.
             total_existing_results = 0
 
             for min_rank, max_rank in broad_ranges:
                 results = question_fetcher.range_results(min_rank, max_rank)
                 total_existing_results += results["total"]
 
-            # If the user has very little data, do a broad pass instead of pretending
-            # we can already identify a precise edge.
-            if total_existing_results < 9:
-                base_count = count // len(broad_ranges)
-                remainder = count % len(broad_ranges)
-
-                for index, (min_rank, max_rank) in enumerate(broad_ranges):
-                    range_count = base_count
-
-                    if index < remainder:
-                        range_count += 1
-
-                    if range_count <= 0:
-                        continue
-
-                    range_questions = question_fetcher.new(
-                        min_rank=min_rank,
-                        max_rank=max_rank,
-                        count=range_count
-                    )
-
-                    questions.extend(range_questions)
-
-                questions = Test.Format.questions(questions)
-                questions = question_fetcher.append_lemma(questions)
-                return questions
+            # If there is not enough data to estimate an edge, return a broad default.
+            # This gives the app a safe starting range without pretending to be precise.
+            if total_existing_results == 0:
+                return (1, 3000)
 
             # Pick the broad range most likely to contain the user's learning edge.
             best_min_rank = None
             best_max_rank = None
             best_score = -1
+            best_total = 0
 
             for min_rank, max_rank in broad_ranges:
                 results = question_fetcher.range_results(min_rank, max_rank)
@@ -75,10 +52,25 @@ class Test:
                 incorrect = results["incorrect"]
                 total = results["total"]
 
+                if total == 0:
+                    continue
+
                 alpha = correct + 1
                 beta_param = incorrect + 1
 
-                edge_probability = beta.cdf(0.80, alpha, beta_param) - beta.cdf(0.40, alpha, beta_param)
+                # Learning edge means the user is probably neither lost nor fully comfortable.
+                # This estimates P(40% <= true accuracy <= 80%).
+                edge_probability = beta.cdf(
+                    0.80,
+                    alpha,
+                    beta_param
+                ) - beta.cdf(
+                    0.40,
+                    alpha,
+                    beta_param
+                )
+
+                # Ranges with very little data should count less.
                 evidence_weight = total / (total + 8)
 
                 edge_score = edge_probability * evidence_weight
@@ -87,16 +79,19 @@ class Test:
                     best_score = edge_score
                     best_min_rank = min_rank
                     best_max_rank = results["max_rank"]
+                    best_total = total
 
-            # If max_rank was None and there were results, range_results should have resolved it.
-            # If it still did not resolve, use a practical temporary ceiling.
+            # Fallback in case all ranges had zero usable data somehow.
+            if best_min_rank is None:
+                return (1, 3000)
+
+            # If the open-ended range did not resolve to a real max rank, use a temporary window.
             if best_max_rank is None:
                 best_max_rank = best_min_rank + 999
 
             current_min_rank = best_min_rank
             current_max_rank = best_max_rank
 
-            # Narrow the selected range by repeatedly splitting it into thirds.
             narrowing_round = 0
 
             while narrowing_round < max_narrowing_rounds:
@@ -140,10 +135,22 @@ class Test:
                     incorrect = results["incorrect"]
                     total = results["total"]
 
+                    if total == 0:
+                        continue
+
                     alpha = correct + 1
                     beta_param = incorrect + 1
 
-                    edge_probability = beta.cdf(0.80, alpha, beta_param) - beta.cdf(0.40, alpha, beta_param)
+                    edge_probability = beta.cdf(
+                        0.80,
+                        alpha,
+                        beta_param
+                    ) - beta.cdf(
+                        0.40,
+                        alpha,
+                        beta_param
+                    )
+
                     evidence_weight = total / (total + 8)
 
                     edge_score = edge_probability * evidence_weight
@@ -154,9 +161,8 @@ class Test:
                         best_candidate_max = candidate_max_rank
                         best_candidate_total = total
 
-                # If the best smaller range has almost no data, stop narrowing.
-                # At this point, asking more questions in the current range is better
-                # than making a fake-precise guess.
+                # Stop narrowing if the smaller range does not have enough evidence.
+                # This avoids returning a fake-precise 100-rank edge from almost no data.
                 if best_candidate_total < minimum_results_to_narrow:
                     break
 
@@ -164,7 +170,9 @@ class Test:
                 current_max_rank = best_candidate_max
 
                 narrowing_round += 1
+
             return (current_min_rank, current_max_rank)
+
         def new_questions(self, count):
             if count <= 0:
                 return []
