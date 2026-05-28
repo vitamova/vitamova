@@ -44,6 +44,7 @@ def home(request):
     language_name = vitalib.Transform.Language(language).code_to_name()
     new_level = vitalib.Test.Get(connection, request.user.id, language).new_level()
     edge_range = vitalib.Test.Get(connection, request.user.id, language).edge_range()
+    level_mastery = vitalib.Test.Get(connection, request.user.id, language).level_mastery()
 
     if new_level > level:
         vitalib.Database.UserInfo.Update(connection, request.user.id).level(language, new_level)
@@ -76,7 +77,8 @@ def home(request):
             "mobile": mobile,
             "edge_range": edge_range,
             "old_level": level,
-            "new_level": new_level
+            "new_level": new_level,
+            "level_mastery": level_mastery
             })
     else:
         return redirect("/subscribe/")

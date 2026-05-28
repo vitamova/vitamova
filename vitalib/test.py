@@ -177,11 +177,26 @@ class Test:
 
             current_min_rank, current_max_rank = self.edge_range()
 
+            # Get half of the questions from the edge range
             questions = question_fetcher.new(
                 min_rank=current_min_rank,
                 max_rank=current_max_rank,
-                count=count
+                count=count//2
             )
+
+            # Get the level_mastery dictionary
+            level_mastery = self.level_mastery()
+            # Find the level with the highest mastery confidence
+            best_level = max(level_mastery, key=lambda level: level_mastery[level]["mastery_confidence"])
+            # The other half of the questions should come from best_level
+            # This helps the user achieve a sense of accomplishment by reinforcing their strongest level while they work on their edge.
+            best_level_min_rank = (best_level * 1000) + 1
+            best_level_max_rank = best_level_min_rank + 999
+            questions.extend(question_fetcher.new(
+                min_rank=best_level_min_rank,
+                max_rank=best_level_max_rank,
+                count=count - (count//2)
+            ))
 
             questions = Test.Format.questions(questions)
             questions = question_fetcher.append_lemma(questions)
@@ -243,7 +258,8 @@ class Test:
                 "score": round(score_result),
                 "confidence": confidence
             }
-        def new_level(self):
+        def level_mastery(self, question_mastery_threshold = 0.80):
+            result = {}
             # Get user's current level
             current_level = vitalib.Database.UserInfo.Get(
                 self.conn,
@@ -257,19 +273,13 @@ class Test:
                 self.language
             ).total_lemmas()
 
-            coverage_mastery_threshold = 0.80
-            question_mastery_threshold = 0.80
-            confidence_threshold = 0.90
-            minimum_question_results = 20
-
-            new_level = current_level
-
             # If the user is level 0, start at ranks 1-1000.
             # If the user is level 3, start at ranks 3001-4000.
             min_rank = (current_level * 1000) + 1
 
             while min_rank <= total_lemmas:
                 max_rank = min(min_rank + 999, total_lemmas)
+                associated_level = (min_rank - 1) // 1000
 
                 coverage_result = vitalib.Database.Vocab.Get(
                     self.conn,
@@ -293,19 +303,33 @@ class Test:
 
                 correct = range_result["correct"]
                 incorrect = range_result["incorrect"]
-                total = range_result["total"]
 
                 mastery_confidence = beta.sf(
                     question_mastery_threshold,
                     correct + 1,
                     incorrect + 1
                 )
+                result[associated_level] = {
+                    "coverage": coverage,
+                    "mastery_confidence": mastery_confidence
+                }
+            return result
+        def new_level(self):
+            new_level = sorted(list(level_mastery.keys()))[0]
+            coverage_mastery_threshold = 0.80
+            question_mastery_threshold = 0.80
+            confidence_threshold = 0.90
+
+            level_mastery = self.level_mastery(question_mastery_threshold)
+
+            for level in sorted(level_mastery.keys()):
+                coverage = level_mastery[level]["coverage"]
+                mastery_confidence = level_mastery[level]["mastery_confidence"]
 
                 mastered_by_coverage = coverage >= coverage_mastery_threshold
 
                 mastered_by_questions = (
-                    total >= minimum_question_results
-                    and mastery_confidence >= confidence_threshold
+                    mastery_confidence >= confidence_threshold
                 )
 
                 if mastered_by_coverage or mastered_by_questions:
