@@ -81,7 +81,8 @@ def home(request):
             "edge_range": edge_range,
             "level": level,
             "best_level": best_level,
-            "best_level_mastery": level_mastery[best_level]
+            "best_level_mastery": level_mastery[best_level],
+            "weekly_points": weekly_points
             })
     else:
         return redirect("/subscribe/")
