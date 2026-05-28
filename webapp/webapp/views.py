@@ -45,6 +45,8 @@ def home(request):
     new_level = vitalib.Test.Get(connection, request.user.id, language).new_level()
     edge_range = vitalib.Test.Get(connection, request.user.id, language).edge_range()
     level_mastery = vitalib.Test.Get(connection, request.user.id, language).level_mastery()
+    # Get the level with the highest mastery
+    best_level = max(level_mastery, key=lambda x: level_mastery[x]["mastery_confidence"])
 
     if new_level > level:
         vitalib.Database.UserInfo.Update(connection, request.user.id).level(language, new_level)
@@ -78,7 +80,8 @@ def home(request):
             "edge_range": edge_range,
             "old_level": level,
             "new_level": new_level,
-            "level_mastery": level_mastery
+            "best_level": best_level,
+            "best_level_mastery": level_mastery[best_level]
             })
     else:
         return redirect("/subscribe/")
