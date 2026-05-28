@@ -105,6 +105,33 @@ class UserInfo:
             raise ValueError(
                 f"Language '{language}' does not match any target language for user_id {self.user_id}"
             )
+        def level(self, language, new_level):
+            # Update the level for the language. If it's for target_language update level, if it's for second_target_language update second_level
+            language = language.strip().lower()
+            with self.conn.cursor() as cur:
+                cur.execute(
+                    """
+                    SELECT target_language, second_target_language
+                    FROM registered_user
+                    WHERE user_id = %s
+                    """,
+                    (self.user_id,)
+                )
+
+                row = cur.fetchone()
+
+            if not row:
+                raise ValueError(f"No registered_user found for user_id {self.user_id}")
+            target_language, second_target_language = row
+            if target_language and language == target_language.strip().lower():
+                self.data(level=new_level)
+                return
+            if second_target_language and language == second_target_language.strip().lower():
+                self.data(second_level=new_level)
+                return
+            raise ValueError(
+                f"Language '{language}' does not match any target language for user_id {self.user_id}"
+            )
     class Get:
         def __init__(self, conn, user_id):
             self.conn = conn
@@ -158,6 +185,36 @@ class UserInfo:
 
             if second_target_language and language == second_target_language.strip().lower():
                 return second_vocab_score
+
+            raise ValueError(
+                f"Language '{language}' does not match any target language for user_id {self.user_id}"
+            )
+        def level(self, language):
+            # Same as score, if it's for target_language get level
+            # If it's for second_target_language get second_level
+            language = language.strip().lower()
+            with self.conn.cursor() as cur:
+                cur.execute(
+                    """
+                    SELECT target_language, second_target_language, level, second_level
+                    FROM registered_user
+                    WHERE user_id = %s
+                    """,
+                    (self.user_id,)
+                )
+
+                row = cur.fetchone()
+
+            if not row:
+                raise ValueError(f"No registered_user found for user_id {self.user_id}")
+
+            target_language, second_target_language, level, second_level = row
+
+            if target_language and language == target_language.strip().lower():
+                return level
+
+            if second_target_language and language == second_target_language.strip().lower():
+                return second_level
 
             raise ValueError(
                 f"Language '{language}' does not match any target language for user_id {self.user_id}"

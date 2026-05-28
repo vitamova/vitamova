@@ -1,0 +1,716 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  {% include "partials/head.html" %}
+
+  <title>Vitamova | Level Updated</title>
+
+  <style>
+    :root {
+      --vita-yellow: #ffd54a;
+      --vita-yellow-dark: #f4bf20;
+      --vita-blue: #1f5eff;
+      --vita-blue-dark: #1748c6;
+      --bg-soft: #f7f9ff;
+      --text-dark: #1a1f36;
+      --text-muted: #667085;
+      --card: #ffffff;
+      --border: #e6eaf2;
+      --success: #12b76a;
+      --shadow: 0 20px 55px rgba(24, 42, 100, 0.14);
+    }
+
+    * {
+      box-sizing: border-box;
+    }
+
+    body {
+      margin: 0;
+      min-height: 100vh;
+      font-family: Inter, ui-sans-serif, system-ui, -apple-system, Segoe UI, Roboto, Helvetica, Arial, sans-serif;
+      color: var(--text-dark);
+      background:
+        radial-gradient(circle at 8% 8%, rgba(255, 213, 74, 0.34), transparent 34%),
+        radial-gradient(circle at 92% 20%, rgba(31, 94, 255, 0.22), transparent 38%),
+        linear-gradient(180deg, #ffffff 0%, var(--bg-soft) 100%);
+      overflow-x: hidden;
+      padding: 24px;
+    }
+
+    .confetti-layer {
+      position: fixed;
+      inset: 0;
+      pointer-events: none;
+      overflow: hidden;
+      z-index: 1;
+    }
+
+    .confetti {
+      position: absolute;
+      top: -30px;
+      width: 10px;
+      height: 18px;
+      border-radius: 4px;
+      opacity: 0.92;
+      animation-name: confettiFall;
+      animation-timing-function: linear;
+      animation-iteration-count: infinite;
+    }
+
+    .confetti:nth-child(1) { left: 5%; background: var(--vita-yellow); animation-duration: 5.2s; animation-delay: 0s; }
+    .confetti:nth-child(2) { left: 12%; background: var(--vita-blue); animation-duration: 6.1s; animation-delay: 0.7s; }
+    .confetti:nth-child(3) { left: 18%; background: #12b76a; animation-duration: 4.8s; animation-delay: 1.4s; }
+    .confetti:nth-child(4) { left: 26%; background: #f79009; animation-duration: 6.4s; animation-delay: 0.2s; }
+    .confetti:nth-child(5) { left: 33%; background: #f04438; animation-duration: 5.7s; animation-delay: 1.1s; }
+    .confetti:nth-child(6) { left: 41%; background: var(--vita-yellow); animation-duration: 4.9s; animation-delay: 0.5s; }
+    .confetti:nth-child(7) { left: 48%; background: var(--vita-blue); animation-duration: 6.3s; animation-delay: 1.8s; }
+    .confetti:nth-child(8) { left: 56%; background: #12b76a; animation-duration: 5.4s; animation-delay: 0.9s; }
+    .confetti:nth-child(9) { left: 64%; background: #f79009; animation-duration: 6.6s; animation-delay: 1.5s; }
+    .confetti:nth-child(10) { left: 72%; background: #f04438; animation-duration: 5.1s; animation-delay: 0.4s; }
+    .confetti:nth-child(11) { left: 80%; background: var(--vita-yellow); animation-duration: 6.2s; animation-delay: 1.2s; }
+    .confetti:nth-child(12) { left: 88%; background: var(--vita-blue); animation-duration: 5.5s; animation-delay: 0.8s; }
+    .confetti:nth-child(13) { left: 96%; background: #12b76a; animation-duration: 6.8s; animation-delay: 1.7s; }
+
+    @keyframes confettiFall {
+      0% {
+        transform: translateY(-40px) rotate(0deg);
+        opacity: 0;
+      }
+
+      10% {
+        opacity: 0.95;
+      }
+
+      100% {
+        transform: translateY(110vh) rotate(760deg);
+        opacity: 0;
+      }
+    }
+
+    .page {
+      position: relative;
+      z-index: 2;
+      width: 100%;
+      max-width: 1050px;
+      min-height: calc(100vh - 48px);
+      margin: 0 auto;
+      display: grid;
+      grid-template-rows: auto 1fr auto;
+      gap: 24px;
+    }
+
+    .topbar {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 16px;
+    }
+
+    .brand {
+      display: flex;
+      align-items: center;
+      gap: 10px;
+      font-weight: 900;
+      font-size: 1.15rem;
+      color: var(--text-dark);
+      text-decoration: none;
+    }
+
+    .brand-badge {
+      width: 42px;
+      height: 42px;
+      border-radius: 14px;
+      overflow: hidden;
+      display: grid;
+      place-items: center;
+      background: white;
+      box-shadow: 0 8px 20px rgba(20, 27, 52, 0.08);
+    }
+
+    .brand-icon {
+      width: 100%;
+      height: 100%;
+      object-fit: cover;
+      display: block;
+    }
+
+    .top-link {
+      color: var(--vita-blue);
+      font-weight: 900;
+      text-decoration: none;
+      background: rgba(31, 94, 255, 0.08);
+      border: 1px solid rgba(31, 94, 255, 0.13);
+      border-radius: 999px;
+      padding: 10px 14px;
+      transition: transform 0.15s ease, background 0.15s ease;
+    }
+
+    .top-link:hover {
+      transform: translateY(-1px);
+      background: rgba(31, 94, 255, 0.12);
+    }
+
+    .celebration-shell {
+      display: grid;
+      align-items: center;
+      gap: 22px;
+    }
+
+    .level-stage {
+      position: relative;
+      overflow: hidden;
+      border-radius: 42px;
+      padding: clamp(34px, 6vw, 70px) 24px;
+      text-align: center;
+      color: white;
+      background:
+        radial-gradient(circle at 50% 8%, rgba(255, 213, 74, 0.60), transparent 24%),
+        radial-gradient(circle at 8% 88%, rgba(255, 255, 255, 0.16), transparent 30%),
+        radial-gradient(circle at 92% 82%, rgba(255, 255, 255, 0.14), transparent 32%),
+        linear-gradient(145deg, var(--vita-blue) 0%, #326fff 48%, #7facff 100%);
+      box-shadow: var(--shadow);
+    }
+
+    .level-stage::before {
+      content: "";
+      position: absolute;
+      width: 520px;
+      height: 520px;
+      border-radius: 999px;
+      background: rgba(255, 213, 74, 0.22);
+      top: -260px;
+      left: 50%;
+      transform: translateX(-50%);
+      filter: blur(3px);
+    }
+
+    .level-stage::after {
+      content: "";
+      position: absolute;
+      inset: 18px;
+      border-radius: 32px;
+      border: 1px solid rgba(255, 255, 255, 0.20);
+      pointer-events: none;
+    }
+
+    .level-content {
+      position: relative;
+      z-index: 1;
+      max-width: 850px;
+      margin: 0 auto;
+    }
+
+    .kicker {
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      gap: 8px;
+      padding: 9px 14px;
+      border-radius: 999px;
+      background: rgba(255, 255, 255, 0.15);
+      border: 1px solid rgba(255, 255, 255, 0.22);
+      color: white;
+      font-size: 0.88rem;
+      font-weight: 900;
+      backdrop-filter: blur(8px);
+      margin-bottom: 18px;
+    }
+
+    .headline {
+      margin: 0;
+      font-size: clamp(2.2rem, 5vw, 4.1rem);
+      line-height: 1.02;
+      letter-spacing: -0.055em;
+    }
+
+    .subheadline {
+      margin: 14px auto 0;
+      max-width: 68ch;
+      color: rgba(255, 255, 255, 0.90);
+      font-size: 1.08rem;
+      line-height: 1.55;
+      font-weight: 600;
+    }
+
+    .level-orbit {
+      position: relative;
+      width: min(92vw, 520px);
+      height: min(92vw, 520px);
+      max-height: 520px;
+      margin: 34px auto 12px;
+      display: grid;
+      place-items: center;
+    }
+
+    .level-ring {
+      position: absolute;
+      inset: 0;
+      border-radius: 999px;
+      background:
+        conic-gradient(
+          from 180deg,
+          rgba(255, 213, 74, 0.95),
+          rgba(255, 255, 255, 0.36),
+          rgba(255, 213, 74, 0.95),
+          rgba(255, 255, 255, 0.28),
+          rgba(255, 213, 74, 0.95)
+        );
+      opacity: 0.9;
+      animation: slowSpin 10s linear infinite;
+      box-shadow: 0 22px 70px rgba(0, 0, 0, 0.12);
+    }
+
+    .level-ring::after {
+      content: "";
+      position: absolute;
+      inset: 16px;
+      border-radius: 999px;
+      background: linear-gradient(145deg, #1f5eff, #5b92ff);
+    }
+
+    @keyframes slowSpin {
+      0% {
+        transform: rotate(0deg);
+      }
+
+      100% {
+        transform: rotate(360deg);
+      }
+    }
+
+    .level-core {
+      position: relative;
+      z-index: 2;
+      width: calc(100% - 72px);
+      height: calc(100% - 72px);
+      border-radius: 999px;
+      background:
+        radial-gradient(circle at 50% 18%, rgba(255, 255, 255, 0.35), transparent 30%),
+        rgba(255, 255, 255, 0.96);
+      color: var(--text-dark);
+      display: grid;
+      place-items: center;
+      padding: 26px;
+      box-shadow:
+        inset 0 1px 0 rgba(255, 255, 255, 0.90),
+        0 30px 70px rgba(0, 24, 100, 0.24);
+    }
+
+    .level-label {
+      display: block;
+      font-size: 0.86rem;
+      font-weight: 950;
+      color: var(--text-muted);
+      letter-spacing: 0.12em;
+      text-transform: uppercase;
+      margin-bottom: 8px;
+    }
+
+    .level-number {
+      display: block;
+      color: var(--vita-blue);
+      font-size: clamp(7rem, 22vw, 14rem);
+      line-height: 0.82;
+      font-weight: 1000;
+      letter-spacing: -0.12em;
+      padding-right: 0.1em;
+      text-shadow: 0 14px 34px rgba(31, 94, 255, 0.18);
+    }
+
+    .level-language {
+      display: block;
+      margin-top: 14px;
+      color: var(--text-dark);
+      font-size: clamp(1rem, 2vw, 1.35rem);
+      font-weight: 950;
+      letter-spacing: -0.03em;
+    }
+
+    .previous-level {
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      gap: 8px;
+      margin-top: 18px;
+      color: rgba(255, 255, 255, 0.80);
+      font-weight: 800;
+      font-size: 0.94rem;
+    }
+
+    .previous-level strong {
+      color: white;
+      background: rgba(255, 255, 255, 0.14);
+      border: 1px solid rgba(255, 255, 255, 0.18);
+      border-radius: 999px;
+      padding: 5px 10px;
+    }
+
+    .mastery-strip {
+      display: grid;
+      grid-template-columns: 1.1fr 0.9fr;
+      gap: 18px;
+      align-items: stretch;
+    }
+
+    .mastery-card {
+      background: var(--card);
+      border: 1px solid var(--border);
+      border-radius: 30px;
+      padding: 28px;
+      box-shadow: 0 16px 42px rgba(24, 42, 100, 0.09);
+    }
+
+    .mastery-card.highlight {
+      background:
+        radial-gradient(circle at 92% 12%, rgba(255, 213, 74, 0.26), transparent 34%),
+        white;
+      border-color: rgba(31, 94, 255, 0.18);
+    }
+
+    .mastery-card h2 {
+      margin: 0;
+      font-size: clamp(1.45rem, 3vw, 2.1rem);
+      letter-spacing: -0.04em;
+    }
+
+    .mastery-card p {
+      margin: 12px 0 0;
+      color: var(--text-muted);
+      line-height: 1.62;
+      font-size: 1rem;
+    }
+
+    .word-count {
+      display: flex;
+      align-items: baseline;
+      gap: 10px;
+      margin-top: 18px;
+      color: var(--vita-blue);
+    }
+
+    .word-count strong {
+      font-size: clamp(3.4rem, 8vw, 5.8rem);
+      line-height: 0.9;
+      font-weight: 1000;
+      letter-spacing: -0.08em;
+    }
+
+    .word-count span {
+      font-size: 1rem;
+      font-weight: 950;
+      color: var(--text-muted);
+      text-transform: uppercase;
+      letter-spacing: 0.08em;
+    }
+
+    .mini-list {
+      display: grid;
+      gap: 12px;
+      margin-top: 18px;
+    }
+
+    .mini-item {
+      display: flex;
+      align-items: flex-start;
+      gap: 12px;
+      padding: 14px;
+      border-radius: 18px;
+      border: 1px solid var(--border);
+      background: #fbfcff;
+    }
+
+    .mini-icon {
+      width: 30px;
+      height: 30px;
+      flex-shrink: 0;
+      border-radius: 11px;
+      display: grid;
+      place-items: center;
+      color: var(--vita-blue);
+      background: rgba(31, 94, 255, 0.09);
+      font-weight: 950;
+    }
+
+    .mini-item p {
+      margin: 0;
+      font-size: 0.94rem;
+      line-height: 1.5;
+    }
+
+    .finish-panel {
+      text-align: center;
+      background:
+        radial-gradient(circle at 14% 14%, rgba(255, 213, 74, 0.34), transparent 34%),
+        radial-gradient(circle at 86% 20%, rgba(31, 94, 255, 0.14), transparent 34%),
+        white;
+      border: 1px solid rgba(31, 94, 255, 0.14);
+      border-radius: 32px;
+      padding: 30px;
+      box-shadow: 0 18px 45px rgba(24, 42, 100, 0.10);
+    }
+
+    .finish-panel h2 {
+      margin: 0;
+      font-size: clamp(1.5rem, 3vw, 2.2rem);
+      letter-spacing: -0.04em;
+    }
+
+    .finish-panel p {
+      margin: 12px auto 0;
+      color: var(--text-muted);
+      line-height: 1.6;
+      max-width: 700px;
+      font-size: 1.02rem;
+    }
+
+    .action-row {
+      margin-top: 22px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      gap: 12px;
+      flex-wrap: wrap;
+    }
+
+    .btn {
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      gap: 8px;
+      border-radius: 999px;
+      padding: 14px 20px;
+      font-weight: 950;
+      text-decoration: none;
+      border: 1px solid transparent;
+      transition: transform 0.15s ease, box-shadow 0.15s ease, background 0.15s ease;
+    }
+
+    .btn:hover {
+      transform: translateY(-2px);
+    }
+
+    .btn-primary {
+      background: var(--vita-blue);
+      color: white;
+      box-shadow: 0 10px 24px rgba(31, 94, 255, 0.24);
+    }
+
+    .btn-primary:hover {
+      background: var(--vita-blue-dark);
+      box-shadow: 0 14px 28px rgba(31, 94, 255, 0.30);
+    }
+
+    .btn-secondary {
+      color: var(--vita-blue);
+      background: rgba(31, 94, 255, 0.08);
+      border-color: rgba(31, 94, 255, 0.12);
+    }
+
+    @media (max-width: 820px) {
+      .mastery-strip {
+        grid-template-columns: 1fr;
+      }
+
+      .level-orbit {
+        width: min(90vw, 430px);
+        height: min(90vw, 430px);
+      }
+
+      .level-core {
+        width: calc(100% - 54px);
+        height: calc(100% - 54px);
+      }
+    }
+
+    @media (max-width: 600px) {
+      body {
+        padding: 18px;
+      }
+
+      .topbar {
+        align-items: flex-start;
+      }
+
+      .level-stage {
+        border-radius: 30px;
+        padding: 34px 18px;
+      }
+
+      .level-stage::after {
+        inset: 10px;
+        border-radius: 24px;
+      }
+
+      .level-orbit {
+        width: min(86vw, 330px);
+        height: min(86vw, 330px);
+      }
+
+      .level-core {
+        width: calc(100% - 42px);
+        height: calc(100% - 42px);
+      }
+
+      .mastery-card,
+      .finish-panel {
+        padding: 22px;
+      }
+
+      .top-link {
+        padding: 9px 12px;
+      }
+    }
+  </style>
+</head>
+
+<body>
+  <div class="confetti-layer" aria-hidden="true">
+    <span class="confetti"></span>
+    <span class="confetti"></span>
+    <span class="confetti"></span>
+    <span class="confetti"></span>
+    <span class="confetti"></span>
+    <span class="confetti"></span>
+    <span class="confetti"></span>
+    <span class="confetti"></span>
+    <span class="confetti"></span>
+    <span class="confetti"></span>
+    <span class="confetti"></span>
+    <span class="confetti"></span>
+    <span class="confetti"></span>
+  </div>
+
+  <main class="page">
+    <header class="topbar">
+      <a class="brand" href="/">
+        <div class="brand-badge">
+          <img src="/static/icon.png" alt="Vitamova icon" class="brand-icon">
+        </div>
+        <span>Vitamova</span>
+      </a>
+
+      <a class="top-link" href="/">Go to Vitamova</a>
+    </header>
+
+    <section class="celebration-shell">
+      <div class="level-stage" aria-label="Level celebration">
+        <div class="level-content">
+          <div class="kicker">
+            {% if old_level <= 0 %}
+              ✨ First level unlocked
+            {% elif new_level > old_level %}
+              🚀 Level increased
+            {% else %}
+              🌟 Level confirmed
+            {% endif %}
+          </div>
+
+          <h1 class="headline">Congratulations, {{ first_name }}!!</h1>
+
+          <p class="subheadline">
+            {% if old_level <= 0 %}
+              You just unlocked your first Vitamova level for {{ language_name }}. This gives the app a stronger starting point
+              for helping you build momentum with the right words at the right time.
+            {% elif new_level > old_level %}
+              Your consistent practice is showing real progress. Vitamova has updated your {{ language_name }} level based on
+              the words you have demonstrated and strengthened through the app.
+            {% else %}
+              Your recent activity helped Vitamova confirm your current {{ language_name }} level. Keep going to strengthen this
+              foundation and push toward the next milestone.
+            {% endif %}
+          </p>
+
+          <div class="level-orbit">
+            <div class="level-ring" aria-hidden="true"></div>
+
+            <div class="level-core">
+              <div>
+                <span class="level-label">New Level</span>
+                <span class="level-number">{{ new_level }}</span>
+                <span class="level-language">{{ language_name }}</span>
+              </div>
+            </div>
+          </div>
+
+          {% if old_level > 0 %}
+            <div class="previous-level">
+              Previous level <strong>{{ old_level }}</strong>
+            </div>
+          {% endif %}
+        </div>
+      </div>
+    </section>
+
+    <section class="mastery-strip">
+      <div class="mastery-card highlight">
+        <h2>You have shown mastery of approximately</h2>
+
+        <div class="word-count">
+          <strong>{% widthratio new_level 1 1000 %}</strong>
+          <span>words</span>
+        </div>
+
+        <p>
+          Each Vitamova level represents roughly 1,000 words that you have shown strong mastery over through your activity
+          in the app. That means Level {{ new_level }} represents about {% widthratio new_level 1 1000 %} words of demonstrated progress.
+        </p>
+      </div>
+
+      <div class="mastery-card">
+        <h2>Your level is always calibrating</h2>
+
+        <p>
+          You may already know more words than this level shows. Vitamova is intentionally careful: it raises your level as you
+          keep proving your knowledge through practice, review, and repeated recall.
+        </p>
+
+        <div class="mini-list">
+          <div class="mini-item">
+            <div class="mini-icon">1</div>
+            <p>
+              Keep answering questions to help Vitamova find the edge of what you know.
+            </p>
+          </div>
+
+          <div class="mini-item">
+            <div class="mini-icon">2</div>
+            <p>
+              Keep reviewing words so your level reflects durable memory, not just quick recognition.
+            </p>
+          </div>
+
+          <div class="mini-item">
+            <div class="mini-icon">3</div>
+            <p>
+              Every session gives the app better evidence and moves you closer to your next milestone.
+            </p>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <section class="finish-panel" aria-label="Continue learning">
+      <h2>This is a real milestone. Now let’s build the next one.</h2>
+
+      <p>
+        Your level is not a limit; it is a confirmed foundation. Keep practicing, keep reviewing, and Vitamova will continue
+        calibrating upward as you demonstrate more of what you can understand and remember.
+      </p>
+
+      <div class="action-row">
+        <a class="btn btn-primary" href="/">
+          Continue in Vitamova →
+        </a>
+
+        <a class="btn btn-secondary" href="/vocabulary/build/?language={{ language }}">
+          Build more vocabulary
+        </a>
+
+        <a class="btn btn-secondary" href="/vocabulary/review/?language={{ language }}">
+          Review words
+        </a>
+      </div>
+    </section>
+  </main>
+</body>
+</html>

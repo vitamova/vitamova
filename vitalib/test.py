@@ -8,9 +8,7 @@ class Test:
             self.conn = conn
             self.user_id = user_id
             self.language = language
-        def new_questions(self, count):
-            if count <= 0:
-                return []
+        def edge_range(self):
 
             # Broad placement ranges.
             # These are intentionally wide because the first goal is to locate the user's general zone.
@@ -166,6 +164,18 @@ class Test:
                 current_max_rank = best_candidate_max
 
                 narrowing_round += 1
+            return (current_min_rank, current_max_rank)
+        def new_questions(self, count):
+            if count <= 0:
+                return []
+            
+            question_fetcher = vitalib.Database.Test.Questions(
+                self.conn,
+                self.user_id,
+                self.language
+            )
+
+            current_min_rank, current_max_rank = self.edge_range()
 
             questions = question_fetcher.new(
                 min_rank=current_min_rank,

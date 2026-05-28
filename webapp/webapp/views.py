@@ -41,17 +41,19 @@ def home(request):
 
     review_count = vitalib.Database.Vocab.Get(connection, request.user.id, language).review_count()
     vocab_score = vitalib.Database.UserInfo.Get(connection, request.user.id).score(language)
+    level = vitalib.Database.UserInfo.Get(connection, request.user.id).level(language)
     language_name = vitalib.Transform.Language(language).code_to_name()
-    new_score = vitalib.Test.Get(connection, request.user.id, language).new_score()
+    new_level = vitalib.Test.Get(connection, request.user.id, language).new_level()
+    edge_range = vitalib.Test.Get(connection, request.user.id, language).edge_range()
 
-    if new_score["confidence"] == "solid" and new_score["score"] > vocab_score:
-        vitalib.Database.UserInfo.Update(connection, request.user.id).score(language, new_score["score"])
+    if new_level > level:
+        vitalib.Database.UserInfo.Update(connection, request.user.id).level(language, new_level)
         return render(request, "general/new_score.html", {
             "first_name": request.user.first_name,
             "language": language,
             "language_name": language_name,
-            "old_score": vocab_score,
-            "new_score": new_score["score"]
+            "old_level": level,
+            "new_level": new_level
         })
     
     if vitalib.User.Subscription(request.user.id, request.user.email, connection).is_active():
@@ -75,7 +77,7 @@ def home(request):
             "dev": settings.SERVER_TYPE == 'dev',
             "vocab_score": vocab_score,
             "mobile": mobile,
-            "new_score_dict": new_score
+            "edge_range": edge_range
             })
     else:
         return redirect("/subscribe/")
