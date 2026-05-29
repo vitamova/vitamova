@@ -5,11 +5,6 @@
 
   <title>Vitamova | Home</title>
 
-  <!-- Your edge range is {{ edge_range.0 }} - {{ edge_range.1 }} -->
-  <!-- Your level is {{ level }} -->
-  <!-- You are closest to level {{ best_level }} with mastery confidence of {{ best_level_mastery.mastery_confidence }} and a coverage of {{ best_level_mastery.coverage }} -->
-  <!-- You have earned {{ weekly_points }} points this week -->
-
   <style>
     :root {
       --vita-yellow: #ffd54a;
@@ -356,6 +351,29 @@
       font-size: 0.88rem;
       font-weight: 750;
       line-height: 1.42;
+    }
+
+    .progress-details-link {
+      position: relative;
+      z-index: 1;
+      display: inline-flex;
+      justify-content: center;
+      align-items: center;
+      margin-top: 14px;
+      color: white;
+      text-decoration: none;
+      font-size: 0.86rem;
+      font-weight: 900;
+      border-radius: 999px;
+      padding: 9px 12px;
+      background: rgba(255, 255, 255, 0.13);
+      border: 1px solid rgba(255, 255, 255, 0.18);
+      transition: background 0.15s ease, transform 0.15s ease;
+    }
+
+    .progress-details-link:hover {
+      background: rgba(255, 255, 255, 0.20);
+      transform: translateY(-1px);
     }
 
     .level-zero-card {
@@ -910,20 +928,6 @@
           {% endif %}
 
           <div class="status-strip">
-            {% if level > 0 %}
-              <span class="status-pill">Level {{ level }} in {{ language_name }}</span>
-            {% else %}
-              <span class="status-pill">Level calibration in progress</span>
-            {% endif %}
-
-            <span class="status-pill">{{ weekly_points }} XP earned this week</span>
-
-            {% if review_count > 0 %}
-              <span class="status-pill">{{ review_count }} terms ready for review</span>
-            {% else %}
-              <span class="status-pill">No reviews due</span>
-            {% endif %}
-
             <span class="status-pill">Current language: {{ language_name }}</span>
           </div>
         </div>
@@ -945,6 +949,10 @@
             <div class="progress-note">
               Advance your level by proving durable vocabulary mastery. Earn XP by showing up and practicing consistently.
             </div>
+
+            <a class="progress-details-link" href="/vocabulary/details">
+              Curious how your level is calculated?
+            </a>
           {% else %}
             <div class="level-zero-card">
               <div class="level-zero-badge">?</div>
@@ -968,6 +976,10 @@
                   <span class="progress-value small">{{ weekly_points }}</span>
                 </div>
               </div>
+
+              <a class="progress-details-link" href="/vocabulary/details">
+                Curious how levels are assigned?
+              </a>
             </div>
           {% endif %}
         </div>
