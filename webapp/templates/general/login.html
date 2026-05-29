@@ -3,7 +3,7 @@
 <head>
   {% include "partials/head.html" %}
 
-  <title>Vitamova | Sign In</title>
+  <title>Vitamova | Start Learning</title>
   <style>
     :root {
       --vita-yellow: #ffd54a;
@@ -16,6 +16,7 @@
       --card: #ffffff;
       --border: #e6eaf2;
       --shadow: 0 18px 45px rgba(24, 42, 100, 0.12);
+      --success: #12b76a;
     }
 
     * {
@@ -27,8 +28,8 @@
       font-family: Inter, ui-sans-serif, system-ui, -apple-system, Segoe UI, Roboto, Helvetica, Arial, sans-serif;
       color: var(--text-dark);
       background:
-        radial-gradient(circle at 10% 10%, rgba(255, 213, 74, 0.25), transparent 40%),
-        radial-gradient(circle at 90% 20%, rgba(31, 94, 255, 0.20), transparent 42%),
+        radial-gradient(circle at 10% 10%, rgba(255, 213, 74, 0.28), transparent 40%),
+        radial-gradient(circle at 90% 20%, rgba(31, 94, 255, 0.22), transparent 42%),
         linear-gradient(180deg, #fdfefe 0%, var(--bg-soft) 100%);
       min-height: 100vh;
       display: grid;
@@ -38,22 +39,24 @@
 
     .page {
       width: 100%;
-      max-width: 940px;
+      max-width: 980px;
       display: grid;
-      grid-template-columns: 1.05fr 0.95fr;
+      grid-template-columns: 1.06fr 0.94fr;
       gap: 22px;
       align-items: stretch;
     }
 
     .hero {
-      background: linear-gradient(160deg, var(--vita-blue) 0%, #3d7dff 55%, #6aa0ff 100%);
+      background:
+        radial-gradient(circle at 86% 10%, rgba(255, 213, 74, 0.40), transparent 34%),
+        linear-gradient(160deg, var(--vita-blue) 0%, #3d7dff 55%, #6aa0ff 100%);
       color: white;
-      border-radius: 24px;
-      padding: 28px;
+      border-radius: 28px;
+      padding: 30px;
       position: relative;
       overflow: hidden;
       box-shadow: var(--shadow);
-      min-height: 460px;
+      min-height: 500px;
       display: flex;
       flex-direction: column;
       justify-content: center;
@@ -69,19 +72,19 @@
     }
 
     .hero::before {
-      width: 240px;
-      height: 240px;
+      width: 260px;
+      height: 260px;
       background: rgba(255, 213, 74, 0.35);
-      top: -70px;
-      right: -40px;
+      top: -80px;
+      right: -50px;
     }
 
     .hero::after {
-      width: 180px;
-      height: 180px;
+      width: 190px;
+      height: 190px;
       background: rgba(255, 255, 255, 0.15);
-      bottom: 40px;
-      left: -40px;
+      bottom: 34px;
+      left: -45px;
     }
 
     .brand {
@@ -90,10 +93,10 @@
       display: flex;
       align-items: center;
       gap: 10px;
-      font-weight: 700;
-      font-size: 1.1rem;
+      font-weight: 850;
+      font-size: 1.12rem;
       letter-spacing: 0.2px;
-      margin-bottom: 26px;
+      margin-bottom: 30px;
     }
 
     .brand-badge {
@@ -104,6 +107,8 @@
       display: flex;
       align-items: center;
       justify-content: center;
+      background: white;
+      box-shadow: 0 8px 20px rgba(20, 27, 52, 0.10);
     }
 
     .brand-icon {
@@ -118,20 +123,35 @@
       z-index: 1;
     }
 
+    .trial-pill {
+      display: inline-flex;
+      align-items: center;
+      gap: 8px;
+      background: rgba(255, 255, 255, 0.15);
+      border: 1px solid rgba(255, 255, 255, 0.20);
+      color: white;
+      padding: 8px 12px;
+      border-radius: 999px;
+      font-size: 0.88rem;
+      font-weight: 900;
+      margin-bottom: 18px;
+      backdrop-filter: blur(5px);
+    }
+
     .hero h1 {
       margin: 0 0 14px;
-      font-size: clamp(1.9rem, 2.8vw, 2.5rem);
-      line-height: 1.08;
-      letter-spacing: -0.02em;
-      max-width: 16ch;
+      font-size: clamp(2.05rem, 3.3vw, 3rem);
+      line-height: 1.05;
+      letter-spacing: -0.045em;
+      max-width: 15ch;
     }
 
     .hero p {
       margin: 0;
-      color: rgba(255, 255, 255, 0.9);
-      max-width: 44ch;
-      line-height: 1.55;
-      font-size: 1rem;
+      color: rgba(255, 255, 255, 0.92);
+      max-width: 48ch;
+      line-height: 1.58;
+      font-size: 1.03rem;
     }
 
     .feature-chips {
@@ -140,7 +160,7 @@
       display: flex;
       flex-wrap: wrap;
       gap: 10px;
-      margin-top: 22px;
+      margin-top: 24px;
     }
 
     .chip {
@@ -151,30 +171,127 @@
       border-radius: 999px;
       font-size: 0.9rem;
       backdrop-filter: blur(4px);
+      font-weight: 700;
+    }
+
+    .quick-steps {
+      position: relative;
+      z-index: 1;
+      display: grid;
+      gap: 10px;
+      margin-top: 26px;
+      max-width: 48ch;
+    }
+
+    .quick-step {
+      display: flex;
+      align-items: flex-start;
+      gap: 10px;
+      padding: 12px;
+      border-radius: 16px;
+      background: rgba(255, 255, 255, 0.12);
+      border: 1px solid rgba(255, 255, 255, 0.16);
+      backdrop-filter: blur(4px);
+    }
+
+    .step-number {
+      width: 26px;
+      height: 26px;
+      border-radius: 999px;
+      background: var(--vita-yellow);
+      color: var(--vita-blue);
+      display: grid;
+      place-items: center;
+      font-size: 0.85rem;
+      font-weight: 950;
+      flex-shrink: 0;
+    }
+
+    .quick-step p {
+      margin: 0;
+      font-size: 0.94rem;
+      line-height: 1.45;
+      color: rgba(255, 255, 255, 0.92);
     }
 
     .login-panel {
       background: var(--card);
       border: 1px solid var(--border);
-      border-radius: 24px;
+      border-radius: 28px;
       box-shadow: var(--shadow);
-      padding: 28px;
+      padding: 30px;
       display: flex;
       flex-direction: column;
       justify-content: center;
-      min-height: 460px;
+      min-height: 500px;
+    }
+
+    .login-kicker {
+      display: inline-flex;
+      align-self: flex-start;
+      align-items: center;
+      gap: 8px;
+      background: rgba(18, 183, 106, 0.10);
+      color: #067647;
+      border: 1px solid rgba(18, 183, 106, 0.18);
+      border-radius: 999px;
+      padding: 8px 12px;
+      font-size: 0.86rem;
+      font-weight: 900;
+      margin-bottom: 16px;
     }
 
     .login-header h2 {
       margin: 0;
-      font-size: 1.6rem;
-      letter-spacing: -0.02em;
+      font-size: clamp(1.8rem, 3vw, 2.25rem);
+      line-height: 1.05;
+      letter-spacing: -0.04em;
     }
 
     .login-header p {
-      margin: 10px 0 0;
+      margin: 12px 0 0;
       color: var(--text-muted);
-      line-height: 1.5;
+      line-height: 1.58;
+      font-size: 1rem;
+    }
+
+    .signup-benefits {
+      display: grid;
+      gap: 10px;
+      margin-top: 22px;
+    }
+
+    .benefit {
+      display: flex;
+      align-items: flex-start;
+      gap: 10px;
+      padding: 12px;
+      border: 1px solid var(--border);
+      background: #fbfcff;
+      border-radius: 16px;
+    }
+
+    .benefit-icon {
+      width: 28px;
+      height: 28px;
+      border-radius: 10px;
+      display: grid;
+      place-items: center;
+      background: rgba(31, 94, 255, 0.09);
+      color: var(--vita-blue);
+      font-weight: 950;
+      flex-shrink: 0;
+    }
+
+    .benefit p {
+      margin: 0;
+      color: var(--text-muted);
+      line-height: 1.45;
+      font-size: 0.94rem;
+    }
+
+    .benefit strong {
+      color: var(--text-dark);
     }
 
     .form {
@@ -185,13 +302,17 @@
 
     .btn {
       border: none;
-      border-radius: 12px;
-      padding: 13px 14px;
-      font-size: 0.96rem;
-      font-weight: 700;
+      border-radius: 14px;
+      padding: 15px 16px;
+      font-size: 1rem;
+      font-weight: 850;
       cursor: pointer;
-      transition: transform 0.04s ease, box-shadow 0.15s ease, background-color 0.15s ease, border-color 0.15s ease;
+      transition: transform 0.08s ease, box-shadow 0.15s ease, background-color 0.15s ease, border-color 0.15s ease;
       text-decoration: none;
+    }
+
+    .btn:hover {
+      transform: translateY(-1px);
     }
 
     .btn:active {
@@ -203,15 +324,15 @@
       align-items: center;
       justify-content: center;
       gap: 10px;
-      background: white;
-      color: #1f2937;
-      border: 1px solid var(--border);
-      box-shadow: 0 8px 20px rgba(20, 27, 52, 0.08);
+      background: var(--vita-blue);
+      color: white;
+      border: 1px solid rgba(31, 94, 255, 0.12);
+      box-shadow: 0 12px 24px rgba(31, 94, 255, 0.22);
     }
 
     .btn-google:hover {
-      border-color: #d6dce8;
-      background: #fbfcff;
+      background: var(--vita-blue-dark);
+      box-shadow: 0 16px 30px rgba(31, 94, 255, 0.28);
     }
 
     .btn-google:focus-visible {
@@ -219,19 +340,33 @@
       outline-offset: 2px;
     }
 
+    .google-icon-wrap {
+      width: 24px;
+      height: 24px;
+      border-radius: 999px;
+      background: white;
+      display: grid;
+      place-items: center;
+      flex-shrink: 0;
+    }
+
     .google-icon {
-      width: 18px;
-      height: 18px;
+      width: 16px;
+      height: 16px;
       display: inline-block;
       flex-shrink: 0;
     }
 
     .helper {
-      margin-top: 4px;
+      margin-top: 2px;
       color: var(--text-muted);
-      font-size: 0.9rem;
+      font-size: 0.92rem;
       line-height: 1.45;
       text-align: center;
+    }
+
+    .helper strong {
+      color: var(--text-dark);
     }
 
     .small-note {
@@ -239,11 +374,12 @@
       text-align: center;
       color: var(--text-muted);
       font-size: 0.85rem;
+      line-height: 1.45;
     }
 
     .small-note a {
       color: var(--vita-blue);
-      font-weight: 700;
+      font-weight: 750;
       text-decoration: none;
     }
 
@@ -253,22 +389,49 @@
 
     .highlight {
       color: var(--vita-blue);
-      font-weight: 700;
+      font-weight: 850;
     }
 
     @media (max-width: 860px) {
+      body {
+        place-items: start center;
+      }
+
       .page {
         grid-template-columns: 1fr;
       }
 
       .hero {
         min-height: auto;
-        padding: 22px;
+        padding: 24px;
       }
 
       .login-panel {
         min-height: auto;
-        padding: 22px;
+        padding: 24px;
+      }
+
+      .hero h1 {
+        max-width: 18ch;
+      }
+    }
+
+    @media (max-width: 520px) {
+      body {
+        padding: 18px;
+      }
+
+      .hero,
+      .login-panel {
+        border-radius: 22px;
+      }
+
+      .feature-chips {
+        gap: 8px;
+      }
+
+      .chip {
+        font-size: 0.84rem;
       }
     }
   </style>
@@ -284,41 +447,81 @@
       </div>
 
       <div class="hero-content">
-        <h1>Go beyond beginner language apps</h1>
+        <div class="trial-pill">✨ Start free for 30 days</div>
+
+        <h1>Start building stronger language skills today</h1>
+
         <p>
-          Vitamova is built for <strong>intermediate to advanced learners</strong> who want
-          richer vocabulary, more natural phrasing, and practice that actually helps them
-          communicate with nuance.
+          Vitamova helps motivated learners grow beyond basic vocabulary with adaptive practice,
+          review, and level tracking designed around real progress.
         </p>
 
         <div class="feature-chips">
-          <span class="chip">Advanced vocabulary</span>
-          <span class="chip">Natural phrasing</span>
-          <span class="chip">Real-world context</span>
-          <span class="chip">Conversation-focused</span>
+          <span class="chip">30-day free trial</span>
+          <span class="chip">Google sign-in</span>
+          <span class="chip">Personalized practice</span>
+          <span class="chip">No setup headache</span>
+        </div>
+
+        <div class="quick-steps">
+          <div class="quick-step">
+            <div class="step-number">1</div>
+            <p>Sign in with your Google account.</p>
+          </div>
+
+          <div class="quick-step">
+            <div class="step-number">2</div>
+            <p>Complete a quick registration step so Vitamova can save your progress.</p>
+          </div>
+
+          <div class="quick-step">
+            <div class="step-number">3</div>
+            <p>Start building vocabulary and let the app begin calibrating your level.</p>
+          </div>
         </div>
       </div>
     </section>
 
     <section class="login-panel" aria-label="Sign In">
+      <div class="login-kicker">Free access for your first 30 days</div>
+
       <div class="login-header">
-        <h2>Welcome to Vitamova</h2>
+        <h2>Try Vitamova in just a few seconds</h2>
         <p>
-          Sign in with Google to continue your <span class="highlight">intermediate/advanced</span>
-          language practice.
+          Sign in with Google, register your account, and start practicing right away.
+          Your first 30 days are completely free, so you can explore Vitamova and see how it fits your learning routine.
         </p>
+      </div>
+
+      <div class="signup-benefits">
+        <div class="benefit">
+          <div class="benefit-icon">✓</div>
+          <p><strong>Quick start:</strong> use your Gmail account and register in a few seconds.</p>
+        </div>
+
+        <div class="benefit">
+          <div class="benefit-icon">✓</div>
+          <p><strong>No pressure:</strong> start with a free trial and explore the app before committing.</p>
+        </div>
+
+        <div class="benefit">
+          <div class="benefit-icon">✓</div>
+          <p><strong>Personalized progress:</strong> Vitamova starts adapting as you answer questions and review words.</p>
+        </div>
       </div>
 
       <div class="form">
         <a class="btn btn-google" href="/accounts/google/login/">
-          <svg class="google-icon" viewBox="0 0 24 24" aria-hidden="true">
-            <path fill="#EA4335" d="M12 10.2v3.9h5.4c-.2 1.3-1.5 3.9-5.4 3.9-3.2 0-5.9-2.7-5.9-6s2.7-6 5.9-6c1.8 0 3 .8 3.7 1.5l2.5-2.4C16.7 3.7 14.6 3 12 3 7 3 3 7 3 12s4 9 9 9c5.2 0 8.6-3.7 8.6-8.9 0-.6-.1-1.2-.2-1.9H12z"/>
-          </svg>
-          Sign in with Google
+          <span class="google-icon-wrap">
+            <svg class="google-icon" viewBox="0 0 24 24" aria-hidden="true">
+              <path fill="#EA4335" d="M12 10.2v3.9h5.4c-.2 1.3-1.5 3.9-5.4 3.9-3.2 0-5.9-2.7-5.9-6s2.7-6 5.9-6c1.8 0 3 .8 3.7 1.5l2.5-2.4C16.7 3.7 14.6 3 12 3 7 3 3 7 3 12s4 9 9 9c5.2 0 8.6-3.7 8.6-8.9 0-.6-.1-1.2-.2-1.9H12z"/>
+            </svg>
+          </span>
+          Start free with Google
         </a>
 
         <div class="helper">
-          Use your Google account to access your lessons, saved progress, and personalized practice.
+          It only takes a few seconds to get started. Your progress, review queue, and learning history stay connected to your account.
         </div>
 
         <div class="small-note">
