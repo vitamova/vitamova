@@ -254,7 +254,7 @@ class Test:
 
             while min_rank <= total_lemmas:
                 max_rank = min(min_rank + 999, total_lemmas)
-                associated_level = (min_rank - 1) // 1000
+                associated_level = (min_rank - 1) // 1000 + 1
 
                 coverage_result = vitalib.Database.Vocab.Get(
                     self.conn,
@@ -309,7 +309,7 @@ class Test:
                 )
 
                 if mastered_by_coverage or mastered_by_questions:
-                    new_level = level + 1
+                    new_level = level
 
             return new_level
 
