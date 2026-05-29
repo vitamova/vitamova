@@ -8,6 +8,10 @@ class Test:
             self.conn = conn
             self.user_id = user_id
             self.language = language
+            self.current_level = vitalib.Database.UserInfo.Get(
+                conn,
+                user_id
+            ).level(language)
         def edge_range(self):
             # Return the most likely learning edge range based on the user's existing results.
             # This does not fetch new questions. It only looks at available user data.
@@ -236,10 +240,6 @@ class Test:
         def level_mastery(self, question_mastery_threshold = 0.80):
             result = {}
             # Get user's current level
-            current_level = vitalib.Database.UserInfo.Get(
-                self.conn,
-                self.user_id
-            ).level(self.language)
 
             # Get the number of lemmas for this language
             total_lemmas = vitalib.Database.Vocab.Get(
@@ -250,7 +250,7 @@ class Test:
 
             # If the user is level 0, start at ranks 1-1000.
             # If the user is level 3, start at ranks 3001-4000.
-            min_rank = (current_level * 1000) + 1
+            min_rank = (self.current_level * 1000) + 1
 
             while min_rank <= total_lemmas:
                 max_rank = min(min_rank + 999, total_lemmas)
@@ -296,7 +296,7 @@ class Test:
             confidence_threshold = 0.90
 
             level_mastery = self.level_mastery(question_mastery_threshold)
-            updated_level = sorted(list(level_mastery.keys()))[0]
+            updated_level = self.current_level
 
             for level in sorted(level_mastery.keys()):
                 coverage = level_mastery[level]["coverage"]
