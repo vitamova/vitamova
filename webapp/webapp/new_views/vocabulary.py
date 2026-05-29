@@ -5,6 +5,16 @@ from django.http import JsonResponse
 import json
 import vitalib
 
+@registered_logged_in_required
+@subscribed_required
+def details(request):
+    language = request.GET.get("language", "es")
+    edge_range = vitalib.Test.Get(connection, request.user.id, language).edge_range()
+    level_mastery = vitalib.Test.Get(connection, request.user.id, language).level_mastery()
+    return render(request, "modules/vocabulary/details.html", {
+        "edge_range": edge_range,
+        "level_mastery": level_mastery
+    })
 
 @registered_logged_in_required
 @subscribed_required
