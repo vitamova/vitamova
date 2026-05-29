@@ -296,7 +296,7 @@ class Test:
             confidence_threshold = 0.90
 
             level_mastery = self.level_mastery(question_mastery_threshold)
-            new_level = sorted(list(level_mastery.keys()))[0]
+            updated_level = sorted(list(level_mastery.keys()))[0]
 
             for level in sorted(level_mastery.keys()):
                 coverage = level_mastery[level]["coverage"]
@@ -309,9 +309,9 @@ class Test:
                 )
 
                 if mastered_by_coverage or mastered_by_questions:
-                    new_level = level
+                    updated_level = level
 
-            return new_level
+            return updated_level
 
 
     class Format:
