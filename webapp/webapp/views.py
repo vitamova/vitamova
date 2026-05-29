@@ -15,6 +15,10 @@ SUPPORTED_LANGUAGES = [
     {
         "code": "ru",
         "name": "Russian"
+    },
+    {
+        "code": "pt",
+        "name": "Portuguese"
     }
 ]
 
