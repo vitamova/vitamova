@@ -202,7 +202,7 @@ class Test:
             best_level = max(level_mastery, key=lambda level: level_mastery[level]["mastery_confidence"])
             # The other half of the questions should come from best_level
             # This helps the user achieve a sense of accomplishment by reinforcing their strongest level while they work on their edge.
-            best_level_min_rank = (best_level * 1000) + 1
+            best_level_min_rank = ((best_level-1) * 1000) + 1
             best_level_max_rank = best_level_min_rank + 999
             questions.extend(question_fetcher.new(
                 min_rank=best_level_min_rank,
