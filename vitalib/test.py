@@ -212,6 +212,7 @@ class Test:
 
             questions = Test.Format.questions(questions)
             questions = question_fetcher.append_lemma(questions)
+            random.shuffle(questions)
 
             return questions
         def results(self, answers):
