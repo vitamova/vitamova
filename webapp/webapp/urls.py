@@ -29,5 +29,5 @@ urlpatterns = [
     path("subscribe/", include("webapp.new_urls.subscribe")),
     path("general/", include("webapp.new_urls.general")),
     #path("sentences/", include("webapp.urls.sentences")),
-    #path("lab/", include("webapp.urls.lab"))
+    path("labs/", include("webapp.urls.labs"))
     ]
