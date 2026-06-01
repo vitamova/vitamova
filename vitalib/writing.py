@@ -49,7 +49,8 @@ WRITING_SCORE_LEVELS = {
 
 class Writing:
     class Get:
-        def __init__(self, user_id, language):
+        def __init__(self, conn, user_id, language):
+            self.conn = conn
             self.user_id = user_id
             self.language = language
 
@@ -217,3 +218,215 @@ Return this exact JSON structure:
                 "title": WRITING_SCORE_LEVELS[min(scores)]["title"],
                 "description": WRITING_SCORE_LEVELS[min(scores)]["description"]
             }
+        def improvements(self, prompt_text, text, score):
+            current_level = WRITING_SCORE_LEVELS[score]
+            next_score = score + 1
+
+            if next_score > 10:
+                next_score = 10
+
+            next_level = WRITING_SCORE_LEVELS[next_score]
+
+            prompt = f"""
+You are helping a language learner improve their writing in {self.language}.
+
+The learner was given this writing prompt:
+
+{prompt_text}
+
+The learner wrote this response:
+
+{text}
+
+The writing received this score:
+
+Score: {score}
+Title: {current_level["title"]}
+Description: {current_level["description"]}
+
+The next level is:
+
+Score: {next_score}
+Title: {next_level["title"]}
+Description: {next_level["description"]}
+
+Your task:
+Give exactly 3 specific improvements that would help this exact piece of writing move closer to the next level.
+
+Rules:
+- Focus on the learner's actual writing, not generic writing advice.
+- Each improvement must include a specific phrase or sentence from the learner's writing.
+- The "before" value must be copied from, or be a very close excerpt from, the learner's original writing.
+- The "after" value must show a stronger version.
+- Do not make the writing sound overly formal or unnatural.
+- Keep the feedback encouraging and practical.
+- Return only valid JSON.
+- Do not include markdown.
+- Return a JSON list directly, not an object.
+
+Return exactly this structure:
+
+[
+    {{
+        "title": "Use more precise descriptions",
+        "explanation": "Your writing is clear, but some descriptions are general. More specific language would make the paragraph stronger.",
+        "before": "The food was very good.",
+        "after": "The food was flavorful and freshly prepared."
+    }},
+    {{
+        "title": "Improve sentence flow",
+        "explanation": "Some ideas could connect more smoothly. A small transition can make the writing feel more natural.",
+        "before": "We ate dinner. We walked home.",
+        "after": "After dinner, we walked home."
+    }},
+    {{
+        "title": "Add more relevant detail",
+        "explanation": "Your answer addresses the prompt, but adding one concrete detail would make it stronger.",
+        "before": "I had a good time.",
+        "after": "I had a good time because the conversation was relaxed and funny."
+    }}
+]
+""".strip()
+
+            bot = vitalib.Chatbot.OpenAI("gpt-4.1-mini")
+            response = bot.send_message(prompt)
+
+            try:
+                improvements = json.loads(response)
+            except Exception:
+                raise ValueError(f"Could not parse improvements JSON from OpenAI response: {response}")
+
+            if not isinstance(improvements, list):
+                raise ValueError(f"Improvements response was not a list: {response}")
+
+            if len(improvements) != 3:
+                raise ValueError(f"Expected exactly 3 improvements, got {len(improvements)}: {response}")
+
+            for item in improvements:
+                if not isinstance(item, dict):
+                    raise ValueError(f"Improvement item was not an object: {item}")
+
+                required_keys = ["title", "explanation", "before", "after"]
+
+                for key in required_keys:
+                    if key not in item:
+                        raise ValueError(f"Missing key '{key}' in improvement item: {item}")
+
+                    if not isinstance(item[key], str):
+                        raise ValueError(f"Improvement key '{key}' was not a string: {item}")
+
+                    if item[key].strip() == "":
+                        raise ValueError(f"Improvement key '{key}' was empty: {item}")
+
+            return improvements
+        def vocabulary(self, prompt_text, text):
+            prompt = f"""
+You are helping a language learner improve their writing in {self.language}.
+
+The learner was given this writing prompt:
+
+{prompt_text}
+
+The learner wrote this response:
+
+{text}
+
+Your task:
+Identify exactly 10 useful vocabulary words that could have made this specific writing stronger, more precise, or more natural.
+
+Rules:
+- Recommend words in {self.language}.
+- Recommend useful words, not obscure or overly formal words.
+- Do not recommend a word only because it sounds more advanced.
+- Each word should improve precision, naturalness, or expressiveness.
+- The "lemma" should be the base dictionary form of the word.
+- The "before" value must be copied from, or be a very close excerpt from, the learner's original writing.
+- The "after" value must show how the suggested word could improve that exact phrase or sentence.
+- Return exactly 10 items.
+- Return only valid JSON.
+- Do not include markdown.
+- Return a JSON list directly, not an object.
+
+Return exactly this structure:
+
+[
+    {{
+        "word": "flavorful",
+        "language": "en",
+        "explanation": "This word makes your description of the food more specific and natural.",
+        "before": "The food was very good.",
+        "after": "The food was flavorful and freshly prepared."
+    }}
+]
+""".strip()
+
+            bot = vitalib.Chatbot.OpenAI("gpt-4.1-mini")
+            response = bot.send_message(prompt)
+
+            try:
+                vocabulary_words = json.loads(response)
+            except Exception:
+                raise ValueError(f"Could not parse vocabulary JSON from OpenAI response: {response}")
+
+            if not isinstance(vocabulary_words, list):
+                raise ValueError(f"Vocabulary response was not a list: {response}")
+
+            if len(vocabulary_words) != 10:
+                raise ValueError(f"Expected exactly 10 vocabulary words, got {len(vocabulary_words)}: {response}")
+
+            for item in vocabulary_words:
+                if not isinstance(item, dict):
+                    raise ValueError(f"Vocabulary item was not an object: {item}")
+
+                required_keys = ["word", "language", "explanation", "before", "after"]
+
+                for key in required_keys:
+                    if key not in item:
+                        raise ValueError(f"Missing key '{key}' in vocabulary item: {item}")
+
+                    if not isinstance(item[key], str):
+                        raise ValueError(f"Vocabulary key '{key}' was not a string: {item}")
+
+                    if item[key].strip() == "":
+                        raise ValueError(f"Vocabulary key '{key}' was empty: {item}")
+            
+            # Get the user's edge_range
+            edge_range = vitalib.Test.Get(
+                conn=self.conn,
+                user_id=self.user_id,
+                language=self.language
+            ).edge_range()
+
+            center = (edge_range[0] + edge_range[1]) / 2
+
+            enriched_words = []
+
+            for word in vocabulary_words:
+                lemma_info = vitalib.Database.Vocab.Get(
+                    conn=self.conn,
+                    user_id=self.user_id,
+                    language=self.language
+                ).lemma_by_name(word["word"])
+
+                if not lemma_info:
+                    continue
+
+                if lemma_info.get("rank") is None:
+                    continue
+
+                word["lemma_id"] = lemma_info["lemma_id"]
+                word["rank"] = lemma_info["rank"]
+                word["definition"] = lemma_info["definition"]
+                word["distance_from_center"] = abs(lemma_info["rank"] - center)
+
+                enriched_words.append(word)
+
+            enriched_words.sort(key=lambda item: item["distance_from_center"])
+
+            top_three_words = enriched_words[:3]
+
+            for word in top_three_words:
+                word.pop("rank", None)
+                word.pop("distance_from_center", None)
+
+            return top_three_words

@@ -191,6 +191,30 @@ class Vocab:
                 }
                 for row in rows
             ]
+        def lemma_by_name(self, lemma_name):
+            # The lemma_name is the lemma column in the lemmas table
+            # Return the id and rank
+            with self.conn.cursor() as cursor:
+                cursor.execute(
+                    """
+                    SELECT id, rank, definition
+                    FROM lemmas
+                    WHERE language = %s
+                    AND lemma = %s
+                    """,
+                    [
+                        self.language,
+                        lemma_name
+                    ]
+                )
+                row = cursor.fetchone()
+            if not row:
+                return None
+            return {
+                "lemma_id": row[0],
+                "rank": row[1],
+                "definition": row[2]
+            }
         def coverage(self, min_rank, max_rank):
             if min_rank is None:
                 min_rank = 1

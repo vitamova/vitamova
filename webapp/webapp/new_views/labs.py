@@ -45,14 +45,7 @@ def writing(request):
                 prompt_text = prompt_info["text"]
                 user_text = data.get("text")
                 response["score"] = vitalib.Writing.Get(user_id=request.user.id, language=prompt_info["language"]).score(prompt_text=prompt_text, text=user_text)
-                response["improvements"] = [
-                    {
-                    "title": "Use more precise descriptions",
-                    "explanation": "Your writing is clear, but some descriptions are general. More specific language would make the paragraph stronger.",
-                    "before": "The food was very good.",
-                    "after": "The food was flavorful and freshly prepared."
-                    }
-                ]
+                response["improvements"] = vitalib.Writing.Get(user_id=request.user.id, language=prompt_info["language"]).improvements(prompt_text=prompt_text, text=user_text, score=response["score"]["value"])
                 
                 response["vocabulary"] = [
                     {
