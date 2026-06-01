@@ -90,9 +90,9 @@ class Writing:
             with self.conn.cursor() as cursor:
                 cursor.execute("""
                     UPDATE writing_submissions
-                    SET score = %s
+                    SET score = %s, submitted_at = %s
                     WHERE id = %s AND user_id = %s
-                """, (score, attempt_id, self.user_id))
+                """, (score, datetime.datetime.utcnow(), attempt_id, self.user_id))
                 self.conn.commit()
             return {
                 "status": "ok"
