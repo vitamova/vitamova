@@ -24,35 +24,12 @@ def writing(request):
             }, status=400)
         else:
             if action == "start_writing":
-                sample_request = {
-                    "action": "start_writing",
-                    "language": "es"
-                    }
-                sample_response = {
-                    "status": "success",
-                    "attempt_id": 123,
-                    "server_now": "2026-05-31T15:00:00Z",
-                    "started_at": "2026-05-31T15:00:00Z",
-                    "expires_at": "2026-05-31T15:15:00Z",
-                    "prompt": {
-                        "id": 42,
-                        "title": "Describe a recent meal",
-                        "text": "Write about a meal you recently enjoyed. What did you eat, who were you with, and why did you enjoy it?"
-                    }
-                    }
                 response = {}
                 response["prompt"] = vitalib.Database.Writing.Prompt(conn=connection, user_id=request.user.id, language=data.get("language")).get()
                 response.update(vitalib.Database.Writing.Submission(conn=connection, user_id=request.user.id).create(prompt_id=response["prompt"]["id"]))
                 response["status"] = "success"
-                return JsonResponse(response)
             elif action == "autosave_writing":
-                sample_request = {
-                    "action": "autosave_writing",
-                    "attempt_id": 123,
-                    "text": "Yesterday I had dinner...",
-                    "character_count": 534
-                }
-                sample_response = {
+                response = {
                     "status": "success"
                 }
             elif action == "submit_writing":
@@ -63,32 +40,30 @@ def writing(request):
                     "character_count": 642,
                     "auto_submitted": False
                 }
-                sample_response = {
-                    "status": "success",
-                    "attempt_id": 123,
-                    "score": {
-                        "value": 6,
-                        "title": "Level 6 - Comfortable",
-                        "description": "Your writing communicates your ideas effectively. Errors and awkward phrasing are noticeable, but they do not prevent understanding."
-                    },
-                    "improvements": [
-                        {
-                        "title": "Use more precise descriptions",
-                        "explanation": "Your writing is clear, but some descriptions are general. More specific language would make the paragraph stronger.",
-                        "before": "The food was very good.",
-                        "after": "The food was flavorful and freshly prepared."
-                        }
-                    ],
-                    "vocabulary": [
-                        {
-                        "word": "flavorful",
-                        "lemma_id": 987,
-                        "language": "en",
-                        "definition": "Having a rich or pleasant taste.",
-                        "explanation": "This word makes your description of the food more specific and natural.",
-                        "before": "The food was very good.",
-                        "after": "The food was flavorful and freshly prepared."
-                        }
-                    ]
-                }
-            return JsonResponse(sample_response)
+                response = {}
+                prompt_info = vitalib.Database.Writing.Submission(conn=connection, user_id=request.user.id).get_prompt(attempt_id=data.get("attempt_id"))
+                prompt_text = prompt_info["text"]
+                user_text = data.get("text")
+                response["score"] = vitalib.Writing.Get(user_id=request.user.id, language=prompt_info["language"]).score(prompt_text=prompt_text, user_text=user_text)
+                response["improvements"] = [
+                    {
+                    "title": "Use more precise descriptions",
+                    "explanation": "Your writing is clear, but some descriptions are general. More specific language would make the paragraph stronger.",
+                    "before": "The food was very good.",
+                    "after": "The food was flavorful and freshly prepared."
+                    }
+                ]
+                
+                response["vocabulary"] = [
+                    {
+                    "word": "flavorful",
+                    "lemma_id": 987,
+                    "language": "en",
+                    "definition": "Having a rich or pleasant taste.",
+                    "explanation": "This word makes your description of the food more specific and natural.",
+                    "before": "The food was very good.",
+                    "after": "The food was flavorful and freshly prepared."
+                    }
+                ]
+                response["status"] = "success"
+            return JsonResponse(response)

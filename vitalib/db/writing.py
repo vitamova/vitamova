@@ -53,3 +53,22 @@ class Writing:
                 "started_at": started_at.isoformat() + "Z",
                 "expires_at": expires_at.isoformat() + "Z"
             }
+        def get_prompt(self, attempt_id):
+            # Get the writing prompt associated with this attempt
+            with self.conn.cursor() as cursor:
+                cursor.execute("""
+                    SELECT wp.id, wp.title, wp.text, wp.language
+                    FROM writing_submissions ws
+                    JOIN writing_prompts wp ON ws.prompt_id = wp.id
+                    WHERE ws.id = %s AND ws.user_id = %s
+                """, (attempt_id, self.user_id))
+                row = cursor.fetchone()
+                if row:
+                    return {
+                        "id": row[0],
+                        "title": row[1],
+                        "text": row[2],
+                        "language": row[3]
+                    }
+                else:
+                    return None
