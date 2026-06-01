@@ -51,7 +51,8 @@ def writing(request):
                 # Get the expiration time for the writing attempt and make sure it hasn't expired
                 expiration_time = vitalib.Database.Writing.Submission(conn=connection, user_id=request.user.id).get_expiration(attempt_id=data.get("attempt_id"))
                 # The expiration timestamp should be no more than 10 seconds in the past to account for any minor clock skew between the server and client
-                if expiration_time < datetime.datetime.utcnow() - datetime.timedelta(seconds=10):
+                now = datetime.datetime.now(datetime.timezone.utc)
+                if expiration_time < now - datetime.timedelta(seconds=10):
                     return JsonResponse({
                         "status": "error",
                         "error": "Writing attempt has expired."
