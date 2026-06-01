@@ -1,5 +1,6 @@
 import json
 import re
+import time
 from collections import Counter
 import vitalib
 
@@ -56,18 +57,9 @@ class Writing:
 
         def score(self, prompt_text, text):
             model_rounds = [
-                {
-                    "openai": "gpt-4.1-mini",
-                    "gemini": "gemini-2.5-flash"
-                },
-                {
-                    "openai": "gpt-4.1",
-                    "gemini": "gemini-2.5-pro"
-                },
-                {
-                    "openai": "gpt-4o",
-                    "gemini": "gemini-1.5-pro"
-                }
+                {"openai": "gpt-4.1-mini", "gemini": "gemini-2.5-flash"},
+                {"openai": "gpt-4.1", "gemini": "gemini-2.5-pro"},
+                {"openai": "gpt-4o", "gemini": "gemini-1.5-pro"}
             ]
 
             prompt = f"""
@@ -87,35 +79,7 @@ Your score should evaluate how effectively the learner communicates in {self.lan
 
 Use this rubric:
 
-1 - Unintelligible:
-The intended meaning cannot be reliably determined, or the response is completely unrelated to the prompt.
-
-2 - Mostly Unintelligible:
-Some isolated ideas are understandable, but most of the message is unclear. The response may barely address the prompt or may be mostly off-topic.
-
-3 - Difficult to Understand:
-The general topic can be inferred, but understanding requires substantial effort. The response may address the prompt only partially or unclearly.
-
-4 - Understandable with Significant Effort:
-Most of the message can be understood, but frequent errors and awkward phrasing slow the reader down. The response should at least make a clear attempt to answer the prompt.
-
-5 - Understandable:
-The message is generally clear. Errors are common but rarely prevent understanding. The response answers the prompt in a basic but recognizable way.
-
-6 - Comfortable:
-The writing communicates effectively. Errors and awkward phrasing are noticeable but not distracting. The response answers the prompt clearly and includes some relevant detail.
-
-7 - Strong:
-The writing is clear, organized, and mostly natural. Minor issues do not interfere with communication. The response answers the prompt directly and develops the answer with relevant supporting details.
-
-8 - Advanced:
-The writing communicates complex or detailed ideas clearly and naturally. Few noticeable weaknesses. The response fully answers the prompt and develops the topic well.
-
-9 - Near-Native:
-The writing feels natural and sophisticated. Most educated native speakers would not immediately suspect the writer is a learner. The response fully answers the prompt with nuance, detail, and strong control of tone.
-
-10 - Expert:
-The writing demonstrates exceptional command of language, style, nuance, and audience awareness. The response answers the prompt completely and would be considered excellent by highly educated native speakers.
+{json.dumps(WRITING_SCORE_LEVELS, indent=4)}
 
 Important rules:
 - Choose the level description that best matches the response.
@@ -135,89 +99,105 @@ Return this exact JSON structure:
 
             scores = []
             model_results = []
+            failures = []
 
             for model_pair in model_rounds:
-                openai_bot = vitalib.Chatbot.OpenAI(model_pair["openai"])
-                openai_response = openai_bot.send_message(prompt)
+                round_scores = []
 
-                try:
-                    openai_data = json.loads(openai_response)
-                    openai_score = int(openai_data["score"])
-                except Exception:
-                    match = re.search(r"\b(10|[1-9])\b", openai_response)
-                    if not match:
-                        raise ValueError(f"Could not extract score from OpenAI response: {openai_response}")
-                    openai_score = int(match.group(1))
+                attempts = [
+                    {"provider": "openai", "model": model_pair["openai"]},
+                    {"provider": "openai", "model": model_pair["openai"]},
+                    {"provider": "gemini", "model": model_pair["gemini"]},
+                    {"provider": "gemini", "model": model_pair["gemini"]},
+                ]
 
-                if openai_score < 1 or openai_score > 10:
-                    raise ValueError(f"OpenAI score out of range: {openai_score}")
+                for attempt_info in attempts:
+                    try:
+                        if attempt_info["provider"] == "openai":
+                            bot = vitalib.Chatbot.OpenAI(attempt_info["model"])
+                        else:
+                            bot = vitalib.Chatbot.Gemini(attempt_info["model"])
 
-                gemini_bot = vitalib.Chatbot.Gemini(model_pair["gemini"])
-                gemini_response = gemini_bot.send_message(prompt)
+                        response = bot.send_message(prompt)
 
-                try:
-                    gemini_data = json.loads(gemini_response)
-                    gemini_score = int(gemini_data["score"])
-                except Exception:
-                    match = re.search(r"\b(10|[1-9])\b", gemini_response)
-                    if not match:
-                        raise ValueError(f"Could not extract score from Gemini response: {gemini_response}")
-                    gemini_score = int(match.group(1))
+                        try:
+                            data = json.loads(response)
+                            score_value = int(data["score"])
+                        except Exception:
+                            match = re.search(r"\b(10|[1-9])\b", response)
+                            if not match:
+                                raise ValueError(f"Could not extract score from response: {response}")
+                            score_value = int(match.group(1))
 
-                if gemini_score < 1 or gemini_score > 10:
-                    raise ValueError(f"Gemini score out of range: {gemini_score}")
+                        if score_value < 1 or score_value > 10:
+                            raise ValueError(f"Score out of range: {score_value}")
 
-                scores.append(openai_score)
-                scores.append(gemini_score)
+                        scores.append(score_value)
+                        round_scores.append(score_value)
 
-                model_results.append({
-                    "provider": "openai",
-                    "model": model_pair["openai"],
-                    "score": openai_score
-                })
+                        model_results.append({
+                            "provider": attempt_info["provider"],
+                            "model": attempt_info["model"],
+                            "score": score_value
+                        })
 
-                model_results.append({
-                    "provider": "gemini",
-                    "model": model_pair["gemini"],
-                    "score": gemini_score
-                })
+                        if len(round_scores) >= 2:
+                            if abs(round_scores[-1] - round_scores[-2]) <= 1:
+                                final_score = min(round_scores[-1], round_scores[-2])
+                                return {
+                                    "status": "success",
+                                    "value": final_score,
+                                    "method": "two_model_agreement",
+                                    "model_results": model_results,
+                                    "failures": failures,
+                                    "title": WRITING_SCORE_LEVELS[final_score]["title"],
+                                    "description": WRITING_SCORE_LEVELS[final_score]["description"]
+                                }
 
-                if abs(openai_score - gemini_score) <= 1:
-                    return {
-                        "status": "success",
-                        "value": min(openai_score, gemini_score),
-                        "method": "two_model_agreement",
-                        "model_results": model_results,
-                        "title": WRITING_SCORE_LEVELS[min(openai_score, gemini_score)]["title"],
-                        "description": WRITING_SCORE_LEVELS[min(openai_score, gemini_score)]["description"]
-                    }
+                        counts = Counter(scores)
+                        highest_count = max(counts.values())
 
-                counts = Counter(scores)
-                highest_count = max(counts.values())
+                        if highest_count > 1:
+                            tied_scores = [
+                                score for score, count in counts.items()
+                                if count == highest_count
+                            ]
 
-                if highest_count > 1:
-                    tied_scores = [
-                        score for score, count in counts.items()
-                        if count == highest_count
-                    ]
+                            final_score = min(tied_scores)
 
-                    return {
-                        "status": "success",
-                        "value": min(tied_scores),
-                        "method": "majority_vote",
-                        "model_results": model_results,
-                        "title": WRITING_SCORE_LEVELS[min(tied_scores)]["title"],
-                        "description": WRITING_SCORE_LEVELS[min(tied_scores)]["description"]
-                    }
+                            return {
+                                "status": "success",
+                                "value": final_score,
+                                "method": "majority_vote",
+                                "model_results": model_results,
+                                "failures": failures,
+                                "title": WRITING_SCORE_LEVELS[final_score]["title"],
+                                "description": WRITING_SCORE_LEVELS[final_score]["description"]
+                            }
 
-            return {
-                "status": "success",
-                "method": "lowest_score",
-                "model_results": model_results,
-                "value": min(scores),
-                "title": WRITING_SCORE_LEVELS[min(scores)]["title"],
-                "description": WRITING_SCORE_LEVELS[min(scores)]["description"]
-            }
+                    except Exception as e:
+                        failures.append({
+                            "provider": attempt_info["provider"],
+                            "model": attempt_info["model"],
+                            "error": str(e)
+                        })
+                        time.sleep(1)
+
+            if scores:
+                final_score = min(scores)
+
+                return {
+                    "status": "success",
+                    "method": "lowest_score",
+                    "model_results": model_results,
+                    "failures": failures,
+                    "value": final_score,
+                    "title": WRITING_SCORE_LEVELS[final_score]["title"],
+                    "description": WRITING_SCORE_LEVELS[final_score]["description"]
+                }
+
+            raise ValueError(f"All scoring attempts failed: {failures}")
+
         def improvements(self, prompt_text, text, score):
             current_level = WRITING_SCORE_LEVELS[score]
             next_score = score + 1
@@ -288,37 +268,61 @@ Return exactly this structure:
 ]
 """.strip()
 
-            bot = vitalib.Chatbot.OpenAI("gpt-4.1-mini")
-            response = bot.send_message(prompt)
+            model_attempts = [
+                {"provider": "openai", "model": "gpt-4.1-mini"},
+                {"provider": "openai", "model": "gpt-4.1-mini"},
+                {"provider": "openai", "model": "gpt-4.1"},
+                {"provider": "gemini", "model": "gemini-2.5-flash"},
+                {"provider": "gemini", "model": "gemini-2.5-pro"}
+            ]
 
-            try:
-                improvements = json.loads(response)
-            except Exception:
-                raise ValueError(f"Could not parse improvements JSON from OpenAI response: {response}")
+            failures = []
 
-            if not isinstance(improvements, list):
-                raise ValueError(f"Improvements response was not a list: {response}")
+            for model_attempt in model_attempts:
+                try:
+                    if model_attempt["provider"] == "openai":
+                        bot = vitalib.Chatbot.OpenAI(model_attempt["model"])
+                    else:
+                        bot = vitalib.Chatbot.Gemini(model_attempt["model"])
 
-            if len(improvements) != 3:
-                raise ValueError(f"Expected exactly 3 improvements, got {len(improvements)}: {response}")
+                    response = bot.send_message(prompt)
 
-            for item in improvements:
-                if not isinstance(item, dict):
-                    raise ValueError(f"Improvement item was not an object: {item}")
+                    improvements = json.loads(response)
 
-                required_keys = ["title", "explanation", "before", "after"]
+                    if not isinstance(improvements, list):
+                        raise ValueError(f"Improvements response was not a list: {response}")
 
-                for key in required_keys:
-                    if key not in item:
-                        raise ValueError(f"Missing key '{key}' in improvement item: {item}")
+                    if len(improvements) != 3:
+                        raise ValueError(f"Expected exactly 3 improvements, got {len(improvements)}: {response}")
 
-                    if not isinstance(item[key], str):
-                        raise ValueError(f"Improvement key '{key}' was not a string: {item}")
+                    for item in improvements:
+                        if not isinstance(item, dict):
+                            raise ValueError(f"Improvement item was not an object: {item}")
 
-                    if item[key].strip() == "":
-                        raise ValueError(f"Improvement key '{key}' was empty: {item}")
+                        required_keys = ["title", "explanation", "before", "after"]
 
-            return improvements
+                        for key in required_keys:
+                            if key not in item:
+                                raise ValueError(f"Missing key '{key}' in improvement item: {item}")
+
+                            if not isinstance(item[key], str):
+                                raise ValueError(f"Improvement key '{key}' was not a string: {item}")
+
+                            if item[key].strip() == "":
+                                raise ValueError(f"Improvement key '{key}' was empty: {item}")
+
+                    return improvements
+
+                except Exception as e:
+                    failures.append({
+                        "provider": model_attempt["provider"],
+                        "model": model_attempt["model"],
+                        "error": str(e)
+                    })
+                    time.sleep(1)
+
+            raise ValueError(f"All improvements attempts failed: {failures}")
+
         def vocabulary(self, prompt_text, text):
             prompt = f"""
 You are helping a language learner improve their writing in {self.language}.
@@ -339,7 +343,7 @@ Rules:
 - Recommend useful words, not obscure or overly formal words.
 - Do not recommend a word only because it sounds more advanced.
 - Each word should improve precision, naturalness, or expressiveness.
-- The "lemma" should be the base dictionary form of the word.
+- The "word" should be the base dictionary form of the word.
 - The "before" value must be copied from, or be a very close excerpt from, the learner's original writing.
 - The "after" value must show how the suggested word could improve that exact phrase or sentence.
 - Return exactly 10 items.
@@ -360,73 +364,98 @@ Return exactly this structure:
 ]
 """.strip()
 
-            bot = vitalib.Chatbot.OpenAI("gpt-4.1-mini")
-            response = bot.send_message(prompt)
+            model_attempts = [
+                {"provider": "openai", "model": "gpt-4.1-mini"},
+                {"provider": "openai", "model": "gpt-4.1-mini"},
+                {"provider": "openai", "model": "gpt-4.1"},
+                {"provider": "gemini", "model": "gemini-2.5-flash"},
+                {"provider": "gemini", "model": "gemini-2.5-pro"}
+            ]
 
-            try:
-                vocabulary_words = json.loads(response)
-            except Exception:
-                raise ValueError(f"Could not parse vocabulary JSON from OpenAI response: {response}")
+            failures = []
 
-            if not isinstance(vocabulary_words, list):
-                raise ValueError(f"Vocabulary response was not a list: {response}")
+            for model_attempt in model_attempts:
+                try:
+                    if model_attempt["provider"] == "openai":
+                        bot = vitalib.Chatbot.OpenAI(model_attempt["model"])
+                    else:
+                        bot = vitalib.Chatbot.Gemini(model_attempt["model"])
 
-            if len(vocabulary_words) != 10:
-                raise ValueError(f"Expected exactly 10 vocabulary words, got {len(vocabulary_words)}: {response}")
+                    response = bot.send_message(prompt)
 
-            for item in vocabulary_words:
-                if not isinstance(item, dict):
-                    raise ValueError(f"Vocabulary item was not an object: {item}")
+                    vocabulary_words = json.loads(response)
 
-                required_keys = ["word", "language", "explanation", "before", "after"]
+                    if not isinstance(vocabulary_words, list):
+                        raise ValueError(f"Vocabulary response was not a list: {response}")
 
-                for key in required_keys:
-                    if key not in item:
-                        raise ValueError(f"Missing key '{key}' in vocabulary item: {item}")
+                    if len(vocabulary_words) != 10:
+                        raise ValueError(f"Expected exactly 10 vocabulary words, got {len(vocabulary_words)}: {response}")
 
-                    if not isinstance(item[key], str):
-                        raise ValueError(f"Vocabulary key '{key}' was not a string: {item}")
+                    for item in vocabulary_words:
+                        if not isinstance(item, dict):
+                            raise ValueError(f"Vocabulary item was not an object: {item}")
 
-                    if item[key].strip() == "":
-                        raise ValueError(f"Vocabulary key '{key}' was empty: {item}")
-            
-            # Get the user's edge_range
-            edge_range = vitalib.Test.Get(
-                conn=self.conn,
-                user_id=self.user_id,
-                language=self.language
-            ).edge_range()
+                        required_keys = ["word", "language", "explanation", "before", "after"]
 
-            center = (edge_range[0] + edge_range[1]) / 2
+                        for key in required_keys:
+                            if key not in item:
+                                raise ValueError(f"Missing key '{key}' in vocabulary item: {item}")
 
-            enriched_words = []
+                            if not isinstance(item[key], str):
+                                raise ValueError(f"Vocabulary key '{key}' was not a string: {item}")
 
-            for word in vocabulary_words:
-                lemma_info = vitalib.Database.Vocab.Get(
-                    conn=self.conn,
-                    user_id=self.user_id,
-                    language=self.language
-                ).lemma_by_name(word["word"])
+                            if item[key].strip() == "":
+                                raise ValueError(f"Vocabulary key '{key}' was empty: {item}")
 
-                if not lemma_info:
-                    continue
+                    edge_range = vitalib.Test.Get(
+                        conn=self.conn,
+                        user_id=self.user_id,
+                        language=self.language
+                    ).edge_range()
 
-                if lemma_info.get("rank") is None:
-                    continue
+                    center = (edge_range[0] + edge_range[1]) / 2
 
-                word["lemma_id"] = lemma_info["lemma_id"]
-                word["rank"] = lemma_info["rank"]
-                word["definition"] = lemma_info["definition"]
-                word["distance_from_center"] = abs(lemma_info["rank"] - center)
+                    enriched_words = []
 
-                enriched_words.append(word)
+                    for word in vocabulary_words:
+                        lemma_info = vitalib.Database.Vocab.Get(
+                            conn=self.conn,
+                            user_id=self.user_id,
+                            language=self.language
+                        ).lemma_by_name(word["word"])
 
-            enriched_words.sort(key=lambda item: item["distance_from_center"])
+                        if not lemma_info:
+                            continue
 
-            top_three_words = enriched_words[:3]
+                        if lemma_info.get("rank") is None:
+                            continue
 
-            for word in top_three_words:
-                word.pop("rank", None)
-                word.pop("distance_from_center", None)
+                        word["lemma_id"] = lemma_info["lemma_id"]
+                        word["rank"] = lemma_info["rank"]
+                        word["definition"] = lemma_info["definition"]
+                        word["distance_from_center"] = abs(lemma_info["rank"] - center)
 
-            return top_three_words
+                        enriched_words.append(word)
+
+                    enriched_words.sort(key=lambda item: item["distance_from_center"])
+
+                    top_three_words = enriched_words[:3]
+
+                    for word in top_three_words:
+                        word.pop("rank", None)
+                        word.pop("distance_from_center", None)
+
+                    if len(top_three_words) == 3:
+                        return top_three_words
+
+                    raise ValueError(f"Only found {len(top_three_words)} usable vocabulary words.")
+
+                except Exception as e:
+                    failures.append({
+                        "provider": model_attempt["provider"],
+                        "model": model_attempt["model"],
+                        "error": str(e)
+                    })
+                    time.sleep(1)
+
+            raise ValueError(f"All vocabulary attempts failed: {failures}")
