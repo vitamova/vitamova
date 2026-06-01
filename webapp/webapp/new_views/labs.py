@@ -24,6 +24,10 @@ def writing(request):
             }, status=400)
         else:
             if action == "start_writing":
+                sample_request = {
+                    "action": "start_writing",
+                    "language": "es"
+                    }
                 sample_response = {
                     "status": "success",
                     "attempt_id": 123,
@@ -36,11 +40,29 @@ def writing(request):
                         "text": "Write about a meal you recently enjoyed. What did you eat, who were you with, and why did you enjoy it?"
                     }
                     }
+                response = {}
+                response["prompt"] = vitalib.Database.Writing.Prompt(conn=connection, user_id=request.user.id, language=data.get("language")).get()
+                response.update(vitalib.Database.Writing.Submission(conn=connection, user_id=request.user.id).create(prompt_id=response["prompt"]["id"]))
+                response["status"] = "success"
+                return JsonResponse(response)
             elif action == "autosave_writing":
+                sample_request = {
+                    "action": "autosave_writing",
+                    "attempt_id": 123,
+                    "text": "Yesterday I had dinner...",
+                    "character_count": 534
+                }
                 sample_response = {
                     "status": "success"
-                    }
+                }
             elif action == "submit_writing":
+                sample_request = {
+                    "action": "submit_writing",
+                    "attempt_id": 123,
+                    "text": "Yesterday I had dinner...",
+                    "character_count": 642,
+                    "auto_submitted": False
+                }
                 sample_response = {
                     "status": "success",
                     "attempt_id": 123,

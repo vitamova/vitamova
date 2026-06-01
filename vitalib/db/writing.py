@@ -1,0 +1,55 @@
+import datetime
+
+class Writing:
+    class Prompt:
+        def __init__(self, conn, user_id, language):
+            self.conn = conn
+            self.user_id = user_id
+            self.language = language
+        def get(self):
+            # Get a random writing prompt from the database for the specified language
+            # Database name is writing_prompts
+            # Columns are: id, language, title, text
+            with self.conn.cursor() as cursor:
+                cursor.execute("""
+                    SELECT id, title, text
+                    FROM writing_prompts
+                    WHERE language = %s
+                    ORDER BY RANDOM()
+                    LIMIT 1
+                """, (self.language,))
+                row = cursor.fetchone()
+                if row:
+                    return {
+                        "id": row[0],
+                        "title": row[1],
+                        "text": row[2]
+                    }
+                else:
+                    return None
+    class Submission:
+        def __init__(self, conn, user_id):
+            self.conn = conn
+            self.user_id = user_id
+        def create(self, prompt_id):
+            # Insert a new writing attempt into the database
+            # Database name is writing_submissions
+            # Columns are: user_id, prompt_id, started_at, expires_at
+            # Expires at should be 15 minutes after started_at
+            started_at = datetime.datetime.utcnow()
+            expires_at = started_at + datetime.timedelta(minutes=15)
+            # Insert into database and return the new attempt_id
+            with self.conn.cursor() as cursor:
+                cursor.execute("""
+                    INSERT INTO writing_submissions (user_id, prompt_id, started_at, expires_at)
+                    VALUES (%s, %s, %s, %s)
+                    RETURNING id
+                """, (self.user_id, prompt_id, started_at, expires_at))
+                attempt_id = cursor.fetchone()[0]
+                self.conn.commit()
+            return {
+                "attempt_id": attempt_id,
+                "server_now": started_at.isoformat() + "Z",
+                "started_at": started_at.isoformat() + "Z",
+                "expires_at": expires_at.isoformat() + "Z"
+            }

@@ -29,6 +29,9 @@ STRIPE_PRIVATE_KEY = data.get("stripe_private_key")
 
 # Set the Stripe Private Key as a system environment variable so that it can be accessed in users.py
 os.environ["STRIPE_PRIVATE_KEY"] = STRIPE_PRIVATE_KEY
+# Set the OpenAI API and Gemini API keys as system environment variables so that they can be accessed in chatbot.py
+os.environ["OPENAI_KEY"] = data.get("openai_key")
+os.environ["GEMINI_KEY"] = data.get("gemini_key")
 
 SECRET_KEY = data.get("django_secret")
 # SECURITY WARNING: don't run with debug turned on in production!
