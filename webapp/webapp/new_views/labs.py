@@ -44,19 +44,8 @@ def writing(request):
                 prompt_info = vitalib.Database.Writing.Submission(conn=connection, user_id=request.user.id).get_prompt(attempt_id=data.get("attempt_id"))
                 prompt_text = prompt_info["text"]
                 user_text = data.get("text")
-                response["score"] = vitalib.Writing.Get(user_id=request.user.id, language=prompt_info["language"]).score(prompt_text=prompt_text, text=user_text)
-                response["improvements"] = vitalib.Writing.Get(user_id=request.user.id, language=prompt_info["language"]).improvements(prompt_text=prompt_text, text=user_text, score=response["score"]["value"])
-                
-                response["vocabulary"] = [
-                    {
-                    "word": "flavorful",
-                    "lemma_id": 987,
-                    "language": "en",
-                    "definition": "Having a rich or pleasant taste.",
-                    "explanation": "This word makes your description of the food more specific and natural.",
-                    "before": "The food was very good.",
-                    "after": "The food was flavorful and freshly prepared."
-                    }
-                ]
+                response["score"] = vitalib.Writing.Get(conn=connection, user_id=request.user.id, language=prompt_info["language"]).score(prompt_text=prompt_text, text=user_text)
+                response["improvements"] = vitalib.Writing.Get(conn=connection, user_id=request.user.id, language=prompt_info["language"]).improvements(prompt_text=prompt_text, text=user_text, score=response["score"]["value"])
+                response["vocabulary"] = vitalib.Writing.Get(conn=connection, user_id=request.user.id, language=prompt_info["language"]).vocabulary(prompt_text=prompt_text, text=user_text)
                 response["status"] = "success"
             return JsonResponse(response)
