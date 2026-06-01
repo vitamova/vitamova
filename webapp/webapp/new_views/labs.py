@@ -4,6 +4,7 @@ from django.http import JsonResponse
 from ..decorators import registered_logged_in_required, subscribed_required
 import vitalib
 import json
+import datetime
 
 @registered_logged_in_required
 @subscribed_required
@@ -40,11 +41,36 @@ def writing(request):
                     "character_count": 642,
                     "auto_submitted": False
                 }
+                # Make sure the text lenght is between 500 and 700 characters (inclusive)
+                text_length = len(data.get("text", ""))
+                if text_length < 500 or text_length > 700 or text_length != data.get("character_count"):
+                    return JsonResponse({
+                        "status": "error",
+                        "error": "Text must be between 500 and 700 characters."
+                    }, status=400)
+                # Get the expiration time for the writing attempt and make sure it hasn't expired
+                expiration_time = vitalib.Database.Writing.Submission(conn=connection, user_id=request.user.id).get_expiration(attempt_id=data.get("attempt_id"))
+                # The expiration timestamp should be no more than 10 seconds in the past to account for any minor clock skew between the server and client
+                if expiration_time < datetime.datetime.utcnow() - datetime.timedelta(seconds=10):
+                    return JsonResponse({
+                        "status": "error",
+                        "error": "Writing attempt has expired."
+                    }, status=400)
+                # Now add 100 XP to the user's points for completing the writing attempt
+                points_added = vitalib.Database.Points(conn=connection, user_id=request.user.id).add(amount=100, task="Completed writing attempt")
+                assert points_added["status"] == "ok", "Failed to add points for writing."
+
+                # Now start building the response
                 response = {}
                 prompt_info = vitalib.Database.Writing.Submission(conn=connection, user_id=request.user.id).get_prompt(attempt_id=data.get("attempt_id"))
                 prompt_text = prompt_info["text"]
                 user_text = data.get("text")
                 response["score"] = vitalib.Writing.Get(conn=connection, user_id=request.user.id, language=prompt_info["language"]).score(prompt_text=prompt_text, text=user_text)
+                # Add score 
+                score_added = vitalib.Database.Writing.Submission(conn=connection, user_id=request.user.id).add_score(attempt_id=data.get("attempt_id"), score=response["score"]["value"])
+                assert score_added["status"] == "ok", "Failed to add score for writing."
+
+                # Now get the rest of the feedback based on the user's writing
                 response["improvements"] = vitalib.Writing.Get(conn=connection, user_id=request.user.id, language=prompt_info["language"]).improvements(prompt_text=prompt_text, text=user_text, score=response["score"]["value"])
                 response["vocabulary"] = vitalib.Writing.Get(conn=connection, user_id=request.user.id, language=prompt_info["language"]).vocabulary(prompt_text=prompt_text, text=user_text)
                 response["status"] = "success"

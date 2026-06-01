@@ -53,6 +53,19 @@ class Writing:
                 "started_at": started_at.isoformat() + "Z",
                 "expires_at": expires_at.isoformat() + "Z"
             }
+        def get_expiration(self, attempt_id):
+            # Get the expiration time for a writing attempt
+            with self.conn.cursor() as cursor:
+                cursor.execute("""
+                    SELECT expires_at
+                    FROM writing_submissions
+                    WHERE id = %s AND user_id = %s
+                """, (attempt_id, self.user_id))
+                row = cursor.fetchone()
+                if row:
+                    return row[0]
+                else:
+                    return None
         def get_prompt(self, attempt_id):
             # Get the writing prompt associated with this attempt
             with self.conn.cursor() as cursor:
@@ -72,3 +85,15 @@ class Writing:
                     }
                 else:
                     return None
+        def add_score(self, attempt_id, score):
+            # Update the writing attempt with the user's score
+            with self.conn.cursor() as cursor:
+                cursor.execute("""
+                    UPDATE writing_submissions
+                    SET score = %s
+                    WHERE id = %s AND user_id = %s
+                """, (score, attempt_id, self.user_id))
+                self.conn.commit()
+            return {
+                "status": "ok"
+            }
