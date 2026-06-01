@@ -44,7 +44,7 @@ def writing(request):
                 prompt_info = vitalib.Database.Writing.Submission(conn=connection, user_id=request.user.id).get_prompt(attempt_id=data.get("attempt_id"))
                 prompt_text = prompt_info["text"]
                 user_text = data.get("text")
-                response["score"] = vitalib.Writing.Get(user_id=request.user.id, language=prompt_info["language"]).score(prompt_text=prompt_text, user_text=user_text)
+                response["score"] = vitalib.Writing.Get(user_id=request.user.id, language=prompt_info["language"]).score(prompt_text=prompt_text, text=user_text)
                 response["improvements"] = [
                     {
                     "title": "Use more precise descriptions",
