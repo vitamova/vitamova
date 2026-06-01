@@ -184,9 +184,11 @@ Return this exact JSON structure:
                 if abs(openai_score - gemini_score) <= 1:
                     return {
                         "status": "success",
-                        "score": min(openai_score, gemini_score),
+                        "value": min(openai_score, gemini_score),
                         "method": "two_model_agreement",
-                        "model_results": model_results
+                        "model_results": model_results,
+                        "title": WRITING_SCORE_LEVELS[min(openai_score, gemini_score)]["title"],
+                        "description": WRITING_SCORE_LEVELS[min(openai_score, gemini_score)]["description"]
                     }
 
                 counts = Counter(scores)
@@ -200,13 +202,18 @@ Return this exact JSON structure:
 
                     return {
                         "status": "success",
-                        "score": min(tied_scores),
+                        "value": min(tied_scores),
                         "method": "majority_vote",
-                        "model_results": model_results
+                        "model_results": model_results,
+                        "title": WRITING_SCORE_LEVELS[min(tied_scores)]["title"],
+                        "description": WRITING_SCORE_LEVELS[min(tied_scores)]["description"]
                     }
 
             return {
-                "score": min(scores),
+                "status": "success",
+                "method": "lowest_score",
+                "model_results": model_results,
+                "value": min(scores),
                 "title": WRITING_SCORE_LEVELS[min(scores)]["title"],
                 "description": WRITING_SCORE_LEVELS[min(scores)]["description"]
             }
