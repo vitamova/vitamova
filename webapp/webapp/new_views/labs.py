@@ -67,9 +67,9 @@ def writing(request):
                 prompt_text = prompt_info["text"]
                 user_text = data.get("text")
                 response["score"] = vitalib.Writing.Get(conn=connection, user_id=request.user.id, language=prompt_info["language"]).score(prompt_text=prompt_text, text=user_text)
-                # Add score 
-                score_added = vitalib.Database.Writing.Submission(conn=connection, user_id=request.user.id).add_score(attempt_id=data.get("attempt_id"), score=response["score"]["value"])
-                assert score_added["status"] == "ok", "Failed to add score for writing."
+                # Add score and submission time to the database
+                submitted = vitalib.Database.Writing.Submission(conn=connection, user_id=request.user.id).submit(attempt_id=data.get("attempt_id"), score=response["score"]["value"], submitted_at=now)
+                assert submitted["status"] == "ok", "Failed to add score and submission time for writing."
 
                 # Now get the rest of the feedback based on the user's writing
                 response["improvements"] = vitalib.Writing.Get(conn=connection, user_id=request.user.id, language=prompt_info["language"]).improvements(prompt_text=prompt_text, text=user_text, score=response["score"]["value"])

@@ -85,14 +85,14 @@ class Writing:
                     }
                 else:
                     return None
-        def add_score(self, attempt_id, score):
+        def submit(self, attempt_id, score, submitted_at):
             # Update the writing attempt with the user's score
             with self.conn.cursor() as cursor:
                 cursor.execute("""
                     UPDATE writing_submissions
                     SET score = %s, submitted_at = %s
                     WHERE id = %s AND user_id = %s
-                """, (score, datetime.datetime.utcnow(), attempt_id, self.user_id))
+                """, (score, submitted_at, attempt_id, self.user_id))
                 self.conn.commit()
             return {
                 "status": "ok"
