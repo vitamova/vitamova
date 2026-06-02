@@ -47,10 +47,6 @@ def home(request):
     level = vitalib.Database.UserInfo.Get(connection, request.user.id).level(language)
     language_name = vitalib.Transform.Language(language).code_to_name()
     new_level = vitalib.Test.Get(connection, request.user.id, language).new_level()
-    edge_range = vitalib.Test.Get(connection, request.user.id, language).edge_range()
-    level_mastery = vitalib.Test.Get(connection, request.user.id, language).level_mastery()
-    # Get the level with the highest mastery
-    best_level = max(level_mastery, key=lambda x: level_mastery[x]["mastery_confidence"])
     weekly_points = vitalib.Database.Points(connection, request.user.id).this_week()
 
     if new_level > level:
@@ -82,10 +78,7 @@ def home(request):
             "language_options": vitalib.Database.UserInfo.Get(connection, request.user.id).languages(),
             "dev": settings.SERVER_TYPE == 'dev',
             "mobile": mobile,
-            "edge_range": edge_range,
             "level": level,
-            "best_level": best_level,
-            "best_level_mastery": level_mastery[best_level],
             "weekly_points": weekly_points
             })
     else:
