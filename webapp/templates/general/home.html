@@ -1038,7 +1038,7 @@
     <section class="dashboard-section {% if mobile %}mobile-collapsible{% endif %}" aria-label="Vocabulary modules" data-mobile-section>
       <div class="section-header">
         {% if mobile %}
-        <button class="section-title-button" type="button" data-section-toggle}>
+        <button class="section-title-button" type="button" data-section-toggle>
         {% endif %}
           <div class="section-title-row">
             <div>
@@ -1130,7 +1130,9 @@
     {% if dev %}
       <section class="dashboard-section {% if mobile %}mobile-collapsible{% endif %}" aria-label="Sentence modules" data-mobile-section>
         <div class="section-header">
-          <button class="section-title-button" type="button" data-section-toggle {% if not mobile %}disabled{% endif %}>
+          {% if mobile %}
+          <button class="section-title-button" type="button" data-section-toggle>
+          {% endif %}
             <div class="section-title-row">
               <div>
                 <h2>Sentences</h2>
@@ -1221,7 +1223,9 @@
 
       <section class="dashboard-section {% if mobile %}mobile-collapsible{% endif %}" aria-label="Practice lab modules" data-mobile-section>
         <div class="section-header">
-          <button class="section-title-button" type="button" data-section-toggle {% if not mobile %}disabled{% endif %}>
+          {% if mobile %}
+          <button class="section-title-button" type="button" data-section-toggle>
+          {% endif %}
             <div class="section-title-row">
               <div>
                 <h2>Practice Labs</h2>
