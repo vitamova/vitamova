@@ -3,8 +3,10 @@
 <html lang="en">
 <head>
     {% include "partials/head.html" %}
-    
+
     <title>Writing Practice | Vitamova</title>
+
+    <link rel="stylesheet" href="{% static 'vitamova.css' %}">
 
     <style>
         :root {
@@ -376,7 +378,7 @@
     <main class="page">
         <div class="topbar">
             <div class="brand">Vitamova</div>
-            <button class="home-btn" id="homeButton">Go Home</button>
+            <a class="back-link" href="/">← Go Home</a>
         </div>
 
         <!-- INTRO -->

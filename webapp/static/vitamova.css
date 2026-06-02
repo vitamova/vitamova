@@ -1,0 +1,15 @@
+    .back-link {
+      color: var(--vita-blue);
+      font-weight: 850;
+      text-decoration: none;
+      background: rgba(31, 94, 255, 0.08);
+      border: 1px solid rgba(31, 94, 255, 0.12);
+      border-radius: 999px;
+      padding: 10px 14px;
+      transition: background 0.15s ease, transform 0.15s ease;
+    }
+
+    .back-link:hover {
+      background: rgba(31, 94, 255, 0.12);
+      transform: translateY(-1px);
+    }
