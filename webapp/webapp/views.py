@@ -2,7 +2,7 @@ from django.shortcuts import render, redirect
 from django.db import connection
 from django.http import JsonResponse
 from django.conf import settings
-from .decorators import registered_logged_in_required, subscribed_required, noscore_or_subscribed_required, prepare_page
+from .decorators import registered_logged_in_required, subscribed_required, prepare_page
 import json
 import vitalib
 

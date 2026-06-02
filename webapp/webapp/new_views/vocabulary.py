@@ -30,7 +30,7 @@ def manage(request):
 def add(request):
     if request.method == "GET":
         language = request.GET.get("language", "es")
-        return render(request, "modules/vocabulary_add.html", {
+        return render(request, "modules/vocabulary/add.html", {
             "language": language
         })
     elif request.method == "POST":

@@ -287,7 +287,9 @@ class Test:
                 )
                 result[associated_level] = {
                     "coverage": coverage,
-                    "mastery_confidence": mastery_confidence
+                    "mastery_confidence": mastery_confidence,
+                    "correct": correct,
+                    "incorrect": incorrect
                 }
                 min_rank += 1000
             return result
