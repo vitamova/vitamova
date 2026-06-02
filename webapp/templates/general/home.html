@@ -1213,6 +1213,9 @@
           </div>
         </div>
       </section>
+      {% endif %}
+
+      
 
       <section class="dashboard-section {% if mobile %}mobile-collapsible{% endif %}" aria-label="Practice lab modules" data-mobile-section>
         <div class="section-header">
@@ -1229,8 +1232,11 @@
           </button>
         </div>
 
+
         <div class="section-content">
           <div class="module-row single">
+
+            {% if dev %}
             <div class="activity-card coming-soon" aria-disabled="true">
               <div class="card-topline">
                 <div class="icon-circle">¶</div>
@@ -1247,11 +1253,11 @@
                 <span>→</span>
               </div>
             </div>
+            {% endif %}
 
-            <div class="activity-card coming-soon" aria-disabled="true">
+            <div class="activity-card" href="/labs/writing/?language={{ language }}">
               <div class="card-topline">
                 <div class="icon-circle">✎</div>
-                <span class="mini-badge soon">Soon</span>
               </div>
 
               <h3>Writing Practice</h3>
@@ -1267,7 +1273,7 @@
           </div>
         </div>
       </section>
-    {% endif %}
+    
 
     <div class="bottom-note">
       Small, consistent practice compounds. Pick one activity and keep the streak moving.
