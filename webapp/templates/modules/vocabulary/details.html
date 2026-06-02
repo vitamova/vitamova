@@ -517,14 +517,16 @@
               {% with previous_level=level|add:"-1" %}
                 {% widthratio previous_level 1 1000 as previous_max %}
                 {% widthratio level 1 1000 as range_max %}
-                {{ mastery.correct }}
-                {{ mastery.incorrect }}
                 {% widthratio mastery.mastery_confidence 1 100 as mastery_percent %}
                 {% widthratio mastery.coverage 1 100 as coverage_percent %}
 
                 <tr>
                   <td class="level-cell">Level {{ level }}</td>
                   <td class="range-cell">{{ previous_max|add:"1" }}–{{ range_max }}</td>
+
+                  <!--need columns for correct and incorrect answers-->
+                  <td>{{ mastery.correct }}</td>
+                  <td>{{ mastery.incorrect }}</td>
 
                   <td>
                     <div class="metric-value">{{ mastery_percent }}%</div>
