@@ -517,8 +517,6 @@
               {% with previous_level=level|add:"-1" %}
                 {% widthratio previous_level 1 1000 as previous_max %}
                 {% widthratio level 1 1000 as range_max %}
-                {% widthratio mastery.correct %}
-                {% widthratio mastery.incorrect %}
                 {% widthratio mastery.mastery_confidence 1 100 as mastery_percent %}
                 {% widthratio mastery.coverage 1 100 as coverage_percent %}
 
