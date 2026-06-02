@@ -10,7 +10,9 @@ import datetime
 @subscribed_required
 def writing(request):
     if request.method == "GET":
+        language = request.GET.get("language")
         return render(request, "modules/labs/writing.html", {
+            "language": language
         })
 
     elif request.method == "POST":
