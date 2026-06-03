@@ -188,7 +188,7 @@ class Test:
             )
 
             edge_count = random.randint(0, round(count * 0.8))
-            best_level_count = min(count - edge_count, random.randint(0, round(count * 0.8)))
+            next_level_count = min(count - edge_count, random.randint(0, round(count * 0.8)))
             least_practiced_count = count - edge_count - best_level_count
 
             current_min_rank, current_max_rank = self.edge_range()
@@ -200,19 +200,18 @@ class Test:
                 count=edge_count
             )
 
+            # The other half of the questions should come from the user's next level
+            next_level = self.current_level + 1
+            next_level_min_rank = ((next_level-1) * 1000) + 1
+            next_level_max_rank = next_level_min_rank + 999
+            questions.extend(question_fetcher.new(
+                min_rank=next_level_min_rank,
+                max_rank=next_level_max_rank,
+                count=next_level_count
+            ))
+
             # Get the level_mastery dictionary
             level_mastery = self.level_mastery()
-            # Find the level with the highest mastery confidence
-            best_level = max(level_mastery, key=lambda level: level_mastery[level]["mastery_confidence"])
-            # The other half of the questions should come from best_level
-            # This helps the user achieve a sense of accomplishment by reinforcing their strongest level while they work on their edge.
-            best_level_min_rank = ((best_level-1) * 1000) + 1
-            best_level_max_rank = best_level_min_rank + 999
-            questions.extend(question_fetcher.new(
-                min_rank=best_level_min_rank,
-                max_rank=best_level_max_rank,
-                count=best_level_count
-            ))
 
             # Find the level with the lowest number of questions (sum of correct and incorrect)
             least_practiced_level = min(
