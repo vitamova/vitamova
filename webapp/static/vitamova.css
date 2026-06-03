@@ -192,7 +192,7 @@ p {
 .card,
 .vita-card,
 .panel,
-.search-panel,
+.content-panel,
 .login-panel {
   background: rgba(255, 255, 255, 0.94);
   border: 1px solid var(--vita-border);
@@ -202,7 +202,7 @@ p {
 
 .card,
 .panel,
-.search-panel,
+.content-panel,
 .login-panel { padding: 26px; }
 
 .vita-card {
@@ -211,11 +211,11 @@ p {
 }
 
 .panel h2,
-.search-panel h2,
+.content-panel h2,
 .login-panel h2 { margin-bottom: 8px; }
 
 .panel p,
-.search-panel p,
+.content-panel p,
 .login-panel p { margin-bottom: 0; }
 
 .surface-card,
@@ -1313,7 +1313,7 @@ tr:last-child td { border-bottom: none; }
   .hero,
   .card,
   .panel,
-  .search-panel,
+  .content-panel,
   .login-panel,
   .priority-panel,
   .edge-card { padding: 22px; border-radius: 22px; }
