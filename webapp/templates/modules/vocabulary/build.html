@@ -117,46 +117,42 @@
     </header>
     <section class="content-panel">
 
-        {% if not mobile %}
-
-            <div class="flex items-center justify-between gap-4 mb-8">
-                <div>
-                    <h1 class="text-3xl md:text-4xl font-black tracking-tight mt-1">
-                        Vocabulary Builder
-                    </h1>
-                    <p class="text-slate-600 mt-2">
-                        Build your vocabulary one word at a time. Answer a question, review the result,
-                        then decide whether to add the word to your vocabulary bank.
-                    </p>
-                </div>
-
-                <div class="hidden sm:flex h-14 w-14 rounded-2xl items-center justify-center"
-                    style="background: var(--vita-yellow);">
-                    <span class="text-2xl font-black text-blue-700">V</span>
-                </div>
+        <div class="flex items-center justify-between gap-4 mb-8" {% if mobile %}style="display: none;"{% endif %}>
+            <div>
+                <h1 class="text-3xl md:text-4xl font-black tracking-tight mt-1">
+                    Vocabulary Builder
+                </h1>
+                <p class="text-slate-600 mt-2">
+                    Build your vocabulary one word at a time. Answer a question, review the result,
+                    then decide whether to add the word to your vocabulary bank.
+                </p>
             </div>
 
-            <div class="grid grid-cols-2 gap-3 mb-8">
-                <div class="counter-card rounded-2xl p-4">
-                    <p class="text-xs font-black uppercase tracking-wide text-slate-500">
-                        Questions reviewed
-                    </p>
-                    <p id="questions-reviewed-count" class="text-3xl font-black text-blue-700 mt-1">
-                        0
-                    </p>
-                </div>
+            <div class="hidden sm:flex h-14 w-14 rounded-2xl items-center justify-center"
+                style="background: var(--vita-yellow);">
+                <span class="text-2xl font-black text-blue-700">V</span>
+            </div>
+        </div>
 
-                <div class="counter-card rounded-2xl p-4">
-                    <p class="text-xs font-black uppercase tracking-wide text-slate-500">
-                        Words added to bank
-                    </p>
-                    <p id="words-added-count" class="text-3xl font-black text-blue-700 mt-1">
-                        0
-                    </p>
-                </div>
+        <div class="grid grid-cols-2 gap-3 mb-8" {% if mobile %}style="display: none;"{% endif %}>
+            <div class="counter-card rounded-2xl p-4">
+                <p class="text-xs font-black uppercase tracking-wide text-slate-500">
+                    Questions reviewed
+                </p>
+                <p id="questions-reviewed-count" class="text-3xl font-black text-blue-700 mt-1">
+                    0
+                </p>
             </div>
 
-        {% endif %}
+            <div class="counter-card rounded-2xl p-4">
+                <p class="text-xs font-black uppercase tracking-wide text-slate-500">
+                    Words added to bank
+                </p>
+                <p id="words-added-count" class="text-3xl font-black text-blue-700 mt-1">
+                    0
+                </p>
+            </div>
+        </div>
 
         <input type="hidden" id="language" value="{{ language }}">
 
