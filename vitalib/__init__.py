@@ -4,3 +4,4 @@ from .test import *
 from .transform import *
 from .writing import *
 from .chatbot import *
+from .web import *

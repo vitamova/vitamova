@@ -60,15 +60,7 @@ def home(request):
         })
     
     if vitalib.User.Subscription(request.user.id, request.user.email, connection).is_active():
-        user_agent = request.META.get("HTTP_USER_AGENT", "").lower()
-        mobile = any(device in user_agent for device in [
-            "mobile",
-            "android",
-            "iphone",
-            "ipad",
-            "ipod",
-            "windows phone",
-        ])
+        mobile = vitalib.Web.is_mobile(request)
         return render(request, "general/home.html", {
             "first_name": request.user.first_name,
             "user_email": request.user.email,

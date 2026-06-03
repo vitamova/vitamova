@@ -89,7 +89,8 @@ def build(request):
     if request.method == "GET":
         language = request.GET.get("language", "es")
         return render(request, "modules/vocabulary/build.html", {
-            "language": language
+            "language": language,
+            "mobile": vitalib.Web.is_mobile(request)
         })
     if request.method == "POST":
         # Get the data
