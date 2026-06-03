@@ -47,7 +47,6 @@ class Test:
             best_min_rank = None
             best_max_rank = None
             best_score = -1
-            best_total = 0
 
             for min_rank, max_rank in broad_ranges:
                 results = question_fetcher.range_results(min_rank, max_rank)
@@ -83,7 +82,6 @@ class Test:
                     best_score = edge_score
                     best_min_rank = min_rank
                     best_max_rank = results["max_rank"]
-                    best_total = total
 
             # Fallback in case all ranges had zero usable data somehow.
             if best_min_rank is None:
@@ -189,7 +187,7 @@ class Test:
 
             edge_count = random.randint(0, round(count * 0.8))
             next_level_count = min(count - edge_count, random.randint(0, round(count * 0.8)))
-            least_practiced_count = count - edge_count - best_level_count
+            least_practiced_count = count - edge_count - next_level_count
 
             current_min_rank, current_max_rank = self.edge_range()
 
