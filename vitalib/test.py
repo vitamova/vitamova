@@ -187,13 +187,17 @@ class Test:
                 self.language
             )
 
+            edge_count = random.randint(0, round(count * 0.8))
+            best_level_count = min(count - edge_count, random.randint(0, round(count * 0.8)))
+            least_practiced_count = count - edge_count - best_level_count
+
             current_min_rank, current_max_rank = self.edge_range()
 
             # Get half of the questions from the edge range
             questions = question_fetcher.new(
                 min_rank=current_min_rank,
                 max_rank=current_max_rank,
-                count=count//2
+                count=edge_count
             )
 
             # Get the level_mastery dictionary
@@ -207,7 +211,20 @@ class Test:
             questions.extend(question_fetcher.new(
                 min_rank=best_level_min_rank,
                 max_rank=best_level_max_rank,
-                count=count - (count//2)
+                count=best_level_count
+            ))
+
+            # Find the level with the lowest number of questions (sum of correct and incorrect)
+            least_practiced_level = min(
+                level_mastery,
+                key=lambda level: level_mastery[level]["correct"] + level_mastery[level]["incorrect"]
+            )
+            least_practiced_min_rank = ((least_practiced_level-1) * 1000) + 1
+            least_practiced_max_rank = least_practiced_min_rank + 999
+            questions.extend(question_fetcher.new(
+                min_rank=least_practiced_min_rank,
+                max_rank=least_practiced_max_rank,
+                count=least_practiced_count
             ))
 
             questions = Test.Format.questions(questions)
