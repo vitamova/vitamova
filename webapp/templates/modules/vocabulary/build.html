@@ -99,6 +99,180 @@
                 grid-template-columns: 1fr 1fr;
             }
         }
+
+
+        .answer-review-actions {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            gap: 1rem;
+            margin-top: 2rem;
+        }
+
+        .answer-result {
+            font-weight: 900;
+            font-size: 1rem;
+        }
+
+        .answer-result.correct {
+            color: #16a34a;
+        }
+
+        .answer-result.incorrect {
+            color: #dc2626;
+        }
+
+        @media (max-width: 767px) {
+            html,
+            body {
+                height: 100%;
+                min-height: 100%;
+            }
+
+            body {
+                overflow: hidden;
+                padding: 0.5rem 0.5rem 0.25rem;
+            }
+
+            main.page {
+                height: 100dvh;
+                min-height: 100dvh;
+                padding-top: 0.5rem;
+                padding-bottom: 0.25rem;
+                gap: 0.5rem;
+                display: flex;
+                flex-direction: column;
+            }
+
+            .topbar {
+                flex: 0 0 auto;
+                min-height: 42px;
+            }
+
+            .brand-badge {
+                width: 36px;
+                height: 36px;
+            }
+
+            .back-link {
+                padding: 0.55rem 0.8rem;
+                font-size: 0.85rem;
+            }
+
+            .content-panel {
+                flex: 1 1 auto;
+                min-height: 0;
+                margin-bottom: 0;
+                padding: 0.75rem;
+                border-radius: 1.25rem;
+                display: flex;
+                flex-direction: column;
+                overflow: hidden;
+                max-height: none;
+            }
+
+            #loading-section,
+            #quiz-section:not(.hidden),
+            #answer-review-section:not(.hidden),
+            #complete-section:not(.hidden),
+            #error-section:not(.hidden) {
+                flex: 1 1 auto;
+                min-height: 0;
+            }
+
+            #quiz-section:not(.hidden),
+            #answer-review-section:not(.hidden) {
+                display: flex;
+                flex-direction: column;
+            }
+
+            #question-container,
+            #answer-review-container {
+                flex: 1 1 auto;
+                min-height: 0;
+            }
+
+            #question-container > div,
+            #answer-review-container > div {
+                height: 100%;
+                padding: 0.85rem;
+                border-radius: 1rem;
+                display: flex;
+                flex-direction: column;
+            }
+
+            #question-container h2,
+            #answer-review-container h3 {
+                font-size: 1.05rem;
+                line-height: 1.25;
+            }
+
+            #question-container .mt-4,
+            #answer-review-container .mt-3 {
+                margin-top: 0.45rem;
+            }
+
+            #question-container .mt-7 {
+                margin-top: 0.75rem;
+            }
+
+            #answer-review-container .mb-6 {
+                margin-bottom: 0.65rem;
+            }
+
+            #answer-review-container .p-5 {
+                padding: 0.75rem;
+            }
+
+            .answer-btn,
+            #answer-review-container .rounded-2xl {
+                border-radius: 0.85rem;
+            }
+
+            .answer-btn,
+            #answer-review-container .grid > div {
+                padding: 0.65rem 0.8rem;
+                font-size: 0.9rem;
+                line-height: 1.2;
+            }
+
+            #question-container .grid,
+            #answer-review-container .grid {
+                gap: 0.45rem;
+            }
+
+            #quiz-section > .flex,
+            .answer-review-actions {
+                flex: 0 0 auto;
+                margin-top: 0.65rem;
+            }
+
+            #submit-answer-btn,
+            #answer-review-next-btn {
+                padding: 0.65rem 1rem;
+                border-radius: 0.75rem;
+            }
+
+            .answer-review-heading {
+                display: none;
+            }
+
+            .answer-result {
+                font-size: 0.95rem;
+            }
+
+            #lemma-section:not(.hidden) {
+                overflow-y: auto;
+                padding-bottom: 0.25rem;
+            }
+
+            #complete-section,
+            #error-section,
+            #loading-section {
+                padding-top: 1rem;
+                padding-bottom: 1rem;
+            }
+        }
     </style>
 </head>
 
@@ -184,19 +358,20 @@
         </div>
 
         <div id="answer-review-section" class="hidden">
-            <div class="mb-6">
+            <div class="answer-review-heading mb-6">
                 <p class="text-sm font-semibold text-slate-500">Answer review</p>
                 <h2 id="answer-review-title" class="text-2xl md:text-3xl font-black mt-1">
                     Review your answer
                 </h2>
                 <p id="answer-review-helper" class="text-slate-600 mt-2">
-                    The answer you selected is shown in red. The correct answer is shown in green.
+                    Your selected answer and the correct answer are marked below.
                 </p>
             </div>
 
             <div id="answer-review-container"></div>
 
-            <div class="flex justify-end mt-8">
+            <div class="answer-review-actions">
+                <span id="answer-result" class="answer-result" aria-live="polite"></span>
                 <button
                     id="answer-review-next-btn"
                     type="button"
@@ -305,6 +480,7 @@
     let selectedOption = null;
     let currentReviewItem = null;
     let currentAnswerWasCorrect = false;
+    let currentDisplayedOptions = [];
 
     let questionsReviewedCount = 0;
     let wordsAddedCount = 0;
@@ -329,6 +505,7 @@
     const answerReviewHelper = document.getElementById("answer-review-helper");
     const answerReviewContainer = document.getElementById("answer-review-container");
     const answerReviewNextBtn = document.getElementById("answer-review-next-btn");
+    const answerResult = document.getElementById("answer-result");
 
     const lemmaContainer = document.getElementById("lemma-container");
     const lemmaHelperText = document.getElementById("lemma-helper-text");
@@ -546,7 +723,16 @@
             return null;
         }
 
-        return data.missed_questions[0];
+        const missedQuestion = data.missed_questions[0];
+
+        if (!missedQuestion.correct_answer) {
+            throw new Error("Server did not return correct_answer for the missed question.");
+        }
+
+        return {
+            ...missedQuestion,
+            correct_answer: missedQuestion.correct_answer
+        };
     }
 
     async function loadQuestions() {
@@ -609,6 +795,12 @@
         }
 
         currentQuestion = questions.shift();
+        currentDisplayedOptions = normalizeOptions(currentQuestion.options || []);
+
+        if (!currentDisplayedOptions.includes("I don't know")) {
+            currentDisplayedOptions.push("I don't know");
+        }
+
         renderQuestion();
         showSection(quizSection);
     }
@@ -641,13 +833,7 @@
         const answersWrapper = document.createElement("div");
         answersWrapper.className = "mt-7 grid gap-3";
 
-        const displayedOptions = normalizeOptions(currentQuestion.options || []);
-
-        if (!displayedOptions.includes("I don't know")) {
-            displayedOptions.push("I don't know");
-        }
-
-        displayedOptions.forEach(optionText => {
+        currentDisplayedOptions.forEach(optionText => {
             const btn = document.createElement("button");
             btn.type = "button";
             btn.className = "answer-btn w-full text-left rounded-2xl border border-slate-200 bg-slate-50 px-5 py-4 font-semibold";
@@ -728,14 +914,19 @@
 
         answerReviewContainer.innerHTML = "";
 
+        answerReviewNextBtn.textContent = "Next";
+        answerResult.classList.remove("correct", "incorrect");
+
         if (currentAnswerWasCorrect) {
             answerReviewTitle.textContent = "That’s correct.";
-            answerReviewHelper.textContent = "Nice work. Your selected answer is shown below.";
-            answerReviewNextBtn.textContent = "Next";
+            answerReviewHelper.textContent = "Your answer is marked below.";
+            answerResult.textContent = "Correct";
+            answerResult.classList.add("correct");
         } else {
             answerReviewTitle.textContent = "Review your answer";
-            answerReviewHelper.textContent = "The answer you selected is shown in red. The correct answer is shown in green.";
-            answerReviewNextBtn.textContent = "Review word";
+            answerReviewHelper.textContent = "Your selected answer is red. The correct answer is green.";
+            answerResult.textContent = "Incorrect";
+            answerResult.classList.add("incorrect");
         }
 
         const card = document.createElement("div");
@@ -767,22 +958,7 @@
         const answersWrapper = document.createElement("div");
         answersWrapper.className = "grid gap-3";
 
-        const options = normalizeOptions(currentReviewItem.options || currentQuestion.options || []);
-
-        if (
-            currentReviewItem.selected_option === "I don't know" &&
-            !options.includes("I don't know")
-        ) {
-            options.push("I don't know");
-        }
-
-        if (
-            currentAnswerWasCorrect &&
-            currentReviewItem.selected_option &&
-            !options.includes(currentReviewItem.selected_option)
-        ) {
-            options.push(currentReviewItem.selected_option);
-        }
+        const options = [...currentDisplayedOptions];
 
         options.forEach(optionText => {
             const row = document.createElement("div");
@@ -795,16 +971,19 @@
             helperSpan.className = "text-sm font-black whitespace-nowrap";
 
             if (currentAnswerWasCorrect && optionText === currentReviewItem.selected_option) {
-                row.classList.add("answer-correct", "font-black");
+                optionSpan.classList.add("text-green-600", "font-black");
+                helperSpan.classList.add("text-green-600");
                 helperSpan.textContent = "Your answer";
             } else {
                 if (optionText === currentReviewItem.correct_answer) {
-                    row.classList.add("answer-correct");
+                    optionSpan.classList.add("text-green-600", "font-black");
+                    helperSpan.classList.add("text-green-600");
                     helperSpan.textContent = "Correct answer";
                 }
 
                 if (optionText === currentReviewItem.selected_option) {
-                    row.classList.add("answer-wrong");
+                    optionSpan.classList.add("text-red-600", "font-black");
+                    helperSpan.classList.add("text-red-600");
                     helperSpan.textContent = "Your answer";
                 }
 
@@ -812,8 +991,10 @@
                     optionText === currentReviewItem.correct_answer &&
                     optionText === currentReviewItem.selected_option
                 ) {
-                    row.classList.remove("answer-wrong");
-                    row.classList.add("answer-correct");
+                    optionSpan.classList.remove("text-red-600");
+                    optionSpan.classList.add("text-green-600", "font-black");
+                    helperSpan.classList.remove("text-red-600");
+                    helperSpan.classList.add("text-green-600");
                     helperSpan.textContent = "Correct";
                 }
             }
