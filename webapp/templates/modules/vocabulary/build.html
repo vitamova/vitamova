@@ -158,11 +158,11 @@
 
             body {
                 overflow: hidden;
-                padding: 10px 12px calc(12px + env(safe-area-inset-bottom));
+                padding: 10px 12px calc(20px + env(safe-area-inset-bottom));
             }
 
             main.page {
-                height: calc(100dvh - 22px - env(safe-area-inset-bottom));
+                height: 100%;
                 min-height: 0;
                 padding: 0;
                 gap: 12px;
@@ -269,7 +269,7 @@
             .answer-review-actions {
                 flex: 0 0 auto;
                 margin-top: 10px;
-                padding-bottom: calc(env(safe-area-inset-bottom) + 36px);
+                padding-bottom: max(8px, env(safe-area-inset-bottom));
             }
 
             #submit-answer-btn,
