@@ -113,6 +113,17 @@ def build(request):
                     "status": "redirect_home"
                 })
             else:
+                # Now check if the coverage has improved by at least 5 percentage points since the last quiz
+                level_progress = vitalib.Database.UserInfo.Get(connection, request.user.id).next_level_coverage(language)
+                updated_level_progress = vitalib.Test.Get(connection, request.user.id, language).coverage(level*1000+1, (level+1)*1000)["coverage_percent"]
+                if updated_level_progress > level_progress:
+                    vitalib.Database.UserInfo.Update(connection, request.user.id).next_level_coverage(language, updated_level_progress)
+                    if updated_level_progress // 5 > level_progress // 5:  # Check if we've crossed a 5% milestone
+                        return JsonResponse({
+                            "status": "redirect_home"
+                        })
+                    
+                # If none of that is true, we can just load new questions as normal
                 questions = vitalib.Test.Get(connection, request.user.id, language).new_questions(count = 10)
                 return JsonResponse({
                     "status": "ok",
