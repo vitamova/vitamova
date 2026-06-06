@@ -48,6 +48,7 @@ def home(request):
     language_name = vitalib.Transform.Language(language).code_to_name()
     new_level = vitalib.Test.Get(connection, request.user.id, language).new_level()
     weekly_points = vitalib.Database.Points(connection, request.user.id).this_week()
+    next_level_progress = vitalib.Database.Vocab.Get(connection, request.user.id, language).coverage(level*1000+1, (level+1)*1000)
 
     if new_level > level:
         vitalib.Database.UserInfo.Update(connection, request.user.id).level(language, new_level)
@@ -71,7 +72,8 @@ def home(request):
             "dev": settings.SERVER_TYPE == 'dev',
             "mobile": mobile,
             "level": level,
-            "weekly_points": weekly_points
+            "weekly_points": weekly_points,
+            "next_level_progress": next_level_progress
             })
     else:
         return redirect("/subscribe/")
