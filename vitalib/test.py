@@ -179,15 +179,45 @@ class Test:
             if count <= 0:
                 return []
             
+            
             question_fetcher = vitalib.Database.Test.Questions(
                 self.conn,
                 self.user_id,
                 self.language
             )
 
-            edge_count = random.randint(0, round(count * 0.8))
-            next_level_count = min(count - edge_count, random.randint(0, round(count * 0.8)))
-            least_practiced_count = count - edge_count - next_level_count
+            # Get the level_mastery dictionary
+            level_mastery = self.level_mastery()
+            next_level = self.current_level + 1
+
+            # If mastery confidence for the next level is below 10%:
+            # 0% from the edge range
+            # 70% expected from the next level
+            # 30% expected from the least-practiced level
+            if (
+                next_level in level_mastery
+                and level_mastery[next_level]["mastery_confidence"] < 0.10
+            ):
+                selected_sources = random.choices(
+                    population=["edge","next_level", "least_practiced"],
+                    weights=[0.0, 0.70, 0.30],
+                    k=count
+                )
+
+            else:
+                # Otherwise:
+                # 40% expected from the edge range
+                # 40% expected from the next level
+                # 20% expected from the least-practiced level
+                selected_sources = random.choices(
+                    population=["edge", "next_level", "least_practiced"],
+                    weights=[0.40, 0.40, 0.20],
+                    k=count
+                )
+
+            edge_count = selected_sources.count("edge")
+            next_level_count = selected_sources.count("next_level")
+            least_practiced_count = selected_sources.count("least_practiced")
 
             current_min_rank, current_max_rank = self.edge_range()
 
@@ -199,7 +229,6 @@ class Test:
             )
 
             # The other half of the questions should come from the user's next level
-            next_level = self.current_level + 1
             next_level_min_rank = ((next_level-1) * 1000) + 1
             next_level_max_rank = next_level_min_rank + 999
             questions.extend(question_fetcher.new(
@@ -207,9 +236,6 @@ class Test:
                 max_rank=next_level_max_rank,
                 count=next_level_count
             ))
-
-            # Get the level_mastery dictionary
-            level_mastery = self.level_mastery()
 
             # Find the level with the lowest number of questions (sum of correct and incorrect)
             least_practiced_level = min(
