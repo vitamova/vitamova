@@ -48,7 +48,7 @@ def home(request):
     language_name = vitalib.Transform.Language(language).code_to_name()
     new_level = vitalib.Test.Get(connection, request.user.id, language).new_level()
     weekly_points = vitalib.Database.Points(connection, request.user.id).this_week()
-    next_level_progress = vitalib.Database.Vocab.Get(connection, request.user.id, language).coverage(level*1000+1, (level+1)*1000)
+    next_level_progress = vitalib.Database.Vocab.Get(connection, request.user.id, language).coverage(level*1000+1, (level+1)*1000)["coverage_percent"]
 
     if new_level > level:
         vitalib.Database.UserInfo.Update(connection, request.user.id).level(language, new_level)
