@@ -914,21 +914,6 @@
               <br>[ DEV SERVER ]
             {% endif %}
           </h1>
-
-          {% if not mobile %}
-
-            {% if level > 0 %}
-              <p>
-                You are building real momentum in {{ language_name }}. Keep practicing to advance your level,
-                earn more XP, and turn your growing vocabulary into long-term confidence.
-              </p>
-            {% else %}
-              <p>
-                Vitamova is still gathering enough learning data to assign your first {{ language_name }} level.
-                Keep building vocabulary and answering questions so the system can calibrate your progress.
-              </p>
-            {% endif %}
-          {% endif %}
         </div>
 
         <div class="hero-progress-card" aria-label="Current Vitamova progress">
@@ -940,16 +925,15 @@
               </div>
 
               <div class="progress-stat">
+                <span class="progress-label">Next level progress</span>
+                <span class="progress-value">Hello there</span>
+              </div>
+
+              <div class="progress-stat">
                 <span class="progress-label">Weekly XP</span>
                 <span class="progress-value small">{{ weekly_points }}</span>
               </div>
             </div>
-
-            {% if not mobile %}
-              <div class="progress-note">
-                Advance your level by proving durable vocabulary mastery. Earn XP by showing up and practicing consistently.
-              </div>
-            {% endif %}
 
             <a class="progress-details-link" href="/vocabulary/details?language={{ language }}">
               Curious how your level is calculated?
