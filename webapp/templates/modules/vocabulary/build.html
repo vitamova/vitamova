@@ -11,12 +11,12 @@
     <style>
 
         .answer-btn {
-            transition: all 0.16s ease;
+            transition: border-color 0.14s ease, background-color 0.14s ease, color 0.14s ease;
         }
 
         .answer-btn:hover {
-            transform: translateY(-1px);
-            box-shadow: 0 10px 24px rgba(15, 23, 42, 0.08);
+            border-color: rgba(31, 94, 255, 0.34);
+            background: rgba(31, 94, 255, 0.04);
         }
 
         .answer-btn.selected {
@@ -107,6 +107,33 @@
             justify-content: space-between;
             gap: 1rem;
             margin-top: 2rem;
+        }
+
+        .answer-review-controls {
+            display: flex;
+            align-items: center;
+            gap: 0.75rem;
+        }
+
+        .flag-question-btn {
+            border: 1px solid #cbd5e1;
+            background: #ffffff;
+            color: #475569;
+            border-radius: 0.75rem;
+            padding: 0.75rem 1rem;
+            font-weight: 800;
+            transition: border-color 0.14s ease, background-color 0.14s ease, color 0.14s ease;
+        }
+
+        .flag-question-btn:hover {
+            border-color: #94a3b8;
+            background: #f8fafc;
+            color: #1e293b;
+        }
+
+        .flag-question-btn:disabled {
+            opacity: 0.55;
+            cursor: not-allowed;
         }
 
         .answer-result {
@@ -246,9 +273,14 @@
             }
 
             #submit-answer-btn,
-            #answer-review-next-btn {
-                padding: 12px 20px;
+            #answer-review-next-btn,
+            #flag-question-btn {
+                padding: 12px 18px;
                 border-radius: 14px;
+            }
+
+            .answer-review-controls {
+                gap: 8px;
             }
 
             .answer-review-heading {
@@ -370,12 +402,22 @@
 
             <div class="answer-review-actions">
                 <span id="answer-result" class="answer-result" aria-live="polite"></span>
-                <button
-                    id="answer-review-next-btn"
-                    type="button"
-                    class="px-5 py-3 rounded-xl font-bold text-white bg-blue-600 hover:bg-blue-700">
-                    Next
-                </button>
+
+                <div class="answer-review-controls">
+                    <button
+                        id="flag-question-btn"
+                        type="button"
+                        class="flag-question-btn hidden">
+                        Flag question
+                    </button>
+
+                    <button
+                        id="answer-review-next-btn"
+                        type="button"
+                        class="px-5 py-3 rounded-xl font-bold text-white bg-blue-600 hover:bg-blue-700">
+                        Next
+                    </button>
+                </div>
             </div>
         </div>
 
@@ -504,6 +546,7 @@
     const answerReviewContainer = document.getElementById("answer-review-container");
     const answerReviewNextBtn = document.getElementById("answer-review-next-btn");
     const answerResult = document.getElementById("answer-result");
+    const flagQuestionBtn = document.getElementById("flag-question-btn");
 
     const lemmaContainer = document.getElementById("lemma-container");
     const lemmaHelperText = document.getElementById("lemma-helper-text");
@@ -903,7 +946,12 @@
             btn.addEventListener("click", () => {
                 selectedOption = optionText;
                 submitAnswerBtn.disabled = false;
-                renderQuestion();
+
+                answersWrapper.querySelectorAll(".answer-btn").forEach((optionButton) => {
+                    optionButton.classList.remove("selected");
+                });
+
+                btn.classList.add("selected");
             });
 
             answersWrapper.appendChild(btn);
@@ -974,12 +1022,16 @@
 
         answerReviewNextBtn.textContent = "Next";
         answerResult.classList.remove("correct", "incorrect");
+        flagQuestionBtn.classList.add("hidden");
+        flagQuestionBtn.disabled = false;
+        flagQuestionBtn.textContent = "Flag question";
 
         if (currentAnswerWasCorrect) {
             answerReviewTitle.textContent = "That’s correct.";
             answerReviewHelper.textContent = "Your answer is marked below.";
             answerResult.textContent = "Correct";
             answerResult.classList.add("correct");
+            flagQuestionBtn.classList.remove("hidden");
         } else {
             answerReviewTitle.textContent = "Review your answer";
             answerReviewHelper.textContent = "Your selected answer is red. The correct answer is green.";
@@ -993,15 +1045,10 @@
         const questionBox = document.createElement("div");
         questionBox.className = "rounded-2xl bg-slate-50 border border-slate-200 p-5 mb-6";
 
-        const questionLabel = document.createElement("p");
-        questionLabel.className = "text-sm font-bold text-slate-500 uppercase tracking-wide mb-2";
-        questionLabel.textContent = "Question";
-
         const questionText = document.createElement("h3");
         questionText.className = "text-xl md:text-2xl font-black leading-snug";
         questionText.textContent = currentReviewItem.question || currentQuestion.question;
 
-        questionBox.appendChild(questionLabel);
         questionBox.appendChild(questionText);
 
         if (currentReviewItem.context || currentQuestion.context) {
@@ -1154,6 +1201,42 @@
         fitLemmaText(lemmaText, window.innerWidth < 768 ? 42 : 56, 24);
     }
 
+
+    async function flagCorrectQuestion() {
+        if (!currentAnswerWasCorrect || !currentQuestion || !currentReviewItem) {
+            return;
+        }
+
+        flagQuestionBtn.disabled = true;
+        flagQuestionBtn.textContent = "Flagging...";
+
+        try {
+            const data = await postVocabTest({
+                action: "flag_question",
+                language: language,
+                question_id: Number(currentQuestion.question_id),
+                question: currentQuestion.question,
+                context: currentQuestion.context || null,
+                options: [...currentDisplayedOptions],
+                selected_option: currentReviewItem.selected_option || selectedOption,
+                correct_answer: currentReviewItem.correct_answer,
+                lemma_id: null,
+                lemma: null,
+                reason: "question_issue"
+            });
+
+            if (data.status !== "flagged" && data.status !== "ok" && data.status !== "redirect_home") {
+                throw new Error(data.error || "The server did not confirm the flagged question.");
+            }
+
+            flagQuestionBtn.textContent = "Flagged";
+        } catch (error) {
+            flagQuestionBtn.disabled = false;
+            flagQuestionBtn.textContent = "Flag question";
+            showError(error.message || "Could not flag this question. Please try again.");
+        }
+    }
+
     async function flagCurrentQuestionAsKnown() {
         if (!currentReviewItem) {
             return;
@@ -1268,6 +1351,7 @@
 
     submitAnswerBtn.addEventListener("click", submitCurrentAnswer);
     answerReviewNextBtn.addEventListener("click", handleAnswerReviewNext);
+    flagQuestionBtn.addEventListener("click", flagCorrectQuestion);
 
     alreadyKnowBtn.addEventListener("click", flagCurrentQuestionAsKnown);
     keepBuildingBtn.addEventListener("click", keepBuildingVocabulary);
