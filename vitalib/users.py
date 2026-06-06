@@ -16,6 +16,16 @@ class User:
             self.user_id = user_id
             self.conn = conn
 
+        def new(self, native_language, languages):
+            # Create the record in registered_user
+            vitalib.Database.UserInfo.Create(self.conn, self.user_id).data(
+                native_language=native_language,
+            )
+
+            # For each language, initiate the record in user_stats
+            for language in languages:
+                vitalib.Database.UserInfo.Create(self.conn, self.user_id).stats(language)
+
         def is_valid(self):
             user_info = vitalib.Database.UserInfo.Get(self.conn, self.user_id).data()
             return user_info is not None

@@ -48,16 +48,18 @@ def home(request):
     language_name = vitalib.Transform.Language(language).code_to_name()
     new_level = vitalib.Test.Get(connection, request.user.id, language).new_level()
     weekly_points = vitalib.Database.Points(connection, request.user.id).this_week()
-    next_level_progress = vitalib.Database.Vocab.Get(connection, request.user.id, language).coverage(level*1000+1, (level+1)*1000)["coverage_percent"]
-
-    if True: # Testing
-        return render(request, "general/coverage_milestone.html", {
-            "first_name": request.user.first_name,
-            "language": language,
-            "language_name": language_name,
-            "level": level,
-            "next_level_progress": next_level_progress
-        })
+    level_progress = vitalib.Database.UserInfo.Get(connection, request.user.id).next_level_coverage(language)
+    updated_level_progress = vitalib.Database.Vocab.Get(connection, request.user.id, language).coverage(level*1000+1, (level+1)*1000)["coverage_percent"]
+    if updated_level_progress > level_progress:
+        vitalib.Database.UserInfo.Update(connection, request.user.id).next_level_coverage(language, updated_level_progress)
+        if updated_level_progress // 5 > level_progress // 5:  # Check if we've crossed a 5% milestone
+            return render(request, "general/coverage_milestone.html", {
+                "first_name": request.user.first_name,
+                "language": language,
+                "language_name": language_name,
+                "level": level,
+                "next_level_progress": updated_level_progress
+            })
 
     if new_level > level:
         vitalib.Database.UserInfo.Update(connection, request.user.id).level(language, new_level)
@@ -82,7 +84,7 @@ def home(request):
             "mobile": mobile,
             "level": level,
             "weekly_points": weekly_points,
-            "next_level_progress": next_level_progress
+            "next_level_progress": updated_level_progress
             })
     else:
         return redirect("/subscribe/")
@@ -113,11 +115,9 @@ def register(request):
                 'error': 'You must agree to the Terms and Conditions to continue.'
             })
         
-        # vitalib.Database.Test(connection, request.user.username, "es").score_result(data.get("answers", []))
-        vitalib.Database.UserInfo.Create(connection, request.user.id).data(
+        vitalib.User.Registration(request.user.id, connection).new(
             native_language=native_language,
-            target_language=target_language,
-            second_target_language=second_target_language
+            languages=[target_language, second_target_language] if second_target_language else [target_language]
         )
 
         return redirect('/general/register-success/')
