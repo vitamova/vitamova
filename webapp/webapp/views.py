@@ -56,7 +56,7 @@ def home(request):
             "language": language,
             "language_name": language_name,
             "level": level,
-            "coverage": next_level_progress
+            "next_level_progress": next_level_progress
         })
 
     if new_level > level:
