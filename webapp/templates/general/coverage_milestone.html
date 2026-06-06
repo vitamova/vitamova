@@ -1,0 +1,376 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  {% include "partials/head.html" %}
+  <title>Coverage Milestone | Vitamova</title>
+
+  <style>
+    :root {
+      --vita-yellow: #ffd54a;
+      --vita-yellow-dark: #f4bf20;
+      --vita-blue: #1f5eff;
+      --vita-blue-dark: #1748c6;
+      --vita-navy: #07143a;
+      --vita-soft: #f7f9ff;
+      --text-dark: #1a1f36;
+      --text-muted: #667085;
+      --border: #e6eaf2;
+      --shadow: 0 20px 55px rgba(17, 42, 110, 0.16);
+    }
+
+    * {
+      box-sizing: border-box;
+    }
+
+    body {
+      margin: 0;
+      min-height: 100vh;
+      font-family: Inter, ui-sans-serif, system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+      color: var(--text-dark);
+      background:
+        radial-gradient(circle at 8% 10%, rgba(255, 213, 74, 0.22), transparent 34rem),
+        radial-gradient(circle at 92% 18%, rgba(31, 94, 255, 0.16), transparent 34rem),
+        linear-gradient(180deg, #ffffff 0%, var(--vita-soft) 100%);
+      padding: 24px;
+    }
+
+    .page {
+      width: min(980px, 100%);
+      min-height: calc(100vh - 48px);
+      margin: 0 auto;
+      display: grid;
+      grid-template-rows: auto 1fr auto;
+      gap: 22px;
+    }
+
+    .topbar {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 16px;
+    }
+
+    .brand {
+      display: inline-flex;
+      align-items: center;
+      gap: 10px;
+      color: var(--text-dark);
+      text-decoration: none;
+      font-weight: 900;
+      letter-spacing: -0.02em;
+    }
+
+    .brand-badge {
+      width: 42px;
+      height: 42px;
+      border-radius: 12px;
+      overflow: hidden;
+      background: white;
+      box-shadow: 0 8px 20px rgba(20, 27, 52, 0.08);
+    }
+
+    .brand-icon {
+      width: 100%;
+      height: 100%;
+      object-fit: cover;
+      display: block;
+    }
+
+    .milestone-shell {
+      align-self: center;
+      display: grid;
+      gap: 18px;
+    }
+
+    .hero {
+      position: relative;
+      overflow: hidden;
+      color: white;
+      border-radius: 26px;
+      padding: 28px;
+      background:
+        linear-gradient(110deg, rgba(7, 20, 58, 0.98), rgba(18, 63, 166, 0.98) 58%, rgba(31, 94, 255, 0.97)),
+        var(--vita-blue);
+      border: 1px solid rgba(255, 255, 255, 0.14);
+      box-shadow: 0 22px 60px rgba(13, 39, 109, 0.28);
+    }
+
+    .hero::before {
+      content: "";
+      position: absolute;
+      inset: 0;
+      background:
+        linear-gradient(90deg, transparent 0 74%, rgba(255, 213, 74, 0.08) 74% 75%, transparent 75%),
+        repeating-linear-gradient(135deg, rgba(255, 255, 255, 0.025) 0 2px, transparent 2px 12px);
+      pointer-events: none;
+    }
+
+    .hero::after {
+      content: "";
+      position: absolute;
+      width: 220px;
+      height: 220px;
+      right: -78px;
+      top: -128px;
+      border-radius: 999px;
+      border: 32px solid rgba(255, 213, 74, 0.16);
+      pointer-events: none;
+    }
+
+    .hero-content {
+      position: relative;
+      z-index: 1;
+      display: grid;
+      gap: 20px;
+    }
+
+    .hero-kicker {
+      display: inline-flex;
+      align-items: center;
+      justify-self: start;
+      gap: 8px;
+      padding: 8px 12px;
+      border-radius: 999px;
+      background: rgba(255, 213, 74, 0.14);
+      border: 1px solid rgba(255, 213, 74, 0.38);
+      color: var(--vita-yellow);
+      font-size: 0.78rem;
+      font-weight: 950;
+      letter-spacing: 0.12em;
+      text-transform: uppercase;
+    }
+
+    .hero h1 {
+      margin: 0;
+      max-width: 16ch;
+      font-size: clamp(2.25rem, 6vw, 4.25rem);
+      line-height: 0.98;
+      letter-spacing: -0.06em;
+    }
+
+    .hero-copy {
+      margin: 0;
+      max-width: 66ch;
+      color: rgba(255, 255, 255, 0.86);
+      font-size: 1.03rem;
+      line-height: 1.6;
+    }
+
+    .stats-bar {
+      display: grid;
+      grid-template-columns: repeat(3, minmax(0, 1fr));
+      border-radius: 18px;
+      overflow: hidden;
+      background: rgba(255, 255, 255, 0.08);
+      border: 1px solid rgba(255, 255, 255, 0.16);
+      backdrop-filter: blur(12px);
+    }
+
+    .stat {
+      position: relative;
+      min-width: 0;
+      padding: 16px 18px;
+    }
+
+    .stat + .stat {
+      border-left: 1px solid rgba(255, 255, 255, 0.14);
+    }
+
+    .stat-label {
+      display: block;
+      color: rgba(255, 255, 255, 0.62);
+      font-size: 0.7rem;
+      font-weight: 900;
+      letter-spacing: 0.11em;
+      text-transform: uppercase;
+    }
+
+    .stat-value {
+      display: block;
+      margin-top: 6px;
+      color: white;
+      font-size: clamp(1.75rem, 4vw, 2.65rem);
+      font-weight: 1000;
+      letter-spacing: -0.06em;
+      line-height: 1;
+      white-space: nowrap;
+    }
+
+    .stat-value.accent {
+      color: var(--vita-yellow);
+    }
+
+    .progress-track {
+      height: 9px;
+      margin-top: 12px;
+      border-radius: 999px;
+      background: rgba(255, 255, 255, 0.13);
+      overflow: hidden;
+    }
+
+    .progress-fill {
+      height: 100%;
+      width: min(100%, calc({{ next_level_progress|default:0 }} * 1%));
+      border-radius: inherit;
+      background: linear-gradient(90deg, var(--vita-yellow-dark), var(--vita-yellow));
+      box-shadow: 0 0 18px rgba(255, 213, 74, 0.4);
+    }
+
+    .message-card {
+      background: rgba(255, 255, 255, 0.94);
+      border: 1px solid var(--border);
+      border-radius: 24px;
+      padding: 24px;
+      box-shadow: var(--shadow);
+      text-align: center;
+    }
+
+    .message-card h2 {
+      margin: 0;
+      font-size: clamp(1.45rem, 3vw, 2rem);
+      letter-spacing: -0.04em;
+    }
+
+    .message-card p {
+      max-width: 660px;
+      margin: 12px auto 0;
+      color: var(--text-muted);
+      line-height: 1.65;
+    }
+
+    .actions {
+      display: flex;
+      justify-content: center;
+      margin-top: 22px;
+    }
+
+    .home-button {
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      gap: 9px;
+      min-width: 180px;
+      padding: 13px 20px;
+      border-radius: 999px;
+      background: var(--vita-blue);
+      color: white;
+      text-decoration: none;
+      font-weight: 950;
+      box-shadow: 0 12px 26px rgba(31, 94, 255, 0.25);
+      transition: transform 0.15s ease, background 0.15s ease, box-shadow 0.15s ease;
+    }
+
+    .home-button:hover {
+      transform: translateY(-2px);
+      background: var(--vita-blue-dark);
+      box-shadow: 0 16px 32px rgba(31, 94, 255, 0.3);
+    }
+
+    .footer-note {
+      text-align: center;
+      color: var(--text-muted);
+      font-size: 0.86rem;
+    }
+
+    @media (max-width: 680px) {
+      body {
+        padding: 18px;
+      }
+
+      .page {
+        min-height: calc(100vh - 36px);
+      }
+
+      .hero {
+        padding: 22px;
+        border-radius: 22px;
+      }
+
+      .hero h1 {
+        max-width: none;
+      }
+
+      .stats-bar {
+        grid-template-columns: 1fr;
+      }
+
+      .stat + .stat {
+        border-left: 0;
+        border-top: 1px solid rgba(255, 255, 255, 0.14);
+      }
+
+      .message-card {
+        padding: 22px;
+      }
+
+      .home-button {
+        width: 100%;
+      }
+    }
+  </style>
+</head>
+
+<body>
+  <main class="page">
+    <header class="topbar">
+      <a class="brand" href="/" aria-label="Vitamova home">
+        <span class="brand-badge">
+          <img src="/static/icon.png" alt="" class="brand-icon">
+        </span>
+        <span>Vitamova</span>
+      </a>
+    </header>
+
+    <section class="milestone-shell" aria-labelledby="milestoneTitle">
+      <div class="hero">
+        <div class="hero-content">
+          <div class="hero-kicker">Coverage milestone</div>
+
+          <div>
+            <h1 id="milestoneTitle">Big progress, {{ first_name }}.</h1>
+            <p class="hero-copy">
+              You have now covered {{ next_level_progress }}% of Level {{ level|add:"1" }}. That is real momentum—and proof that your vocabulary base is expanding.
+            </p>
+          </div>
+
+          <div class="stats-bar" aria-label="Milestone statistics">
+            <div class="stat">
+              <span class="stat-label">Current level</span>
+              <span class="stat-value">{{ level }}</span>
+            </div>
+
+            <div class="stat">
+              <span class="stat-label">Level {{ level|add:"1" }} coverage</span>
+              <span class="stat-value accent">{{ next_level_progress }}%</span>
+              <div class="progress-track" aria-hidden="true">
+                <div class="progress-fill"></div>
+              </div>
+            </div>
+
+            <div class="stat">
+              <span class="stat-label">Next objective</span>
+              <span class="stat-value">Level {{ level|add:"1" }}</span>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <div class="message-card">
+        <h2>Keep building toward Level {{ level|add:"1" }}</h2>
+        <p>
+          Every new word gives Vitamova more evidence of your growing ability. Continue building and reviewing vocabulary to turn this coverage milestone into your next full level.
+        </p>
+
+        <div class="actions">
+          <a class="home-button" href="/">
+            <span>Return home</span>
+            <span aria-hidden="true">→</span>
+          </a>
+        </div>
+      </div>
+    </section>
+
+    <div class="footer-note">Progress compounds. Keep the momentum moving.</div>
+  </main>
+</body>
+</html>

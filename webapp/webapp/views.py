@@ -50,6 +50,15 @@ def home(request):
     weekly_points = vitalib.Database.Points(connection, request.user.id).this_week()
     next_level_progress = vitalib.Database.Vocab.Get(connection, request.user.id, language).coverage(level*1000+1, (level+1)*1000)["coverage_percent"]
 
+    if True: # Testing
+        return render(request, "general/coverage_milestone.html", {
+            "first_name": request.user.first_name,
+            "language": language,
+            "language_name": language_name,
+            "level": level,
+            "coverage": next_level_progress
+        })
+
     if new_level > level:
         vitalib.Database.UserInfo.Update(connection, request.user.id).level(language, new_level)
         return render(request, "general/new_level.html", {
