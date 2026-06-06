@@ -985,7 +985,7 @@
             </div>
 
             <div class="progress-stat">
-              <span class="progress-label">Level {{ level + 1 }} progress</span>
+              <span class="progress-label">Level {{ level|add:"1" }} progress</span>
               {% if level > 0 %}
                 <span class="progress-value">{{ next_level_progress|default:"—" }}<span class="progress-unit">%</span></span>
               {% else %}
