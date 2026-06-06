@@ -131,11 +131,11 @@
 
             body {
                 overflow: hidden;
-                padding: 12px 12px 6px;
+                padding: 10px 12px calc(12px + env(safe-area-inset-bottom));
             }
 
             main.page {
-                height: calc(100dvh - 18px);
+                height: calc(100dvh - 22px - env(safe-area-inset-bottom));
                 min-height: 0;
                 padding: 0;
                 gap: 12px;
@@ -193,8 +193,8 @@
 
             #question-container h2,
             #answer-review-container h3 {
-                font-size: clamp(1.2rem, 5vw, 1.55rem);
-                line-height: 1.25;
+                font-size: clamp(1.45rem, 6.2vw, 2rem);
+                line-height: 1.16;
             }
 
             #question-container .mt-4,
@@ -220,8 +220,8 @@
                 min-height: 0;
                 padding: 12px 16px;
                 border-radius: 16px;
-                font-size: 0.98rem;
-                line-height: 1.25;
+                font-size: clamp(1.05rem, 4.7vw, 1.35rem);
+                line-height: 1.2;
                 display: flex;
                 align-items: center;
             }
@@ -241,7 +241,8 @@
             #quiz-section > .flex,
             .answer-review-actions {
                 flex: 0 0 auto;
-                margin-top: 12px;
+                margin-top: 10px;
+                padding-bottom: max(8px, env(safe-area-inset-bottom));
             }
 
             #submit-answer-btn,
@@ -664,6 +665,65 @@
         });
     }
 
+    function fitQuizText(container) {
+        if (window.innerWidth >= 768 || !container) {
+            return;
+        }
+
+        requestAnimationFrame(() => {
+            const card = container.firstElementChild;
+
+            if (!card || card.clientHeight <= 0) {
+                return;
+            }
+
+            const question = card.querySelector("h2, h3");
+            const options = Array.from(card.querySelectorAll(".answer-btn, .review-answer-row"));
+
+            if (!question || options.length === 0) {
+                return;
+            }
+
+            let questionSize = 31;
+            let optionSize = 21;
+            const minQuestionSize = 20;
+            const minOptionSize = 16;
+
+            function applySizes() {
+                question.style.fontSize = `${questionSize}px`;
+                options.forEach((option) => {
+                    option.style.fontSize = `${optionSize}px`;
+                });
+            }
+
+            function contentOverflows() {
+                const cardOverflows = card.scrollHeight > card.clientHeight + 1;
+                const optionOverflows = options.some(
+                    (option) => option.scrollHeight > option.clientHeight + 1
+                );
+
+                return cardOverflows || optionOverflows;
+            }
+
+            applySizes();
+
+            while (
+                contentOverflows() &&
+                (questionSize > minQuestionSize || optionSize > minOptionSize)
+            ) {
+                if (questionSize > minQuestionSize) {
+                    questionSize -= 1;
+                }
+
+                if (optionSize > minOptionSize) {
+                    optionSize -= 1;
+                }
+
+                applySizes();
+            }
+        });
+    }
+
     function addDetailBox(parent, labelText, valueText, options = {}) {
         if (!valueText) {
             return;
@@ -851,6 +911,7 @@
 
         card.appendChild(answersWrapper);
         questionContainer.appendChild(card);
+        fitQuizText(questionContainer);
 
         submitAnswerBtn.disabled = !selectedOption;
         submitAnswerBtn.textContent = "Submit answer";
@@ -959,7 +1020,7 @@
 
         options.forEach(optionText => {
             const row = document.createElement("div");
-            row.className = "rounded-2xl border border-slate-200 bg-slate-50 px-5 py-4 font-semibold flex items-center justify-between gap-4";
+            row.className = "review-answer-row rounded-2xl border border-slate-200 bg-slate-50 px-5 py-4 font-semibold flex items-center justify-between gap-4";
 
             const optionSpan = document.createElement("span");
             optionSpan.textContent = optionText;
@@ -1003,6 +1064,7 @@
 
         card.appendChild(answersWrapper);
         answerReviewContainer.appendChild(card);
+        fitQuizText(answerReviewContainer);
     }
 
     function renderLemma() {
@@ -1213,6 +1275,22 @@
 
     continueAfterCompleteBtn.addEventListener("click", loadQuestions);
     retryBtn.addEventListener("click", loadQuestions);
+
+    function refitVisibleQuizText() {
+        if (!quizSection.classList.contains("hidden")) {
+            fitQuizText(questionContainer);
+        }
+
+        if (!answerReviewSection.classList.contains("hidden")) {
+            fitQuizText(answerReviewContainer);
+        }
+    }
+
+    window.addEventListener("resize", refitVisibleQuizText);
+
+    if (window.visualViewport) {
+        window.visualViewport.addEventListener("resize", refitVisibleQuizText);
+    }
 
     document.addEventListener("DOMContentLoaded", () => {
         updateCounters();
