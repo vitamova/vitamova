@@ -1,6 +1,7 @@
 import vitalib
 import random
 from scipy.stats import beta
+from collections import Counter
 
 class Test:
     class Get:
@@ -178,83 +179,198 @@ class Test:
         def new_questions(self, count):
             if count <= 0:
                 return []
-            
-            
+
             question_fetcher = vitalib.Database.Test.Questions(
                 self.conn,
                 self.user_id,
                 self.language
             )
 
-            # Get the level_mastery dictionary
             level_mastery = self.level_mastery()
             next_level = self.current_level + 1
 
-            # If mastery confidence for the next level is below 10%:
-            # 0% from the edge range
-            # 70% expected from the next level
-            # 30% expected from the least-practiced level
-            if (
-                next_level in level_mastery
-                and level_mastery[next_level]["mastery_confidence"] < 0.10
+            # Case 1:
+            # The user has not answered any questions yet.
+            #
+            # Checking correct + incorrect is safer than comparing a calculated
+            # floating-point confidence directly with 0.2.
+            has_no_activity = all(
+                level_mastery[level]["correct"]
+                + level_mastery[level]["incorrect"] == 0
+                for level in level_mastery
+            )
+
+            if has_no_activity:
+                fetch_weights = {
+                    2: 1,
+                    4: 3,
+                    5: 3,
+                    6: 3,
+                    7: 3,
+                    8: 2,
+                    10: 2,
+                    13: 1,
+                    18: 1,
+                    25: 1
+                }
+
+            # Case 3:
+            # The user's current level is established and the next level is
+            # confidently not mastered. Focus completely on the next level.
+            elif (
+                self.current_level > 0
+                and next_level in level_mastery
+                and level_mastery[next_level]["mastery_confidence"] <= 0.10
             ):
-                selected_sources = random.choices(
-                    population=["edge","next_level", "least_practiced"],
-                    weights=[0.0, 0.70, 0.30],
-                    k=count
-                )
+                fetch_weights = {
+                    next_level: 1
+                }
 
+            # Case 2:
+            # The user has answered questions, but the learning frontier has not
+            # yet been fully confirmed.
             else:
-                # Otherwise:
-                # 40% expected from the edge range
-                # 40% expected from the next level
-                # 20% expected from the least-practiced level
-                selected_sources = random.choices(
-                    population=["edge", "next_level", "least_practiced"],
-                    weights=[0.40, 0.40, 0.20],
-                    k=count
+                candidate_pairs = []
+
+                sorted_levels = sorted(level_mastery)
+
+                for lower_level in sorted_levels:
+                    upper_level = lower_level + 1
+
+                    if upper_level not in level_mastery:
+                        continue
+
+                    lower_confidence = level_mastery[lower_level][
+                        "mastery_confidence"
+                    ]
+                    upper_confidence = level_mastery[upper_level][
+                        "mastery_confidence"
+                    ]
+
+                    confidence_drop = max(
+                        lower_confidence - upper_confidence,
+                        0
+                    )
+
+                    # A strong frontier has:
+                    # 1. High confidence in mastery of the lower level.
+                    # 2. Low confidence in mastery of the upper level.
+                    # 3. A substantial drop between the two.
+                    frontier_score = (
+                        lower_confidence
+                        * (1 - upper_confidence)
+                        * confidence_drop
+                    )
+
+                    candidate_pairs.append({
+                        "lower_level": lower_level,
+                        "upper_level": upper_level,
+                        "lower_confidence": lower_confidence,
+                        "upper_confidence": upper_confidence,
+                        "frontier_score": frontier_score
+                    })
+
+                if not candidate_pairs:
+                    raise ValueError(
+                        "Unable to identify any adjacent vocabulary levels."
+                    )
+
+                best_pair = max(
+                    candidate_pairs,
+                    key=lambda pair: pair["frontier_score"]
                 )
 
-            edge_count = selected_sources.count("edge")
-            next_level_count = selected_sources.count("next_level")
-            least_practiced_count = selected_sources.count("least_practiced")
+                lower_level = best_pair["lower_level"]
+                upper_level = best_pair["upper_level"]
 
-            current_min_rank, current_max_rank = self.edge_range()
+                lower_confidence = best_pair["lower_confidence"]
+                upper_confidence = best_pair["upper_confidence"]
 
-            # Get half of the questions from the edge range
-            questions = question_fetcher.new(
-                min_rank=current_min_rank,
-                max_rank=current_max_rank,
-                count=edge_count
+                # Give 90% of the selection weight to the most likely frontier.
+                # Within that 90%, favor:
+                # - the lower level when its mastery confidence is high;
+                # - the upper level when its non-mastery confidence is high.
+                exploitation_share = 0.70
+                exploration_share = 0.30
+
+                lower_signal = max(lower_confidence, 0.01)
+                upper_signal = max(1 - upper_confidence, 0.01)
+                total_signal = lower_signal + upper_signal
+
+                fetch_weights = {
+                    lower_level: (
+                        exploitation_share
+                        * lower_signal
+                        / total_signal
+                    ),
+                    upper_level: (
+                        exploitation_share
+                        * upper_signal
+                        / total_signal
+                    )
+                }
+
+                # Use the levels immediately outside the likely frontier
+                # for exploration instead of spreading the weight across
+                # every other level.
+                exploration_levels = []
+
+                level_below = lower_level - 1
+                level_above = upper_level + 1
+
+                if level_below in level_mastery:
+                    exploration_levels.append(level_below)
+
+                if level_above in level_mastery:
+                    exploration_levels.append(level_above)
+
+                if exploration_levels:
+                    exploration_weight = (
+                        exploration_share / len(exploration_levels)
+                    )
+
+                    for level in exploration_levels:
+                        fetch_weights[level] = exploration_weight
+
+                else:
+                    # This should be rare, but if there are no surrounding
+                    # levels, return the exploration weight to the frontier.
+                    fetch_weights[lower_level] += exploration_share / 2
+                    fetch_weights[upper_level] += exploration_share / 2
+
+            considered_levels = list(fetch_weights.keys())
+            level_weights = list(fetch_weights.values())
+
+            selected_levels = random.choices(
+                population=considered_levels,
+                weights=level_weights,
+                k=count
             )
 
-            # The other half of the questions should come from the user's next level
-            next_level_min_rank = ((next_level-1) * 1000) + 1
-            next_level_max_rank = next_level_min_rank + 999
-            questions.extend(question_fetcher.new(
-                min_rank=next_level_min_rank,
-                max_rank=next_level_max_rank,
-                count=next_level_count
-            ))
+            # random.choices() returns the selected levels themselves.
+            # Count how many questions should come from each selected level.
+            selected_level_counts = Counter(selected_levels)
 
-            # Find the level with the lowest number of questions (sum of correct and incorrect)
-            least_practiced_level = min(
-                level_mastery,
-                key=lambda level: level_mastery[level]["correct"] + level_mastery[level]["incorrect"]
-            )
-            least_practiced_min_rank = ((least_practiced_level-1) * 1000) + 1
-            least_practiced_max_rank = least_practiced_min_rank + 999
-            questions.extend(question_fetcher.new(
-                min_rank=least_practiced_min_rank,
-                max_rank=least_practiced_max_rank,
-                count=least_practiced_count
-            ))
+            questions = []
+
+            for level, level_count in selected_level_counts.items():
+                min_rank = ((level - 1) * 1000) + 1
+                max_rank = min_rank + 999
+
+                questions.extend(
+                    question_fetcher.new(
+                        min_rank=min_rank,
+                        max_rank=max_rank,
+                        count=level_count
+                    )
+                )
 
             questions = Test.Format.questions(questions)
             questions = question_fetcher.append_lemma(questions)
             random.shuffle(questions)
 
             return questions
+        
         def results(self, answers):
             correct_answers = vitalib.Database.Test.Answers(self.conn).correct(answers)
             # For each answer, compare correct to selected
