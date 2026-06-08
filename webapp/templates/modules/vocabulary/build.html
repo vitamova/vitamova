@@ -844,10 +844,8 @@
                 batch: batchNumber
             });
 
-            if (data.status === "redirect_home") {
+            if (data.status === "redirect_home")
                 window.location.href = "/";
-                return;
-            }
 
             const newQuestions = data.questions || [];
 
