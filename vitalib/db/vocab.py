@@ -102,6 +102,7 @@ class Vocab:
                     "definition": row[4],
                     "part_of_speech": row[5],
                     "example_sentence": row[6],
+                    "example_word": row[7]
                 }
 
                 if row[2] is not None:
