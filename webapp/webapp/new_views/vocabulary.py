@@ -117,7 +117,6 @@ def build(request):
                 level_progress = vitalib.Database.UserInfo.Get(connection, request.user.id).next_level_coverage(language)
                 updated_level_progress = vitalib.Database.Vocab.Get(connection, request.user.id, language).coverage(level*1000+1, (level+1)*1000)["coverage_percent"]
                 if updated_level_progress > level_progress:
-                    vitalib.Database.UserInfo.Update(connection, request.user.id).next_level_coverage(language, updated_level_progress)
                     if updated_level_progress // 5 > level_progress // 5:  # Check if we've crossed a 5% milestone
                         return JsonResponse({
                             "status": "redirect_home"
