@@ -57,7 +57,8 @@ class Vocab:
                         lt.translation,
                         l.definition,
                         l.pos,
-                        s.sentence AS example_sentence
+                        s.sentence AS example_sentence,
+                        s.example_word
                     FROM user_vocabulary uv
                     JOIN lemmas l
                         ON uv.lemma_id = l.id
@@ -65,11 +66,15 @@ class Vocab:
                         ON lt.lemma_id = l.id
                         AND lt.native_language = %s
                     LEFT JOIN LATERAL (
-                        SELECT sentence
-                        FROM sentences
-                        WHERE lemma_id = l.id
-                        AND language = l.language
-                        ORDER BY date_created ASC
+                        SELECT
+                            sent.sentence,
+                            w.word AS example_word
+                        FROM sentences sent
+                        JOIN words w
+                            ON sent.word_id = w.id
+                        WHERE w.lemma_id = l.id
+                        AND sent.language = l.language
+                        ORDER BY sent.date_created ASC
                         LIMIT 1
                     ) s ON TRUE
                     WHERE uv.user_id = %s
