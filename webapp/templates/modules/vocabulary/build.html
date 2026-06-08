@@ -845,7 +845,7 @@
             });
 
             if (data.status === "redirect_home")
-                window.location.href = "/";
+                addWordAndReturnHome();
 
             const newQuestions = data.questions || [];
 
