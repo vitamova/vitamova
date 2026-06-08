@@ -309,16 +309,7 @@
 <body class="min-h-screen text-slate-900">
 
 <main class="page">
-    <header class="topbar">
-      <a class="brand" href="/">
-        <div class="brand-badge">
-          <img src="/static/icon.png" alt="Vitamova icon" class="brand-icon">
-        </div>
-        <span>Vitamova</span>
-      </a>
-
-      <a class="back-link" href="/">← Go Home</a>
-    </header>
+    {% include "partials/header.html" %}
     <section class="content-panel">
 
         <div class="flex items-center justify-between gap-4 mb-8" {% if mobile %}style="display: none;"{% endif %}>
