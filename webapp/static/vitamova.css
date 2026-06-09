@@ -1244,7 +1244,7 @@ tr:last-child td { border-bottom: none; }
 .toast-container {
   position: fixed;
   right: 18px;
-  top: 18px;
+  bottom: 18px;
   display: grid;
   gap: 10px;
   z-index: 9999;
