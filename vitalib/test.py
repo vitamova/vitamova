@@ -293,11 +293,11 @@ class Test:
                 fetch_weights[next_level] = 0
                 # Doing it this way in case two of the levels are the same
 
-                # Give 40% to the upper level to push for mastery
+                # Give 40% to the lower level to push for mastery
                 # Give 40% to the next level to keep building coverage
-                # Give 20% to the lower level 
-                fetch_weights[lower_level] += 0.20
-                fetch_weights[upper_level] += 0.40
+                # Give 20% to the upper level 
+                fetch_weights[lower_level] += 0.40
+                fetch_weights[upper_level] += 0.20
                 fetch_weights[next_level] += 0.40
                 # Not sure if this is good, but it's a band-aid for now
 
