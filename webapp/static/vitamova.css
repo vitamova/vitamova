@@ -1230,17 +1230,26 @@ tr:last-child td { border-bottom: none; }
 .modal-translation { display: none; margin-top: 8px; color: var(--vita-text); font-weight: 750; line-height: 1.45; }
 
 /* Toasts and loading */
+/* Toasts and loading */
 .xp-toast {
   position: fixed;
-  left: 1.25rem;
-  top: 1.25rem;
-  z-index: 80;
-  transform: translateY(18px);
+  top: calc(1.25rem + env(safe-area-inset-top));
+  right: 1.25rem;
+  bottom: auto;
+  left: auto;
+
+  z-index: 9999;
+  transform: translateY(-18px);
   opacity: 0;
   pointer-events: none;
   transition: opacity 0.2s ease, transform 0.2s ease;
 }
-.xp-toast.is-visible { opacity: 1; transform: translateY(0); }
+
+.xp-toast.is-visible {
+  opacity: 1;
+  transform: translateY(0);
+}
+
 .toast-container {
   position: fixed;
   top: 18px;
