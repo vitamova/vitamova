@@ -286,57 +286,20 @@ class Test:
                 lower_confidence = best_pair["lower_confidence"]
                 upper_confidence = best_pair["upper_confidence"]
 
-                # Give 90% of the selection weight to the most likely frontier.
-                # Within that 90%, favor:
-                # - the lower level when its mastery confidence is high;
-                # - the upper level when its non-mastery confidence is high.
-                exploitation_share = 0.70
-                exploration_share = 0.30
+                # Set fetch_weights to zero for lower level, upper level, and next level
+                fetch_weights = {}
+                fetch_weights[lower_level] = 0
+                fetch_weights[upper_level] = 0
+                fetch_weights[next_level] = 0
+                # Doing it this way in case two of the levels are the same
 
-                lower_signal = max(lower_confidence, 0.01)
-                upper_signal = max(1 - upper_confidence, 0.01)
-                total_signal = lower_signal + upper_signal
-
-                fetch_weights = {
-                    lower_level: (
-                        exploitation_share
-                        * lower_signal
-                        / total_signal
-                    ),
-                    upper_level: (
-                        exploitation_share
-                        * upper_signal
-                        / total_signal
-                    )
-                }
-
-                # Use the levels immediately outside the likely frontier
-                # for exploration instead of spreading the weight across
-                # every other level.
-                exploration_levels = []
-
-                level_below = lower_level - 1
-                level_above = upper_level + 1
-
-                if level_below in level_mastery:
-                    exploration_levels.append(level_below)
-
-                if level_above in level_mastery:
-                    exploration_levels.append(level_above)
-
-                if exploration_levels:
-                    exploration_weight = (
-                        exploration_share / len(exploration_levels)
-                    )
-
-                    for level in exploration_levels:
-                        fetch_weights[level] = exploration_weight
-
-                else:
-                    # This should be rare, but if there are no surrounding
-                    # levels, return the exploration weight to the frontier.
-                    fetch_weights[lower_level] += exploration_share / 2
-                    fetch_weights[upper_level] += exploration_share / 2
+                # Give 40% to the upper level to push for mastery
+                # Give 40% to the next level to keep building coverage
+                # Give 20% to the lower level 
+                fetch_weights[lower_level] += 0.20
+                fetch_weights[upper_level] += 0.40
+                fetch_weights[next_level] += 0.40
+                # Not sure if this is good, but it's a band-aid for now
 
             considered_levels = list(fetch_weights.keys())
             level_weights = list(fetch_weights.values())
