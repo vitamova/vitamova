@@ -1233,7 +1233,7 @@ tr:last-child td { border-bottom: none; }
 .xp-toast {
   position: fixed;
   left: 1.25rem;
-  bottom: 1.25rem;
+  top: 1.25rem;
   z-index: 80;
   transform: translateY(18px);
   opacity: 0;
