@@ -1243,8 +1243,9 @@ tr:last-child td { border-bottom: none; }
 .xp-toast.is-visible { opacity: 1; transform: translateY(0); }
 .toast-container {
   position: fixed;
+  top: 18px;
   right: 18px;
-  bottom: 18px;
+  bottom: auto;
   display: grid;
   gap: 10px;
   z-index: 9999;
