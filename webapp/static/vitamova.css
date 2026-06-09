@@ -1239,6 +1239,7 @@ tr:last-child td { border-bottom: none; }
   opacity: 0;
   pointer-events: none;
   transition: opacity 0.2s ease, transform 0.2s ease;
+  outline: 5px solid magenta;
 }
 .xp-toast.is-visible { opacity: 1; transform: translateY(0); }
 .toast-container {
