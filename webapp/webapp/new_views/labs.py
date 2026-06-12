@@ -43,12 +43,12 @@ def writing(request):
                     "character_count": 642,
                     "auto_submitted": False
                 }
-                # Make sure the text lenght is between 500 and 700 characters (inclusive)
+                # Make sure the text lenght is between 500 and 900 characters (inclusive)
                 text_length = len(data.get("text", ""))
-                if text_length < 500 or text_length > 700 or text_length != data.get("character_count"):
+                if text_length < 500 or text_length > 900 or text_length != data.get("character_count"):
                     return JsonResponse({
                         "status": "error",
-                        "error": "Text must be between 500 and 700 characters."
+                        "error": "Text must be between 500 and 900 characters."
                     }, status=400)
                 # Get the expiration time for the writing attempt and make sure it hasn't expired
                 expiration_time = vitalib.Database.Writing.Submission(conn=connection, user_id=request.user.id).get_expiration(attempt_id=data.get("attempt_id"))

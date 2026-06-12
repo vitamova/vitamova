@@ -381,7 +381,7 @@
             <h1>Timed Writing Practice</h1>
             <p>
                 You are about to complete a short writing exercise. You will receive a prompt and have
-                <strong>15 minutes</strong> to write one strong paragraph of <strong>500-700 characters</strong>.
+                <strong>15 minutes</strong> to write one strong paragraph of <strong>500-900 characters</strong>.
             </p>
             <p>
                 Do not use dictionaries, translators, AI tools, or other outside sources. This exercise is not about being perfect.
@@ -389,7 +389,7 @@
             </p>
 
             <div class="pill-row">
-                <div class="pill">500-700 characters</div>
+                <div class="pill">500-900 characters</div>
                 <div class="pill">15 minutes</div>
                 <div class="pill">No outside help</div>
                 <div class="pill">Personalized feedback</div>
@@ -420,7 +420,7 @@
                 <p id="promptText">Loading prompt...</p>
             </div>
 
-            <textarea id="writingInput" placeholder="Start writing here..."></textarea>
+            <textarea id="writingInput" placeholder="Start writing here..." maxlength="900"></textarea>
 
             <div class="counter-row">
                 <div id="characterStatus">0 / 500 minimum characters</div>
@@ -549,7 +549,7 @@
         const TARGET_LANGUAGE = "{{ language|default:'es' }}";
 
         const MIN_CHARS = 500;
-        const MAX_RECOMMENDED_CHARS = 700;
+        const MAX_RECOMMENDED_CHARS = 900;
         const TIME_LIMIT_SECONDS = 15 * 60;
         const AUTOSAVE_INTERVAL_MS = 15000;
 
