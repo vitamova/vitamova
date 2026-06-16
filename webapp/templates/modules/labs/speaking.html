@@ -170,14 +170,14 @@
       const offer = await pc.createOffer();
       await pc.setLocalDescription(offer);
 
-      const response = await fetch("https://api.openai.com/v1/realtime?model=gpt-realtime-whisper", {
-        method: "POST",
-        headers: {
-          "Authorization": "Bearer " + openaiClientSecret,
-          "Content-Type": "application/sdp"
-        },
-        body: offer.sdp
-      });
+    const response = await fetch("https://api.openai.com/v1/realtime/calls", {
+    method: "POST",
+    headers: {
+        "Authorization": "Bearer " + clientSecret,
+        "Content-Type": "application/sdp"
+    },
+    body: offer.sdp
+    });
 
       const answer = {
         type: "answer",
