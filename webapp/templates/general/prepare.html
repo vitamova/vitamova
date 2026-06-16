@@ -256,6 +256,7 @@
       background: rgba(31, 94, 255, 0.045);
       border-radius: 22px;
       padding: 18px;
+      box-sizing: border-box;
     }
 
     .status-label {
@@ -272,6 +273,11 @@
       color: var(--vita-muted);
       line-height: 1.55;
       font-weight: 650;
+
+      max-width: 100%;
+      white-space: normal;
+      overflow-wrap: break-word;
+      word-break: break-word;
     }
 
     .dots::after {
