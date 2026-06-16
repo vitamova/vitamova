@@ -80,3 +80,10 @@ def writing(request):
                     response["vocabulary"] = vitalib.Writing.Get(conn=connection, user_id=request.user.id, language=prompt_info["language"]).vocabulary(prompt_text=prompt_text, text=user_text)
                 response["status"] = "success"
             return JsonResponse(response)
+        
+def speaking(request):
+    if request.method == "GET":
+        language = request.GET.get("language")
+        return render(request, "modules/labs/speaking.html", {
+            "language": language
+        })
