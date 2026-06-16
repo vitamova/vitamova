@@ -334,7 +334,12 @@
 </head>
 
 <body>
-    <div class="xp-toast" id="toast"></div>
+    <div id="xp-toast" class="xp-toast" aria-live="polite" aria-atomic="true">
+        <div class="rounded-2xl border border-blue-100 bg-white px-5 py-4 shadow-2xl">
+            <p class="text-sm font-black text-blue-700" id="xpToastTitle">Notice</p>
+            <p class="text-sm font-semibold text-slate-600" id="xpToastMessage"></p>
+        </div>
+    </div>
 
     <main class="page">
         {% include "partials/header.html" %}
@@ -576,6 +581,12 @@
         const completeMessage = document.getElementById("completeMessage");
         const completeSubtext = document.getElementById("completeSubtext");
 
+        const xpToast = document.getElementById("xp-toast");
+        const xpToastTitle = document.getElementById("xpToastTitle");
+        const xpToastMessage = document.getElementById("xpToastMessage");
+
+        let xpToastTimer = null;
+
         function getCookie(name) {
             let cookieValue = null;
             if (document.cookie && document.cookie !== "") {
@@ -596,22 +607,21 @@
             views[name].classList.remove("hidden");
         }
 
-        function showToast(message) {
-            const toast = document.getElementById("toast");
-            if (!toast) return;
+        function showToast(message, title = "Notice", durationMs = 2200) {
+            if (!xpToast || !xpToastTitle || !xpToastMessage) return;
 
-            toast.setAttribute("role", "status");
-            toast.setAttribute("aria-live", "polite");
-            toast.textContent = message;
+            if (xpToastTimer) {
+                clearTimeout(xpToastTimer);
+            }
 
-            requestAnimationFrame(() => {
-                toast.classList.add("is-visible");
-            });
+            xpToastTitle.textContent = title;
+            xpToastMessage.textContent = message;
 
-            setTimeout(() => {
-                toast.classList.remove("is-visible");
-                setTimeout(() => toast.remove(), 250);
-            }, 3500);
+            xpToast.classList.add("is-visible");
+
+            xpToastTimer = setTimeout(() => {
+                xpToast.classList.remove("is-visible");
+            }, durationMs);
         }
 
 
@@ -849,7 +859,7 @@
                 startReviewButton.textContent = noFeedback ? "Finish Practice" : "See How You Can Improve";
 
                 showView("score");
-                showToast("Writing complete. +100 XP");
+                showToast("for completing your writing practice", "+100 XP");
 
             } catch (error) {
                 hasSubmitted = false;
@@ -962,7 +972,7 @@
                     throw new Error(data.message || "Unable to add word.");
                 }
 
-                showToast(`Added "${item.word}" to your vocabulary. +5 XP`);
+                showToast(`added "${item.word}" to your vocabulary`, "+5 XP");
                 nextReviewItem();
 
             } catch (error) {
