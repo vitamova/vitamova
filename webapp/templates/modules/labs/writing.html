@@ -313,25 +313,6 @@
             margin: 0;
         }
 
-        .toast-container {
-            position: fixed;
-            right: 18px;
-            bottom: 18px;
-            display: grid;
-            gap: 10px;
-            z-index: 9999;
-        }
-
-        .toast {
-            background: var(--vita-dark);
-            color: white;
-            padding: 14px 18px;
-            border-radius: 16px;
-            box-shadow: 0 16px 36px rgba(0,0,0,0.22);
-            font-weight: 800;
-            animation: toastIn 0.2s ease;
-        }
-
         @keyframes toastIn {
             from { opacity: 0; transform: translateY(8px); }
             to { opacity: 1; transform: translateY(0); }
@@ -632,7 +613,7 @@
         function showToast(message) {
             const container = document.getElementById("toastContainer");
             const toast = document.createElement("div");
-            toast.className = "toast";
+            toast.className = "xp-toast";
             toast.textContent = message;
             container.appendChild(toast);
 
