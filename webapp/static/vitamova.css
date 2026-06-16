@@ -523,7 +523,7 @@ textarea,
 
 textarea { min-height: 280px; }
 .word-input { min-height: 86px; font-size: 1.25rem; font-weight: 750; }
-.paragraph-input { min-height: 220px; font-size: 1.15rem; font-weight: 650; }
+.paragraph-input { min-height: 280px; font-size: 1rem; font-weight: 650; }
 
 textarea:focus,
 .word-input:focus,
