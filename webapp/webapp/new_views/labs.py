@@ -84,9 +84,11 @@ def writing(request):
 def speaking(request):
     if request.method == "GET":
         #language = request.GET.get("language")
-        openai_client_secret = vitalib.Chatbot.OpenAI(model="gpt-realtime-whisper").get_realtime_client_secret(language="es")
+        language = "uk"  # Hardcoded for now, but we can make this dynamic later
+        openai_client_secret = vitalib.Chatbot.OpenAI(model="gpt-realtime-whisper").get_realtime_client_secret(language=language)
         return render(request, "modules/labs/speaking.html", {
-            "language": "es",
-            "passage_text": "Cuando llegué a la ciudad, todavía era temprano y las calles estaban tranquilas. Decidí caminar sin rumbo fijo para conocer mejor el barrio. Pasé por una panadería donde el olor a pan recién hecho llenaba el aire, y después me senté unos minutos en una plaza para observar a la gente. Algunas personas iban al trabajo, mientras que otras conversaban con amigos en las terrazas cercanas. El clima era agradable y una ligera brisa movía las hojas de los árboles. Al final de la mañana, encontré una pequeña librería y compré un libro para leer durante el viaje de regreso.",
+            "language": language,
+            #"passage_text": "Cuando llegué a la ciudad, todavía era temprano y las calles estaban tranquilas. Decidí caminar sin rumbo fijo para conocer mejor el barrio. Pasé por una panadería donde el olor a pan recién hecho llenaba el aire, y después me senté unos minutos en una plaza para observar a la gente. Algunas personas iban al trabajo, mientras que otras conversaban con amigos en las terrazas cercanas. El clima era agradable y una ligera brisa movía las hojas de los árboles. Al final de la mañana, encontré una pequeña librería y compré un libro para leer durante el viaje de regreso.",
+            "passage_text": "Сьогодні вранці я прокинувся раніше, ніж зазвичай. За вікном світило сонце, тому я вирішив піти на прогулянку. У парку було багато людей: одні бігали, інші гуляли з собаками або сиділи на лавках. Я купив каву в маленькому кафе й кілька хвилин спостерігав за перехожими. Погода була приємна, і легкий вітерець рухав листя на деревах. Після прогулянки я повернувся додому, приготував сніданок і почав працювати над своїми справами.",
             "openai_client_secret": openai_client_secret
         })
