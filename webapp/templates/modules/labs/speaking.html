@@ -173,14 +173,14 @@
     }
 
     function shouldAutoStop(spokenWords) {
-        if (spokenWords.length < expectedWords.length) {
-            return false;
-        }
+    if (expectedWords.length === 0 || spokenWords.length === 0) {
+        return false;
+    }
 
-        const expectedLastWord = expectedWords[expectedWords.length - 1];
-        const spokenLastWords = spokenWords.slice(-3);
+    const lastExpectedWords = expectedWords.slice(-3);
+    const lastSpokenWords = spokenWords.slice(-8);
 
-        return spokenLastWords.includes(expectedLastWord);
+    return lastExpectedWords.some(word => lastSpokenWords.includes(word));
     }
 
     function processTranscript(newTranscript) {
