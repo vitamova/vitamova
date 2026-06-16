@@ -17,6 +17,22 @@ class Chatbot:
                 ],
             )
             return response.choices[0].message.content
+        
+        def get_realtime_client_secret(self, language):
+            response = self.client.realtime.client_secrets.create(
+                session={
+                    "type": "transcription",
+                    "audio": {
+                        "input": {
+                            "transcription": {
+                                "model": self.model,
+                                "language": language,
+                            }
+                        }
+                    },
+                }
+            )
+            return response.value
 
 
     class Gemini:

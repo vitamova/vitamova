@@ -83,7 +83,10 @@ def writing(request):
         
 def speaking(request):
     if request.method == "GET":
-        language = request.GET.get("language")
+        #language = request.GET.get("language")
+        openai_api_key = vitalib.Chatbot.OpenAI(model="gpt-realtime-whisper").get_realtime_client_secret(language="es")
         return render(request, "modules/labs/speaking.html", {
-            "language": language
+            "language": "es",
+            "passage_text": "Cuando llegué a la ciudad, todavía era temprano y las calles estaban tranquilas. Decidí caminar sin rumbo fijo para conocer mejor el barrio. Pasé por una panadería donde el olor a pan recién hecho llenaba el aire, y después me senté unos minutos en una plaza para observar a la gente. Algunas personas iban al trabajo, mientras que otras conversaban con amigos en las terrazas cercanas. El clima era agradable y una ligera brisa movía las hojas de los árboles. Al final de la mañana, encontré una pequeña librería y compré un libro para leer durante el viaje de regreso.",
+            "openai_api_key": openai_api_key
         })
