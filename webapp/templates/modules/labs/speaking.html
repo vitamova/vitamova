@@ -50,7 +50,6 @@
     let passageTokens = [];
     let expectedWords = [];
     let stopped = false;
-    let hasPlayedMismatchForIndex = new Set();
 
     function normalizeWord(word) {
     return word
@@ -104,25 +103,6 @@
     }
     }
 
-    function playErrorNoise(index) {
-    if (hasPlayedMismatchForIndex.has(index)) return;
-    hasPlayedMismatchForIndex.add(index);
-
-    const ctx = new AudioContext();
-    const oscillator = ctx.createOscillator();
-    const gain = ctx.createGain();
-
-    oscillator.frequency.value = 180;
-    oscillator.type = "square";
-
-    oscillator.connect(gain);
-    gain.connect(ctx.destination);
-
-    gain.gain.setValueAtTime(0.08, ctx.currentTime);
-    oscillator.start();
-    oscillator.stop(ctx.currentTime + 0.12);
-    }
-
     function alignWords(expected, spoken) {
     const m = expected.length;
     const n = spoken.length;
@@ -137,9 +117,9 @@
         const cost = expected[i - 1] === spoken[j - 1] ? 0 : 1;
 
         dp[i][j] = Math.min(
-            dp[i - 1][j] + 1,      // deletion / missed expected word
-            dp[i][j - 1] + 1,      // insertion / extra spoken word
-            dp[i - 1][j - 1] + cost // match or substitution
+            dp[i - 1][j] + 1,
+            dp[i][j - 1] + 1,
+            dp[i - 1][j - 1] + cost
         );
         }
     }
@@ -161,24 +141,28 @@
         });
         i--;
         j--;
-        } else if (i > 0 && dp[i][j] === dp[i - 1][j] + 1) {
-        operations.push({
-            type: "deletion",
-            expectedIndex: i - 1,
-            spokenIndex: null
-        });
-        i--;
-        } else {
+        } else if (j > 0 && dp[i][j] === dp[i][j - 1] + 1) {
         operations.push({
             type: "insertion",
             expectedIndex: null,
             spokenIndex: j - 1
         });
         j--;
+        } else {
+        operations.push({
+            type: "deletion",
+            expectedIndex: i - 1,
+            spokenIndex: null
+        });
+        i--;
         }
     }
 
     return operations.reverse();
+    }
+
+    function getExpectedPrefixLength(spokenWords) {
+    return Math.min(spokenWords.length, expectedWords.length);
     }
 
     function processTranscript(newTranscript) {
@@ -188,34 +172,26 @@
     transcriptEl.textContent = newTranscript;
 
     const spokenWords = tokenize(newTranscript);
-    const operations = alignWords(expectedWords, spokenWords);
+    const expectedPrefixLength = getExpectedPrefixLength(spokenWords);
+    const expectedPrefix = expectedWords.slice(0, expectedPrefixLength);
+
+    const operations = alignWords(expectedPrefix, spokenWords);
 
     resetWordColors();
 
-    let correct = 0;
-    let lastTouchedExpectedIndex = -1;
-
     operations.forEach(op => {
-        if (op.expectedIndex !== null) {
-        lastTouchedExpectedIndex = Math.max(lastTouchedExpectedIndex, op.expectedIndex);
-        }
+        if (op.expectedIndex === null) return;
 
         if (op.type === "match") {
         markWord(op.expectedIndex, "green");
-        correct++;
         }
 
         if (op.type === "substitution" || op.type === "deletion") {
         markWord(op.expectedIndex, "red");
-        playErrorNoise(op.expectedIndex);
         }
     });
 
-    const reachedLastWord =
-        lastTouchedExpectedIndex >= expectedWords.length - 1 ||
-        correct >= expectedWords.length;
-
-    if (reachedLastWord && spokenWords.length >= expectedWords.length - 2) {
+    if (spokenWords.length >= expectedWords.length) {
         stopReading();
     }
     }
@@ -229,7 +205,6 @@
     startTime = performance.now();
     finalTranscript = "";
     stopped = false;
-    hasPlayedMismatchForIndex = new Set();
 
     timeResult.textContent = "-";
     wpmResult.textContent = "-";
@@ -307,7 +282,8 @@
     const minutes = seconds / 60;
 
     const spokenWords = tokenize(finalTranscript);
-    const operations = alignWords(expectedWords, spokenWords);
+    const expectedPrefix = expectedWords.slice(0, Math.min(spokenWords.length, expectedWords.length));
+    const operations = alignWords(expectedPrefix, spokenWords);
 
     let correct = 0;
 
