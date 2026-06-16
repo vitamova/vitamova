@@ -334,7 +334,7 @@
 </head>
 
 <body>
-    <div class="toast-container" id="toastContainer"></div>
+    <div class="xp-toast" id="toast"></div>
 
     <main class="page">
         {% include "partials/header.html" %}
@@ -597,16 +597,12 @@
         }
 
         function showToast(message) {
-            const container = document.getElementById("toastContainer");
-            if (!container) return;
+            const toast = document.getElementById("toast");
+            if (!toast) return;
 
-            const toast = document.createElement("div");
-            toast.className = "xp-toast";
             toast.setAttribute("role", "status");
             toast.setAttribute("aria-live", "polite");
             toast.textContent = message;
-
-            container.appendChild(toast);
 
             requestAnimationFrame(() => {
                 toast.classList.add("is-visible");
