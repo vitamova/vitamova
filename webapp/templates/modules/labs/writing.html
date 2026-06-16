@@ -353,14 +353,14 @@
         <section class="card hidden" id="writingView">
             <div class="writing-meta">
                 <div>
-                    <h2>Your Prompt</h2>
+                    <h2 class="text-2xl md:text-3xl font-black mt-1">Your Prompt</h2>
                     <p class="small-note">Write naturally. Focus on communicating your ideas clearly.</p>
                 </div>
                 <div class="timer" id="timerDisplay">15:00</div>
             </div>
 
             <div class="prompt-box">
-                <h3 id="promptTitle">Prompt</h3>
+                <h2 class="text-xl font-bold" id="promptTitle">Prompt</h2>
                 <p id="promptText">Loading prompt...</p>
             </div>
 
@@ -387,7 +387,7 @@
         <!-- LOADING -->
         <section class="card center hidden" id="loadingView">
             <div class="loading-orb"></div>
-            <h2>Reviewing Your Writing</h2>
+            <h2 class="text-2xl md:text-3xl font-black mt-1">Reviewing Your Writing</h2>
             <p>
                 Vitamova is checking your writing with multiple AI evaluators and comparing the results
                 to give you the best possible feedback.
@@ -407,7 +407,7 @@
                 </div>
             </div>
 
-            <h2 id="scoreTitle">Writing Level</h2>
+            <h2 class="text-2xl md:text-3xl font-black mt-1" id="scoreTitle">Writing Level</h2>
             <p id="scoreDescription"></p>
 
             <div class="actions">
@@ -417,7 +417,7 @@
 
         <!-- REVIEW INTRO -->
         <section class="card center hidden" id="reviewIntroView">
-            <h2>Your Personalized Review</h2>
+            <h2 class="text-2xl md:text-3xl font-black mt-1">Your Personalized Review</h2>
             <p>
                 First, you will review your top 3 areas for improvement. Then, you will see 3 useful vocabulary
                 words that could have made your writing stronger.
@@ -451,7 +451,7 @@
                 </div>
 
                 <div id="vocabQuestionBox" class="hidden">
-                    <h3 id="vocabWordDisplay"></h3>
+                    <h2 class="text-xl font-bold" id="vocabWordDisplay"></h2>
                     <p id="vocabDefinitionDisplay"></p>
                     <p class="small-note">Do you already know this word?</p>
 
@@ -469,7 +469,7 @@
 
         <!-- COMPLETE -->
         <section class="card center hidden" id="completeView">
-            <h1 id="completeTitle">Great Work</h1>
+            <h1 class="text-3xl md:text-4xl font-black tracking-tight mt-1" id="completeTitle">Great Work</h1>
             <p id="completeMessage">
                 You completed your writing practice, reviewed your feedback, and learned from your own writing.
                 That is exactly how you get better.
