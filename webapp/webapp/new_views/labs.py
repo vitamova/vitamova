@@ -74,7 +74,9 @@ def writing(request):
                 assert submitted["status"] == "ok", "Failed to add score and submission time for writing."
 
                 # Now get the rest of the feedback based on the user's writing
-                response["improvements"] = vitalib.Writing.Get(conn=connection, user_id=request.user.id, language=prompt_info["language"]).improvements(prompt_text=prompt_text, text=user_text, score=response["score"]["value"])
-                response["vocabulary"] = vitalib.Writing.Get(conn=connection, user_id=request.user.id, language=prompt_info["language"]).vocabulary(prompt_text=prompt_text, text=user_text)
+                # If score is 1 or 2, it's basically unintelligible, so we won't give feedback
+                if response["score"]["value"] > 2:
+                    response["improvements"] = vitalib.Writing.Get(conn=connection, user_id=request.user.id, language=prompt_info["language"]).improvements(prompt_text=prompt_text, text=user_text, score=response["score"]["value"])
+                    response["vocabulary"] = vitalib.Writing.Get(conn=connection, user_id=request.user.id, language=prompt_info["language"]).vocabulary(prompt_text=prompt_text, text=user_text)
                 response["status"] = "success"
             return JsonResponse(response)

@@ -7,19 +7,6 @@
     <title>Writing Practice | Vitamova</title>
 
     <style>
-        :root {
-            --vita-yellow: #ffd54a;
-            --vita-blue: #1f5eff;
-            --vita-dark: #111827;
-            --vita-muted: #6b7280;
-            --vita-light: #f8fafc;
-            --vita-card: #ffffff;
-            --vita-border: #e5e7eb;
-            --vita-green: #16a34a;
-            --vita-red: #dc2626;
-            --vita-orange: #f97316;
-        }
-
         * {
             box-sizing: border-box;
         }
@@ -28,11 +15,11 @@
             margin: 0;
             min-height: 100vh;
             font-family: system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
-            color: var(--vita-dark);
+            color: var(--vita-text-strong);
             background:
                 radial-gradient(circle at top left, rgba(255, 213, 74, 0.35), transparent 35%),
                 radial-gradient(circle at bottom right, rgba(31, 94, 255, 0.20), transparent 35%),
-                var(--vita-light);
+                var(--vita-bg);
         }
 
         .page {
@@ -78,7 +65,7 @@
         .home-btn {
             background: #fff;
             border: 1px solid var(--vita-border);
-            color: var(--vita-dark);
+            color: var(--vita-text-strong);
         }
 
         .primary-btn {
@@ -89,7 +76,7 @@
 
         .secondary-btn {
             background: var(--vita-yellow);
-            color: var(--vita-dark);
+            color: var(--vita-text-strong);
         }
 
         .danger-btn {
@@ -306,16 +293,11 @@
         .quote-box strong {
             display: block;
             margin-bottom: 8px;
-            color: var(--vita-dark);
+            color: var(--vita-text-strong);
         }
 
         .quote-box p {
             margin: 0;
-        }
-
-        @keyframes toastIn {
-            from { opacity: 0; transform: translateY(8px); }
-            to { opacity: 1; transform: translateY(0); }
         }
 
         .actions {
@@ -506,12 +488,12 @@
 
         <!-- COMPLETE -->
         <section class="card center hidden" id="completeView">
-            <h1>Great Work</h1>
-            <p>
+            <h1 id="completeTitle">Great Work</h1>
+            <p id="completeMessage">
                 You completed your writing practice, reviewed your feedback, and learned from your own writing.
                 That is exactly how you get better.
             </p>
-            <p>
+            <p id="completeSubtext">
                 Come back soon for another prompt and keep building your vocabulary through real usage.
             </p>
 
@@ -590,6 +572,10 @@
         const addWordButton = document.getElementById("addWordButton");
         const normalReviewActions = document.getElementById("normalReviewActions");
 
+        const completeTitle = document.getElementById("completeTitle");
+        const completeMessage = document.getElementById("completeMessage");
+        const completeSubtext = document.getElementById("completeSubtext");
+
         function getCookie(name) {
             let cookieValue = null;
             if (document.cookie && document.cookie !== "") {
@@ -612,14 +598,56 @@
 
         function showToast(message) {
             const container = document.getElementById("toastContainer");
+            if (!container) return;
+
             const toast = document.createElement("div");
             toast.className = "xp-toast";
+            toast.setAttribute("role", "status");
+            toast.setAttribute("aria-live", "polite");
             toast.textContent = message;
+
             container.appendChild(toast);
 
+            requestAnimationFrame(() => {
+                toast.classList.add("is-visible");
+            });
+
             setTimeout(() => {
-                toast.remove();
+                toast.classList.remove("is-visible");
+                setTimeout(() => toast.remove(), 250);
             }, 3500);
+        }
+
+
+        function getScoreValue(data) {
+            return Number(data?.score?.value);
+        }
+
+        function isNoFeedbackScore(data) {
+            const scoreValue = getScoreValue(data);
+            return Number.isFinite(scoreValue) && scoreValue <= 2;
+        }
+
+        function showNoFeedbackCompleteView() {
+            hasCompleted = true;
+            isReviewing = false;
+
+            completeTitle.textContent = "Practice Complete";
+            completeMessage.textContent = "You completed your writing practice. This attempt did not receive personalized feedback because the score indicates the writing was completely or mostly off topic.";
+            completeSubtext.textContent = "Try another prompt when you are ready. Staying focused on the prompt will help Vitamova give you more useful improvements and vocabulary next time.";
+
+            showView("complete");
+        }
+
+        function showStandardCompleteView() {
+            hasCompleted = true;
+            isReviewing = false;
+
+            completeTitle.textContent = "Great Work";
+            completeMessage.textContent = "You completed your writing practice, reviewed your feedback, and learned from your own writing. That is exactly how you get better.";
+            completeSubtext.textContent = "Come back soon for another prompt and keep building your vocabulary through real usage.";
+
+            showView("complete");
         }
 
         function adjustedNowMs() {
@@ -812,9 +840,17 @@
                 feedbackData = data;
                 buildReviewQueue(data);
 
-                scoreNumber.textContent = data.score.value;
-                scoreTitle.textContent = data.score.title;
-                scoreDescription.textContent = data.score.description;
+                const noFeedback = isNoFeedbackScore(data);
+                const defaultScoreTitle = noFeedback ? "Writing Reviewed" : "Writing Level";
+                const baseDescription = data.score?.description || "";
+                const noFeedbackMessage = "This score indicates your writing was completely or mostly off topic, so Vitamova will not provide personalized improvements or vocabulary feedback for this attempt.";
+
+                scoreNumber.textContent = data.score?.value ?? "-";
+                scoreTitle.textContent = data.score?.title || defaultScoreTitle;
+                scoreDescription.textContent = noFeedback
+                    ? `${baseDescription ? `${baseDescription} ` : ""}${noFeedbackMessage}`
+                    : baseDescription;
+                startReviewButton.textContent = noFeedback ? "Finish Practice" : "See How You Can Improve";
 
                 showView("score");
                 showToast("Writing complete. +100 XP");
@@ -832,7 +868,14 @@
         function buildReviewQueue(data) {
             reviewQueue = [];
 
-            data.improvements.forEach((item, index) => {
+            if (isNoFeedbackScore(data)) {
+                return;
+            }
+
+            const improvements = Array.isArray(data.improvements) ? data.improvements : [];
+            const vocabulary = Array.isArray(data.vocabulary) ? data.vocabulary : [];
+
+            improvements.forEach((item, index) => {
                 reviewQueue.push({
                     type: "improvement",
                     number: index + 1,
@@ -843,7 +886,7 @@
                 });
             });
 
-            data.vocabulary.forEach((item, index) => {
+            vocabulary.forEach((item, index) => {
                 reviewQueue.push({
                     type: "vocabulary",
                     number: index + 1,
@@ -860,9 +903,7 @@
 
         function showCurrentReviewItem() {
             if (currentReviewIndex >= reviewQueue.length) {
-                hasCompleted = true;
-                isReviewing = false;
-                showView("complete");
+                showStandardCompleteView();
                 return;
             }
 
@@ -952,6 +993,17 @@
         submitButton.addEventListener("click", () => submitWriting(false));
 
         startReviewButton.addEventListener("click", () => {
+            if (feedbackData && isNoFeedbackScore(feedbackData)) {
+                showNoFeedbackCompleteView();
+                return;
+            }
+
+            if (reviewQueue.length === 0) {
+                showToast("No personalized review items were returned for this attempt.");
+                showStandardCompleteView();
+                return;
+            }
+
             isReviewing = true;
             showView("reviewIntro");
         });
@@ -969,7 +1021,10 @@
 
         addWordButton.addEventListener("click", addCurrentVocabWord);
 
-        homeButton.addEventListener("click", goHomeWithWarning);
+        if (homeButton) {
+            homeButton.addEventListener("click", goHomeWithWarning);
+        }
+
         finalHomeButton.addEventListener("click", () => {
             window.location.href = HOME_URL;
         });
