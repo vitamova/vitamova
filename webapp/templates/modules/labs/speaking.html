@@ -7,23 +7,28 @@
   <title>Speaking Lab</title>
 </head>
 <body>
-  <h1>Speaking Lab</h1>
+    <main class="page">
+        {% include "partials/header.html" %}
+        <section class="content-panel">
+            <h1 class="text-3xl md:text-4xl font-black tracking-tight mt-1">Speaking Lab</h1>
 
-  <p>Language: {{ language }}</p>
+            <p>Language: {{ language }}</p>
 
-  <button id="startBtn">Start</button>
-  <button id="stopBtn" disabled>Stop</button>
+            <button id="startBtn">Start</button>
+            <button id="stopBtn" disabled>Stop</button>
 
-  <h2>Read this:</h2>
-  <p id="passage"></p>
+            <h2>Read this:</h2>
+            <p id="passage"></p>
 
-  <h2>Transcript</h2>
-  <p id="transcript"></p>
+            <h2>Transcript</h2>
+            <p id="transcript"></p>
 
-  <h2>Results</h2>
-  <p>Time: <span id="timeResult">-</span></p>
-  <p>WPM: <span id="wpmResult">-</span></p>
-  <p>Accuracy: <span id="accuracyResult">-</span></p>
+            <h2>Results</h2>
+            <p>Time: <span id="timeResult">-</span></p>
+            <p>WPM: <span id="wpmResult">-</span></p>
+            <p>Accuracy: <span id="accuracyResult">-</span></p>
+        </section>
+    </main>
 
   {{ passage_text|json_script:"passageText" }}
   {{ language|json_script:"languageCode" }}
