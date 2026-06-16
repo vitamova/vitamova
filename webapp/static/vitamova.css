@@ -514,8 +514,8 @@ textarea,
 .word-input {
   width: 100%;
   resize: vertical;
-  border-radius: var(--radius-lg);
-  padding: 18px 20px;
+  border-radius: 6px;
+  padding: 22px 24px;
   line-height: 1.6;
 }
 
